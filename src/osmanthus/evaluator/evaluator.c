@@ -6,8 +6,8 @@
  *  Copyright (c) 2013 MED. All rights reserved.
  */
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "evalarrays.h"
 #include "evaluator.h"
@@ -17,7 +17,7 @@
  * Kevin L. Suffecool
  * suffecool@bigfoot.com
  *
- 
+
  *
  *   This routine initializes the deck.  A deck of cards is
  *   simply an integer array of length 52 (no jokers).  This
@@ -66,24 +66,22 @@ void eval_shuffle_deck(int *deck) {
 }
 
 int eval_hand_rank(short val) {
-  if (val > 467) return (HIGH_CARD); /*  274 high cards      */
-  if (val > 311) return (PAIR); /*  156 one pairs       */
-  if (val > 299) return (STRAIGHT); /*  12 straights        */
-  if (val > 25) return (FLUSH); /*  274 flushes         */
-  if (val > 13) return (STRAIGHT_FLUSH); /*  12 straight flushes */
-  return (LEOPARD); /*  13 Leopard          */
+  if (val > 467)
+    return (HIGH_CARD); /*  274 high cards      */
+  if (val > 311)
+    return (PAIR); /*  156 one pairs       */
+  if (val > 299)
+    return (STRAIGHT); /*  12 straights        */
+  if (val > 25)
+    return (FLUSH); /*  274 flushes         */
+  if (val > 13)
+    return (STRAIGHT_FLUSH); /*  12 straight flushes */
+  return (LEOPARD);          /*  13 Leopard          */
 }
 
 const char *eval_hand_rank_description(short val) {
-  char *hand_descriptions[] =
-      {
-          "",
-          "Leopard",
-          "Straight Flush",
-          "Flush",
-          "Straight",
-          "Pair",
-          "High Card"};
+  char *hand_descriptions[] = {"",         "Leopard", "Straight Flush", "Flush",
+                               "Straight", "Pair",    "High Card"};
 
   return hand_descriptions[val];
 }
@@ -97,8 +95,8 @@ unsigned int eval_hash_prime_product(unsigned int val) {
   val ^= (val >> 16);
   val += (val << 8);
   val ^= (val >> 4);
-  b   = (val >> 3) & 0x1f;
-  a   = (val + (val << 11)) >> 24;
+  b = (val >> 3) & 0x1f;
+  a = (val + (val << 11)) >> 24;
   rsl = (a ^ eval_hash_table[b]);
 
   return rsl;
@@ -107,8 +105,9 @@ unsigned int eval_hash_prime_product(unsigned int val) {
 
 unsigned int eval_3hand(int c1, int c2, int c3) {
   int s;
-  int q     = (c1 | c2 | c3) >> 16;
-  int prime = (eval_primes[RANK(c1)] * eval_primes[RANK(c2)] * eval_primes[RANK(c3)]);
+  int q = (c1 | c2 | c3) >> 16;
+  int prime =
+      (eval_primes[RANK(c1)] * eval_primes[RANK(c2)] * eval_primes[RANK(c3)]);
 
   if (c1 & c2 & c3 & 0xf000)
     return eval_flushes[q]; /* check for flushes and straight flushes */
@@ -124,16 +123,16 @@ unsigned int eval_3hand(int c1, int c2, int c3) {
 }
 
 unsigned int eval_card_make(int suit, int rank) {
-  unsigned int card     = 0;
+  unsigned int card = 0;
   unsigned int rank_bit = 0x010000;
   unsigned int suit_bit = 0;
   unsigned int rank_num = 0;
-  unsigned int prime    = 0;
+  unsigned int prime = 0;
 
   rank_bit = rank_bit << rank;
   suit_bit = suit;
   rank_num = rank << 8;
-  prime    = eval_primes[rank];
+  prime = eval_primes[rank];
 
   card |= prime;
   card |= rank_num;

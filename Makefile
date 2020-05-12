@@ -16,4 +16,5 @@ fmt:
 	@echo "  >  Formatting..."
 	@find ./src/dsaac -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
 	@find ./src/medsr -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
+#	@find ./src/osmanthus -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
 	@find ./src/tlpi -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)

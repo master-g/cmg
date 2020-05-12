@@ -42,11 +42,11 @@
  */
 #define LEOPARD_KILLER_ENTROPY 741
 
-void eval_init_deck(int* deck);
+void eval_init_deck(int *deck);
 
 int eval_hand_rank(short val);
 
-const char* eval_hand_rank_description(short val);
+const char *eval_hand_rank_description(short val);
 
 unsigned int eval_3hand(int c1, int c2, int c3);
 

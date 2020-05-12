@@ -9,9 +9,9 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "arraygenerator/utils.h"
 #include "evalarrays.h"
 #include "evaluator.h"
-#include "arraygenerator/utils.h"
 
 #define FLUSHES_COUNT 7169
 #define UNIQUE3_COUNT FLUSHES_COUNT
@@ -49,7 +49,7 @@ void verify_arrays(void) {
 #endif
 }
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char *argv[]) {
   int i = 0;
   int entropy;
   int c1, c2, c3;
@@ -60,7 +60,7 @@ int main(int argc, const char* argv[]) {
   int ranks[7];
 
   int highest = 0;
-  int lowest  = LEOPARD_KILLER_ENTROPY;
+  int lowest = LEOPARD_KILLER_ENTROPY;
 
   int64_t timestamp;
 
@@ -75,9 +75,9 @@ int main(int argc, const char* argv[]) {
   timestamp = GetTimeInMicroseconds();
 
   do {
-    c1      = deck[comb[0]];
-    c2      = deck[comb[1]];
-    c3      = deck[comb[2]];
+    c1 = deck[comb[0]];
+    c2 = deck[comb[1]];
+    c3 = deck[comb[2]];
     entropy = eval_3hand(c1, c2, c3);
 
     if (entropy > highest) {
