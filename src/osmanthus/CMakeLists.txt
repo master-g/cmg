@@ -1,0 +1,3 @@
+add_subdirectory(arraygenerator)
+add_subdirectory(evaluator)
+add_subdirectory(hashgenerator)
