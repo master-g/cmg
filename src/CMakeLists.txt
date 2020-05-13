@@ -15,5 +15,8 @@ add_subdirectory(mph)
 # Osmanthus (gold flower poker) evaluator
 add_subdirectory(osmanthus)
 
+# Texas hold'em poker evaluator
+add_subdirectory(texas)
+
 # The Linux Programming Interface
 add_subdirectory(tlpi)
