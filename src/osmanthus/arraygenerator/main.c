@@ -7,7 +7,6 @@
  */
 
 #include "evaluator/evalarrays.h"
-#include "evaluator/evaluator.h"
 #include "utils.h"
 #include <stdio.h>
 #include <string.h>
