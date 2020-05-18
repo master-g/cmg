@@ -6,7 +6,7 @@
  *  Copyright (c) 2013 SNSTEAM. All rights reserved.
  */
 
-#include "utils.h"
+#include "texas_utils.h"
 #include "constants.h"
 #include "evaluator/evalarrays.h"
 

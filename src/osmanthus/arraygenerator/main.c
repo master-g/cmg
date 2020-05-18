@@ -7,7 +7,7 @@
  */
 
 #include "evaluator/evalarrays.h"
-#include "utils.h"
+#include "texas_utils.h"
 #include <stdio.h>
 #include <string.h>
 

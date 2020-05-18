@@ -9,7 +9,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "arraygenerator/utils.h"
+#include "arraygenerator/texas_utils.h"
 #include "evalarrays.h"
 #include "evaluator.h"
 

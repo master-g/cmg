@@ -2063,6 +2063,7 @@ uint16_t eval_hash_values[] = {
     5330, 5048, 4037, 166,  6033, 4625, 3326, 2013, 5283, 136,  3373, 2154,
     166,  166,  166,  4421, 166,  5438, 2627, 2266, 2320, 166,  2588, 4790,
     4290, 166,  4767, 5829, 2925, 5916, 2133, 166};
+int size_eval_hash = sizeof(eval_hash_values) / sizeof(eval_hash_values[0]);
 
 uint32_t eval_find_fast(uint32_t product) {
   uint32_t a, b, r;

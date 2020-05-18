@@ -1,3 +1,10 @@
+project(mph)
+
 include_directories(.)
-file(GLOB SOURCES RELATIVES ${CMAKE_CURRENT_SOURCE_DIR} *.c)
-add_executable(mph ${SOURCES})
+
+add_executable(${PROJECT_NAME}
+        lookupa.c
+        perfect.c
+        perfhex.c
+        recycle.c
+        )

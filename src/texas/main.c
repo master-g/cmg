@@ -1,60 +1,20 @@
 //
-// Created by MasterG on 2020/5/13.
+// Created by MasterG on 2020/5/18.
 //
 
+#include <errno.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "bits.h"
 #include "generate.h"
 
-extern uint16_t eval_flushes[];
-extern uint16_t eval_unique5[];
-extern int size_eval_flushes;
-extern int size_eval_unique5;
-extern uint16_t eval_others(int product);
-
-int examine_flushes(const uint16_t *t) {
-  if (size_eval_flushes != MAGIC_UNIQUE5_SIZE) {
-    printf("their size:%d != mine size:%d\n", size_eval_flushes,
-           MAGIC_UNIQUE5_SIZE);
-    return -1;
-  }
-
-  for (int i = 0; i < size_eval_flushes; i++) {
-    if (eval_flushes[i] != t[i]) {
-      printf("their[%d]=%d, mine[%d]=%d\n", i, eval_flushes[i], i, t[i]);
-      return -1;
-    }
-  }
-
-  return 0;
-}
-
-int examine_unique5(const uint16_t *t) {
-  if (size_eval_unique5 != MAGIC_UNIQUE5_SIZE) {
-    printf("their size:%d != mine size:%d\n", size_eval_unique5,
-           MAGIC_UNIQUE5_SIZE);
-    return -1;
-  }
-
-  for (int i = 0; i < size_eval_unique5; i++) {
-    if (eval_unique5[i] != t[i]) {
-      printf("their[%d]=%d, mine[%d]=%d\n", i, eval_unique5[i], i, t[i]);
-      return -1;
-    }
-  }
-
-  return 0;
-}
-
-void dump_array(const char *name, uint16_t *arr, int len) {
+void dump_array(FILE *fp, const char *name, uint16_t *arr, int len) {
   const int max_columns = 12;
   char buf[120];
   int row_num = len / max_columns;
   int tail = len % max_columns;
 
-  printf("unsigned short texas_eval_flushes[] = {\n");
+  fprintf(fp, "unsigned short %s[] = {\n", name);
 
   for (int row = 0; row <= row_num; row++) {
     memset(buf, 0, sizeof(buf));
@@ -75,7 +35,7 @@ void dump_array(const char *name, uint16_t *arr, int len) {
       uint16_t v = arr[col + offset];
       int n;
       if (is_tail) {
-        n = snprintf(blob, sizeof(blob), "%d", v);
+        n = snprintf(blob, sizeof(blob), "%d,", v);
       } else {
         n = snprintf(blob, sizeof(blob), "%d,", v);
       }
@@ -87,81 +47,178 @@ void dump_array(const char *name, uint16_t *arr, int len) {
       }
       snprintf(buf + buf_off, sizeof(buf), "%s", blob);
     }
-    printf("    %s\n", buf);
+    fprintf(fp, "    %s\n", buf);
   }
 
-  printf("};\n");
+  fprintf(fp, "};\n");
 }
 
-int gen_flushes() {
-  // generate arr_flushes
+void dump_array_32(FILE *fp, const char *name, uint32_t *arr, int len) {
+  char buf[120];
+
+  fprintf(fp, "unsigned int %s[] = {\n", name);
+
+  int pos = 0;
+  while (pos < len) {
+    int trylen = 0;
+    int str_len = 0;
+    while (1) {
+      trylen++;
+      if (pos + trylen > len) {
+        trylen = len - pos;
+        break;
+      }
+
+      str_len = 0;
+      for (int i = 0; i < trylen; i++) {
+        str_len +=
+            snprintf(buf + str_len, sizeof(buf) - str_len, "%d,", arr[pos + i]);
+      }
+      if (str_len > 80) {
+        trylen--;
+        break;
+      }
+    }
+
+    memset(buf, 0, sizeof(buf));
+    str_len = 0;
+    for (int i = 0; i < trylen; i++) {
+      str_len +=
+          snprintf(buf + str_len, sizeof(buf) - str_len, "%d,", arr[pos + i]);
+    }
+    pos += trylen;
+    fprintf(fp, "%s\n", buf);
+  }
+
+  fprintf(fp, "};\n");
+}
+
+void populate_flushes(FILE *fp) {
   uint16_t flushes[MAGIC_UNIQUE5_SIZE] = {0};
   texas_gen_flushes(flushes);
 
-  // examine
-  if (examine_flushes(flushes) != 0) {
-    return -1;
-  }
+  fprintf(fp, "/**\n");
+  fprintf(fp,
+          " * this is a table lookup for all \"flush\" hands (e.g.  both\n");
+  fprintf(fp, " * flushes and straight-flushes).  entries containing a zero\n");
+  fprintf(fp, " * mean that combination is not possible with a five-card\n");
+  fprintf(fp, " * flush hand.\n");
+  fprintf(fp, " */\n");
 
-  printf("/**\n");
-  printf(" * this is a table lookup for all \"flush\" hands (e.g.  both\n");
-  printf(" * flushes and straight-flushes).  entries containing a zero\n");
-  printf(" * mean that combination is not possible with a five-card\n");
-  printf(" * flush hand.\n");
-  printf(" */\n");
-
-  dump_array("texas_eval_flushes", flushes, MAGIC_UNIQUE5_SIZE);
-
-  return 0;
+  dump_array(fp, "texas_eval_flushes", flushes, MAGIC_UNIQUE5_SIZE);
 }
 
-int gen_unique5() {
-  // generate arr_unique5
+void populate_unique5(FILE *fp) {
   uint16_t unique5[MAGIC_UNIQUE5_SIZE] = {0};
   texas_gen_unique5(unique5);
 
-  // examine
-  if (examine_unique5(unique5) != 0) {
-    return -1;
-  }
+  fprintf(fp, "/**\n");
+  fprintf(fp, " * this is a table lookup for all non-flush hands consisting\n");
+  fprintf(fp, " * of five unique ranks (i.e.  either Straights or High Card\n");
+  fprintf(fp, " * hands).  it's similar to the above \"flushes\" array.\n");
+  fprintf(fp, " */\n");
 
-  printf("/**\n");
-  printf(" * this is a table lookup for all non-flush hands consisting\n");
-  printf(" * of five unique ranks (i.e.  either Straights or High Card\n");
-  printf(" * hands).  it's similar to the above \"flushes\" array.\n");
-  printf(" */\n");
-
-  dump_array("texas_eval_unique5", unique5, MAGIC_UNIQUE5_SIZE);
-
-  return 0;
+  dump_array(fp, "texas_eval_unique5", unique5, MAGIC_UNIQUE5_SIZE);
 }
 
-void test_others() {
+void populate_others_key(FILE *fp) {
   texas_magic_kv_t *list = NULL;
+  texas_magic_kv_t *iter = NULL;
   texas_gen_others(&list);
-  texas_magic_kv_t *iter = list;
+
+  iter = list;
   while (iter != NULL) {
-    printf("product:%d, magic:%d\n", iter->product, iter->magic);
+    fprintf(fp, "%d\n", iter->product);
     iter = iter->next;
   }
+
   texas_free_others(list);
 }
 
-void foo() {
-  int index[2] = {0, 1};
-  for (int i = 0; i < 13; i++) {
-    for (int j = 0; j < 13; j++) {
-      if (i != j) {
-        printf("{%d, %d}\n", i, j);
-      }
-    }
+void populate_others_gen(FILE *fp) {
+  uint32_t keys[4888] = {0};
+  uint32_t values[4888] = {0};
+  texas_magic_kv_t *list = NULL;
+  texas_magic_kv_t *iter = NULL;
+  texas_gen_others(&list);
+
+  int i = 0;
+  iter = list;
+  while (iter != NULL) {
+    keys[i] = iter->product;
+    values[i] = iter->magic;
+    iter = iter->next;
+    i++;
   }
+
+  texas_free_others(list);
+
+  fprintf(fp, "#include <stdio.h>\n");
+  fprintf(fp, "#include \"perf_hash.h\"");
+  fprintf(fp, "\n\n");
+  dump_array_32(fp, "hash_keys", keys, sizeof(keys) / sizeof(keys[0]));
+  fprintf(fp, "\n");
+  dump_array_32(fp, "hash_values", values, sizeof(values) / sizeof(values[0]));
+  fprintf(fp, "\n");
+  fprintf(fp, "int main(int argc, char* argv[]) {\n");
+  fprintf(fp, "uint16_t hashes[MPH_PERF_RANGE] = {0};\n");
+  fprintf(
+      fp,
+      "for (int i = 0; i < sizeof(hash_keys)/sizeof(hash_keys[0]); i++) {\n");
+  fprintf(fp, "uint32_t pos = mph_perf_s(hash_keys[i]);\n");
+  fprintf(fp, "hashes[pos] = hash_values[i];\n");
+  fprintf(fp, "}\n\n");
+  fprintf(fp, "printf(\"unsigned short eval_other_hashes[] = {\\n\");\n");
+  fprintf(fp, "for (int i = 0; i < MPH_PERF_RANGE; i++) {\n");
+  fprintf(fp, "printf(\"%%d,\", hashes[i]);\n");
+  fprintf(fp, "if (i != 0 && i %% 16 == 0) {\n");
+  fprintf(fp, "printf(\"\\n\");\n");
+  fprintf(fp, "}\n");
+  fprintf(fp, "}\n");
+  fprintf(fp, "printf(\"\\n};\\n\");\n");
+
+  fprintf(fp, "return 0;\n}\n");
 }
 
 int main(int argc, char *argv[]) {
-  int ret = 0;
+  // flushes and unique5
+  char *filename = "gen_arr.c";
+  FILE *fp = fopen(filename, "w+");
+  if (fp == NULL) {
+    return errno;
+  }
 
-  test_others();
+  populate_flushes(fp);
+  fprintf(fp, "\n");
+  populate_unique5(fp);
 
-  return ret;
+  fclose(fp);
+
+  // others
+  filename = "temp_other_keys.txt";
+  fp = fopen(filename, "w+");
+  if (fp == NULL) {
+    return errno;
+  }
+
+  populate_others_key(fp);
+  fclose(fp);
+
+  printf("run following command to generate minimal-perfect-hash\n");
+  printf("you can find mph's source code here "
+         "https://burtleburtle.net/bob/hash/perfect.html\n");
+  printf("or a more modern version "
+         "https://github.com/driedfruit/jenkins-minimal-perfect-hash\n");
+  printf("$ mph -dps < temp_other_keys.txt\n");
+
+  // source
+  filename = "temp_other_gen.c";
+  fp = fopen(filename, "w+");
+  if (fp == NULL) {
+    return errno;
+  }
+
+  populate_others_gen(fp);
+
+  return 0;
 }

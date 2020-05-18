@@ -7,12 +7,12 @@
 
 #include <stdint.h>
 
-#define MAGIC_UNIQUE5_SIZE 0x1F01   // (0001 1111 0000 0000) + 1
-#define MAGIC_OTHERS_SIZE 104553157 // AAAAK 41^4 * 37, 'short' will take 200MB
+#define MAGIC_UNIQUE5_SIZE 0x1F01 // (0001 1111 0000 0000) + 1
 
+// std::list<std::pair<uint32_t, uint16_t>>
 typedef struct texas_magic_kv_s {
-  uint16_t product;
-  uint16_t magic;
+  uint32_t product; // product of the cards' prime
+  uint16_t magic;   // rank of the hand
   struct texas_magic_kv_s *next;
 } texas_magic_kv_t;
 
