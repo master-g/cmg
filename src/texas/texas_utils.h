@@ -5,12 +5,12 @@
 #ifndef CMG_TEXAS_UTILS_H
 #define CMG_TEXAS_UTILS_H
 
-typedef struct texas_handlist_s {
+typedef struct texas_hand_s {
   unsigned int cards[5];
   unsigned short value;
   char str_card[26];
   char str_desc[20];
-  struct texas_handlist_s *next;
+  struct texas_hand_s *next;
 } texas_hand_t;
 
 int texas_utils_init_deck(unsigned int *deck);

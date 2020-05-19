@@ -177,11 +177,10 @@ int texas_utils_str_hand(int value, char *buf) {
 }
 
 int texas_utils_hand_list_len(texas_hand_t *list) {
-  texas_hand_t *head = list;
   int len = 0;
-  while (head != NULL) {
+  while (list != NULL) {
+    list = list->next;
     len++;
-    head = head->next;
   }
 
   return len;
@@ -210,22 +209,15 @@ void texas_utils_hand_list_push(texas_hand_t **list, unsigned int card1,
   ht = texas_eval_hand_rank(value);
   texas_utils_str_hand(ht, new_head->str_desc);
 
-  new_head->next = *list;
+  new_head->next = (*list);
 
-  *list = new_head;
+  (*list) = new_head;
 }
 
-void texas_utils_hand_list_swap(texas_hand_t *a, texas_hand_t *b) {
-  texas_hand_t temp;
-  if (a == NULL || b == NULL) {
-    return;
-  }
-
-  memcpy(&temp, a, sizeof(texas_hand_t));
-  memcpy(a, b, sizeof(texas_hand_t));
-  a->next = temp.next;
-  temp.next = b->next;
-  memcpy(b, &temp, sizeof(texas_hand_t));
+void texas_utils_hand_list_swap(texas_hand_t **a, texas_hand_t **b) {
+  texas_hand_t *temp = *a;
+  *a = *b;
+  *b = temp;
 }
 
 void texas_utils_hand_list_merge(texas_hand_t **start1, texas_hand_t **end1,
@@ -237,8 +229,8 @@ void texas_utils_hand_list_merge(texas_hand_t **start1, texas_hand_t **end1,
   texas_hand_t *bendnext;
 
   if ((*start1)->value > (*start2)->value) {
-    texas_utils_hand_list_swap(*start1, *start2);
-    texas_utils_hand_list_swap(*end1, *end2);
+    texas_utils_hand_list_swap(start1, start2);
+    texas_utils_hand_list_swap(end1, end2);
   }
 
   astart = *start1;
@@ -341,11 +333,6 @@ void texas_utils_dump_list(texas_hand_t **list) {
     c4 = deck[comb[3]];
     c5 = deck[comb[4]];
     value = texas_eval_5hand(c1, c2, c3, c4, c5);
-
-    if (value == 0) {
-      char buf[30] = {0};
-      texas_utils_str_card(c1, buf);
-    }
 
     texas_utils_hand_list_push(list, c1, c2, c3, c4, c5, value);
 
