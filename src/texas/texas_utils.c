@@ -176,6 +176,112 @@ int texas_utils_str_hand(int value, char *buf) {
   return (int)strlen(pstr);
 }
 
+int texas_utils_card_cmp(const void *a, const void *b) {
+  unsigned int rank_a, rank_b;
+  unsigned int suit_a, suit_b;
+  rank_a = TEXAS_CARD_RANK(*(unsigned int *)a) << 4u;
+  rank_b = TEXAS_CARD_RANK(*(unsigned int *)b) << 4u;
+  suit_a = TEXAS_CARD_SUIT(*(unsigned int *)a) >> 12u;
+  suit_b = TEXAS_CARD_SUIT(*(unsigned int *)b) >> 12u;
+
+  return (int)(suit_b | rank_b) - (int)(suit_a | rank_a);
+}
+
+void texas_utils_cards_shift_left(unsigned int cards[], int d) {
+  int i;
+  unsigned int temp;
+  if (d <= 0) {
+    return;
+  }
+
+  for (i = 0; i < d; i++) {
+    temp = cards[0];
+    cards[0] = cards[1];
+    cards[1] = cards[2];
+    cards[2] = cards[3];
+    cards[3] = cards[4];
+    cards[4] = temp;
+  }
+}
+
+void texas_utils_cards_swap(unsigned int cards[], int i, int j) {
+  unsigned int temp = cards[i];
+  cards[i] = cards[j];
+  cards[j] = temp;
+}
+
+void texas_utils_cards_sort(unsigned int *cards, unsigned short value) {
+  int hand_type = texas_eval_hand_rank(value);
+
+  qsort(cards, 5, sizeof(unsigned int), texas_utils_card_cmp);
+
+  switch (hand_type) {
+  case TEXAS_HAND_FOUR_OF_A_KIND: {
+    if (TEXAS_CARD_RANK(cards[0]) != TEXAS_CARD_RANK(cards[1])) {
+      /* ABBBB */
+      texas_utils_cards_shift_left(cards, 1);
+    }
+    break;
+  }
+  case TEXAS_HAND_FULL_HOUSE: {
+    if (TEXAS_CARD_RANK(cards[2]) == TEXAS_CARD_RANK(cards[3])) {
+      /* AABBB */
+      texas_utils_cards_shift_left(cards, 2);
+    }
+    break;
+  }
+  case TEXAS_HAND_THREE_OF_A_KIND: {
+    if (TEXAS_CARD_RANK(cards[3]) == TEXAS_CARD_RANK(cards[4])) {
+      /* ABCCC */
+      texas_utils_cards_shift_left(cards, 2);
+    } else if (TEXAS_CARD_RANK(cards[0]) != TEXAS_CARD_RANK(cards[1])) {
+      /* ABBBC */
+      texas_utils_cards_shift_left(cards, 1);
+      texas_utils_cards_swap(cards, 3, 4);
+    }
+    break;
+  }
+  case TEXAS_HAND_TWO_PAIR: {
+    /* AABBC */
+
+    if (TEXAS_CARD_RANK(cards[2]) != TEXAS_CARD_RANK(cards[3])) {
+      if (TEXAS_CARD_RANK(cards[0]) == TEXAS_CARD_RANK(cards[1])) {
+        /* AABCC */
+        texas_utils_cards_swap(cards, 2, 4);
+        texas_utils_cards_swap(cards, 2, 3);
+      } else {
+        /* ABBCC */
+        texas_utils_cards_shift_left(cards, 1);
+      }
+    }
+    break;
+  }
+  case TEXAS_HAND_ONE_PAIR: {
+    if (TEXAS_CARD_RANK(cards[1]) == TEXAS_CARD_RANK(cards[2])) {
+      /* ABBCD */
+      texas_utils_cards_shift_left(cards, 1); /* BBCDA */
+      texas_utils_cards_swap(cards, 2, 4);    /* BBADC */
+      texas_utils_cards_swap(cards, 3, 4);
+    } else if (TEXAS_CARD_RANK(cards[2]) == TEXAS_CARD_RANK(cards[3])) {
+      /* ABCCD */
+      texas_utils_cards_shift_left(cards, 2); /* CCDAB */
+      texas_utils_cards_swap(cards, 2, 3);    /* CCADB */
+      texas_utils_cards_swap(cards, 3, 4);
+    } else if (TEXAS_CARD_RANK(cards[3]) == TEXAS_CARD_RANK(cards[4])) {
+      /* ABCDD */
+      texas_utils_cards_shift_left(cards, 3); /* DDABC */
+    }
+    break;
+  }
+  default:
+    if (value == 10) {
+      /* A5432 */
+      texas_utils_cards_shift_left(cards, 1);
+    }
+    break;
+  }
+}
+
 int texas_utils_hand_list_len(texas_hand_t *list) {
   int len = 0;
   while (list != NULL) {
@@ -202,12 +308,15 @@ void texas_utils_hand_list_push(texas_hand_t **list, unsigned int card1,
   memset(new_head->str_card, 0, sizeof(new_head->str_card));
   memset(new_head->str_desc, 0, sizeof(new_head->str_desc));
 
+  ht = texas_eval_hand_rank(value);
+  texas_utils_str_hand(ht, new_head->str_desc);
+
+  texas_utils_cards_sort(new_head->cards, value);
+
   sl = 0;
   for (i = 0; i < 5; i++) {
     sl += texas_utils_str_card(new_head->cards[i], new_head->str_card + sl);
   }
-  ht = texas_eval_hand_rank(value);
-  texas_utils_str_hand(ht, new_head->str_desc);
 
   new_head->next = (*list);
 

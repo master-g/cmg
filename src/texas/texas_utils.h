@@ -23,6 +23,8 @@ int texas_utils_str_card(unsigned int card, char *buf);
 
 int texas_utils_str_hand(int value, char *buf);
 
+void texas_utils_cards_sort(unsigned int *cards, unsigned short value);
+
 void texas_utils_dump_list(texas_hand_t **list);
 
 void texas_utils_free_list(texas_hand_t *list);
