@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include "texas_array.h"
 #include "texas_eval.h"
@@ -57,17 +58,17 @@ int texas_utils_next_comb(int comb[], int k, int n) {
   return 1;
 }
 
-static unsigned char sz_diamond[] = {0xE2, 0x99, 0xA6, 0};
-static unsigned char sz_club[] = {0xE2, 0x99, 0xA3, 0};
-static unsigned char sz_heart[] = {0xE2, 0x99, 0xA5, 0};
-static unsigned char sz_spade[] = {0xE2, 0x99, 0xA0, 0};
+static unsigned char sz_diamond[] = {0xE2, 0x99, 0xA6};
+static unsigned char sz_club[] = {0xE2, 0x99, 0xA3};
+static unsigned char sz_heart[] = {0xE2, 0x99, 0xA5};
+static unsigned char sz_spade[] = {0xE2, 0x99, 0xA0};
 
 int texas_utils_str_card(unsigned int card, char *buf) {
   unsigned int suit, rank;
-  int i;
+  int i, len;
   unsigned char *pstr = NULL;
   if (buf == NULL) {
-    return 4;
+    return 5;
   }
 
   suit = TEXAS_CARD_SUIT(card);
@@ -90,25 +91,37 @@ int texas_utils_str_card(unsigned int card, char *buf) {
     buf[i] = (char)pstr[i];
   }
 
+  len = 5;
+
   rank = TEXAS_CARD_RANK(card);
   switch (rank) {
+  case TEXAS_RANK_TEN:
+    buf[3] = '1';
+    buf[4] = '0';
+    len = 5;
+    break;
   case TEXAS_RANK_JACK:
     buf[3] = 'J';
+    buf[4] = ' ';
     break;
   case TEXAS_RANK_QUEEN:
     buf[3] = 'Q';
+    buf[4] = ' ';
     break;
   case TEXAS_RANK_KING:
     buf[3] = 'K';
+    buf[4] = ' ';
     break;
   case TEXAS_RANK_ACE:
     buf[3] = 'A';
+    buf[4] = ' ';
     break;
   default:
     buf[3] = (char)('2' + rank);
+    buf[4] = ' ';
   }
 
-  return 4;
+  return len;
 }
 
 const char *sz_hand_straight_flush = "Straight Flush";
@@ -161,4 +174,192 @@ int texas_utils_str_hand(int value, char *buf) {
   strcpy(buf, pstr);
 
   return (int)strlen(pstr);
+}
+
+int texas_utils_hand_list_len(texas_hand_t *list) {
+  texas_hand_t *head = list;
+  int len = 0;
+  while (head != NULL) {
+    len++;
+    head = head->next;
+  }
+
+  return len;
+}
+
+void texas_utils_hand_list_push(texas_hand_t **list, unsigned int card1,
+                                unsigned int card2, unsigned int card3,
+                                unsigned int card4, unsigned int card5,
+                                unsigned short value) {
+  int i, sl;
+  unsigned short ht;
+  texas_hand_t *new_head = (texas_hand_t *)malloc(sizeof(texas_hand_t));
+  new_head->cards[0] = card1;
+  new_head->cards[1] = card2;
+  new_head->cards[2] = card3;
+  new_head->cards[3] = card4;
+  new_head->cards[4] = card5;
+  new_head->value = value;
+  memset(new_head->str_card, 0, sizeof(new_head->str_card));
+  memset(new_head->str_desc, 0, sizeof(new_head->str_desc));
+
+  sl = 0;
+  for (i = 0; i < 5; i++) {
+    sl += texas_utils_str_card(new_head->cards[i], new_head->str_card + sl);
+  }
+  ht = texas_eval_hand_rank(value);
+  texas_utils_str_hand(ht, new_head->str_desc);
+
+  new_head->next = *list;
+
+  *list = new_head;
+}
+
+void texas_utils_hand_list_swap(texas_hand_t *a, texas_hand_t *b) {
+  texas_hand_t temp;
+  if (a == NULL || b == NULL) {
+    return;
+  }
+
+  memcpy(&temp, a, sizeof(texas_hand_t));
+  memcpy(a, b, sizeof(texas_hand_t));
+  a->next = temp.next;
+  temp.next = b->next;
+  memcpy(b, &temp, sizeof(texas_hand_t));
+}
+
+void texas_utils_hand_list_merge(texas_hand_t **start1, texas_hand_t **end1,
+                                 texas_hand_t **start2, texas_hand_t **end2) {
+  texas_hand_t *temp = NULL;
+  texas_hand_t *astart;
+  texas_hand_t *bstart;
+  texas_hand_t *aend;
+  texas_hand_t *bendnext;
+
+  if ((*start1)->value > (*start2)->value) {
+    texas_utils_hand_list_swap(*start1, *start2);
+    texas_utils_hand_list_swap(*end1, *end2);
+  }
+
+  astart = *start1;
+  bstart = *start2;
+  aend = *end1;
+  bendnext = (*end2)->next;
+
+  while (astart != aend && bstart != bendnext) {
+    if (astart->next->value > bstart->value) {
+      temp = bstart->next;
+      bstart->next = astart->next;
+      astart->next = bstart;
+      bstart = temp;
+    }
+    astart = astart->next;
+  }
+
+  if (astart == aend) {
+    astart->next = bstart;
+  } else {
+    *end2 = *end1;
+  }
+}
+
+void texas_utils_hand_list_merge_sort(texas_hand_t **head) {
+  texas_hand_t *start1 = NULL;
+  texas_hand_t *start2 = NULL;
+  texas_hand_t *end1 = NULL;
+  texas_hand_t *end2 = NULL;
+  texas_hand_t *prevend = NULL;
+  int len, gap;
+
+  if (*head == NULL) {
+    return;
+  }
+
+  len = texas_utils_hand_list_len(*head);
+
+  for (gap = 1; gap < len; gap = gap * 2) {
+    start1 = *head;
+    while (start1) {
+      texas_hand_t *temp;
+      int is_first_iter = 0;
+      int counter = gap;
+
+      if (start1 == *head) {
+        is_first_iter = 1;
+      }
+
+      end1 = start1;
+      while (--counter && end1->next) {
+        end1 = end1->next;
+      }
+
+      start2 = end1->next;
+      if (!start2) {
+        break;
+      }
+      counter = gap;
+      end2 = start2;
+      while (--counter && end2->next) {
+        end2 = end2->next;
+      }
+
+      temp = end2->next;
+
+      texas_utils_hand_list_merge(&start1, &end1, &start2, &end2);
+
+      if (is_first_iter) {
+        *head = start1;
+      } else {
+        prevend->next = start1;
+      }
+
+      prevend = end2;
+      start1 = temp;
+    }
+
+    prevend->next = start1;
+  }
+}
+
+void texas_utils_dump_list(texas_hand_t **list) {
+  int i, comb[5];
+  unsigned int deck[52];
+
+  texas_utils_init_deck(deck);
+  texas_utils_shuffle_deck(deck, time(NULL));
+
+  for (i = 0; i < 5; i++) {
+    comb[i] = i;
+  }
+
+  do {
+    unsigned int c1, c2, c3, c4, c5;
+    unsigned short value;
+    c1 = deck[comb[0]];
+    c2 = deck[comb[1]];
+    c3 = deck[comb[2]];
+    c4 = deck[comb[3]];
+    c5 = deck[comb[4]];
+    value = texas_eval_5hand(c1, c2, c3, c4, c5);
+
+    if (value == 0) {
+      char buf[30] = {0};
+      texas_utils_str_card(c1, buf);
+    }
+
+    texas_utils_hand_list_push(list, c1, c2, c3, c4, c5, value);
+
+  } while (texas_utils_next_comb(comb, 5, 52));
+
+  texas_utils_hand_list_merge_sort(list);
+}
+
+void texas_utils_free_list(texas_hand_t *list) {
+  texas_hand_t *head = list;
+
+  while (head != NULL) {
+    texas_hand_t *next = head->next;
+    free(head);
+    head = next;
+  }
 }

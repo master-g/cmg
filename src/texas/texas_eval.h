@@ -34,6 +34,7 @@
 #define TEXAS_CARD_SUIT_HEART 0x2000u
 #define TEXAS_CARD_SUIT_SPADE 0x1000u
 
+#define TEXAS_RANK_TEN 8
 #define TEXAS_RANK_JACK 9
 #define TEXAS_RANK_QUEEN 10
 #define TEXAS_RANK_KING 11
@@ -43,11 +44,13 @@ int texas_eval_hand_rank(unsigned short value);
 
 int texas_eval_is_loyal_straight_flush(unsigned short value);
 
-int texas_eval_5hand(unsigned int c1, unsigned int c2, unsigned int c3,
-                     unsigned int c4, unsigned int c5);
+unsigned short texas_eval_5hand(unsigned int c1, unsigned int c2,
+                                unsigned int c3, unsigned int c4,
+                                unsigned int c5);
 
-int texas_eval_7hand(unsigned int c1, unsigned int c2, unsigned int c3,
-                     unsigned int c4, unsigned int c5, unsigned int c6,
-                     unsigned int c7);
+unsigned short texas_eval_7hand(unsigned int c1, unsigned int c2,
+                                unsigned int c3, unsigned int c4,
+                                unsigned int c5, unsigned int c6,
+                                unsigned int c7);
 
 #endif /* CMG_TEXAS_EVAL_H */

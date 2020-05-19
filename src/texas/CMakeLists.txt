@@ -20,4 +20,5 @@ add_executable(texas_eval
         texas_array.c
         texas_eval.c
         texas_utils.c
+        texas_main.c
         )

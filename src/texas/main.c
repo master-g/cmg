@@ -19,26 +19,18 @@ void dump_array(FILE *fp, const char *name, uint16_t *arr, int len) {
   for (int row = 0; row <= row_num; row++) {
     memset(buf, 0, sizeof(buf));
     int columns;
-    int is_tail;
     if (row == row_num) {
       columns = tail;
-      is_tail = 1;
     } else {
       columns = max_columns;
-      is_tail = 0;
     }
 
     for (int col = 0; col < columns; col++) {
       char blob[6];
-      int offset = row * columns;
+      int offset = row * max_columns + col;
       int buf_off = 6 * col; // strlen("%4d, ") = 6
-      uint16_t v = arr[col + offset];
-      int n;
-      if (is_tail) {
-        n = snprintf(blob, sizeof(blob), "%d,", v);
-      } else {
-        n = snprintf(blob, sizeof(blob), "%d,", v);
-      }
+      uint16_t v = arr[offset];
+      int n = snprintf(blob, sizeof(blob), "%u,", v);
 
       if (col == columns - 1) {
         memset(blob + n, '\0', 6 - n);

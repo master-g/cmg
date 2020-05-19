@@ -49,9 +49,10 @@ int texas_eval_is_loyal_straight_flush(unsigned short value) {
   return value == 1 ? 1 : 0;
 }
 
-int texas_eval_5hand(unsigned int c1, unsigned int c2, unsigned int c3,
-                     unsigned int c4, unsigned int c5) {
-  unsigned int q = (c1 | c2 | c3 | c4 | c5);
+unsigned short texas_eval_5hand(unsigned int c1, unsigned int c2,
+                                unsigned int c3, unsigned int c4,
+                                unsigned int c5) {
+  unsigned int q = (c1 | c2 | c3 | c4 | c5) >> 16u;
   unsigned short s;
   if (c1 & c2 & c3 & c4 & c5 & 0xF000u) {
     return texas_eval_flushes[q];
@@ -61,12 +62,14 @@ int texas_eval_5hand(unsigned int c1, unsigned int c2, unsigned int c3,
   }
 
   return texas_eval_hash_values[texas_eval_mph_search(
-      (c1 & 0xFF) * (c2 & 0xFF) * (c3 & 0xFF) * (c4 & 0xFF) * (c5 & 0xFF))];
+      (c1 & 0xFFu) * (c2 & 0xFFu) * (c3 & 0xFFu) * (c4 & 0xFFu) *
+      (c5 & 0xFFu))];
 }
 
-int texas_eval_7hand(unsigned int c1, unsigned int c2, unsigned int c3,
-                     unsigned int c4, unsigned int c5, unsigned int c6,
-                     unsigned int c7) {
+unsigned short texas_eval_7hand(unsigned int c1, unsigned int c2,
+                                unsigned int c3, unsigned int c4,
+                                unsigned int c5, unsigned int c6,
+                                unsigned int c7) {
   unsigned int c[7];
   int i, q, best = 9999;
   c[0] = c1;
