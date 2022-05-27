@@ -1,18 +1,15 @@
 include_directories(.)
 
-file(GLOB SHARED_SRC RELATIVES ${CMAKE_CURRENT_SOURCE_DIR}
+add_executable(texas_generate
         bits.c
         generate.c
-        )
-
-add_executable(texas_generate
-        ${SHARED_SRC}
         main.c
         )
 
 add_executable(texas_test
-        ${SHARED_SRC}
         answer.c
+        bits.c
+        generate.c
         test.c
         )
 

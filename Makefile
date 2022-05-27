@@ -15,6 +15,7 @@ clean:
 fmt:
 	@echo "  >  Formatting..."
 	@find ./src/dsaac -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
+	@find ./src/epoll_eventfd -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
 	@find ./src/medsr -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
 	@find ./src/texas -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
 	@find ./src/tlpi -type f $(SRC_TYPES) | xargs $(CMD_FORMAT)
