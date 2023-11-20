@@ -5,6 +5,7 @@ xcuserdata
 /autom4te.cache/
 /config/
 /bin/
+/build/
 Makefile.in
 aclocal.m4
 app.info

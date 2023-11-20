@@ -13,9 +13,16 @@ add_executable(texas_test
         test.c
         )
 
-add_executable(texas_eval
+add_executable(texas_all
         texas_array.c
         texas_eval.c
         texas_utils.c
         texas_main.c
         )
+
+add_executable(texas_eval
+        texas_array.c
+        texas_eval.c
+        texas_utils.c
+        eval_main.c
+)
