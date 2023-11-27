@@ -30,7 +30,7 @@ typedef struct payload_t {
 
 typedef int (*Payload_CompareFunc)(payload_t *payload);
 
-Payload_CompareFunc PayloadComparators[PayloadType_Count];
+extern Payload_CompareFunc PayloadComparators[PayloadType_Count];
 
 payload_t *Payload_Create(int type, size_t size, void *data);
 payload_t *Payload_CreateWithInt(int data);

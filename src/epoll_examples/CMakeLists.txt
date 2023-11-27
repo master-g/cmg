@@ -1,4 +1,4 @@
-project(epoll_eventfd)
+project(epoll_examples)
 
 include_directories(../libs)
 

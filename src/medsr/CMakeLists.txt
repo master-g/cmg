@@ -9,3 +9,4 @@ include_directories(./Utils)
 file(GLOB SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.c Math/*.c Profile/*.c Renderer/*.c Utils/*.c)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} m)
