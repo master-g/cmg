@@ -35,4 +35,5 @@ stamp-h1
 *.gcno
 *.gcda
 .idea/
+.vscode/
 *.out

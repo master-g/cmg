@@ -6,6 +6,8 @@
  *  Copyright (c) 2014 MED. All rights reserved.
  */
 
+#include <math.h>
+
 #include "Vector.h"
 
 const vec3f_t Vec3fUnitX = {1, 0, 0};
@@ -347,9 +349,7 @@ float Vec4f_LengthSquare(const vec4f_t v) {
   return (v[0] * v[0] + v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
 }
 
-float Vec4f_Length(const vec4f_t v) {
-  return (float)sqrt(Vec4f_LengthSquare(v));
-}
+float Vec4f_Length(const vec4f_t v) { return sqrtf(Vec4f_LengthSquare(v)); }
 
 void Vec4f_Max(vec4f_t r, const vec4f_t a, const vec4f_t b) {
   r[0] = f_max(a[0], b[0]);

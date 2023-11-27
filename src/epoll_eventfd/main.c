@@ -3,13 +3,12 @@
 //
 
 #include <math.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 
-float randf() {
-  return rand() / (float)RAND_MAX;
-}
+float randf() { return rand() / (float)RAND_MAX; }
 
 float monte_carlo_pi(int num) {
   float x, y, d, pi;
@@ -17,7 +16,7 @@ float monte_carlo_pi(int num) {
   for (i = 0; i < num; i++) {
     x = randf();
     y = randf();
-    d = sqrtf(x * x + y * y);
+    d = sqrt(x * x + y * y);
     if (d <= 1.0f) {
       within++;
     }
@@ -30,7 +29,7 @@ float monte_carlo_pi(int num) {
 
 int main(int argc, char *argv[]) {
   srand(time(NULL));
-  float pi = monte_carlo_pi(INT32_MAX);
+  float pi = monte_carlo_pi(__INT32_MAX__);
   printf("pi: %f\n", pi);
   return 0;
 }
