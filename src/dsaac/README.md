@@ -1,6 +1,5 @@
-DSAAC
-== =
+# DSAAC
 
-       Data Structures and Algorithm Analysis in C-- -
+Data Structures and Algorithm Analysis in C
 
-                               ####Learning notes
+## Learning notes

@@ -1,4 +1,5 @@
 #include "btree.h"
+#include "stack.h"
 
 /*
  * ************************************************************
@@ -92,7 +93,39 @@ void BTree_Destroy(btree_t *t) {
 
 int BTree_IsEmpty(btree_t *t) { return (int)(t->count == 0); }
 
-btree_node_t *BTree_Find(btree_t *t, void *payload) { return NULL; }
+btree_node_t *BTree_Find(btree_t *t, void *payload) {
+  if (t == NULL || t->root == NULL) {
+    return NULL;
+  }
+  btree_node_t *current = t->root;
+
+  stack_t *s = Stack_Create();
+  stack_node_t *head =
+      Stack_PushUserDefine(s, sizeof(btree_node_t **), &current);
+  btree_node_t *found = NULL;
+
+  while (!Stack_IsEmpty(s) && found == NULL) {
+    current = Stack_Pop(s);
+    if (PayloadComparators[current->payload->type](current->payload) == 0) {
+      found = current->payload->data;
+      break;
+    }
+    if (current->right != NULL) {
+      stack_node_t *right = StackNode_Create();
+      right->payload = current->right;
+      Stack_Push(s, right);
+    }
+    if (current->left != NULL) {
+      stack_node_t *left = StackNode_Create();
+      left->payload = current->left;
+      Stack_Push(s, left);
+    }
+  }
+
+  Stack_Destroy(s);
+
+  return found;
+}
 
 btree_node_t *BTree_FindMin(btree_t *t) { return NULL; }
 

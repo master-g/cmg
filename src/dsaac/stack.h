@@ -33,6 +33,7 @@ typedef list_node_t stack_node_t;
 #define Stack_PushInt(s, d) List_PushFront_Int(s, d)
 #define Stack_PushChar(s, d) List_PushFront_Char(s, d)
 #define Stack_PushString(s, d) List_PushFront_String(s, d)
+#define Stack_PushUserDefine List_PushFront_UserDefine
 
 stack_node_t *Stack_Pop(stack_t *s);
 
