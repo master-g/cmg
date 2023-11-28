@@ -183,8 +183,9 @@ texas_magic_kv_t *kv_sorted_merge(texas_magic_kv_t *a, texas_magic_kv_t *b) {
   return result;
 }
 
-void kv_front_back_split(texas_magic_kv_t *source, texas_magic_kv_t **front_ref,
-                         texas_magic_kv_t **back_ref) {
+void kv_front_back_split(
+    texas_magic_kv_t *source, texas_magic_kv_t **front_ref,
+    texas_magic_kv_t **back_ref) {
   if (source == NULL || source->next == NULL) {
     *front_ref = source;
     *back_ref = NULL;
@@ -224,8 +225,8 @@ void kv_merge_sort(texas_magic_kv_t **head) {
 }
 
 // four-of-a-kind, full-house
-void texas_gen_2(texas_magic_kv_t **list, int coef1, int coef2,
-                 uint16_t magic_start) {
+void texas_gen_2(
+    texas_magic_kv_t **list, int coef1, int coef2, uint16_t magic_start) {
 
   uint16_t magic = magic_start;
 
@@ -265,8 +266,8 @@ void texas_gen_311(texas_magic_kv_t **list, uint16_t magic_start) {
         char c1 = s_debug_prime2card[s_primes[i]];
         char c2 = s_debug_prime2card[s_primes[j]];
         char c3 = s_debug_prime2card[s_primes[k]];
-        printf("%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c1, c2, c3, product,
-               magic);
+        printf(
+            "%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c1, c2, c3, product, magic);
 #endif
 
         kv_push(list, product, magic);
@@ -292,8 +293,8 @@ void texas_gen_221(texas_magic_kv_t **list, uint16_t magic_start) {
         char c1 = s_debug_prime2card[s_primes[i]];
         char c2 = s_debug_prime2card[s_primes[j]];
         char c3 = s_debug_prime2card[s_primes[k]];
-        printf("%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c2, c2, c3, product,
-               magic);
+        printf(
+            "%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c2, c2, c3, product, magic);
 #endif
 
         kv_push(list, product, magic);
@@ -324,8 +325,8 @@ void texas_gen_2111(texas_magic_kv_t **list, uint16_t magic_start) {
           char c2 = s_debug_prime2card[s_primes[j]];
           char c3 = s_debug_prime2card[s_primes[k]];
           char c4 = s_debug_prime2card[s_primes[m]];
-          printf("%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c2, c3, c4, product,
-                 magic);
+          printf(
+              "%c%c%c%c%c -> p:%d, m:%d\n", c1, c1, c2, c3, c4, product, magic);
 #endif
 
           kv_push(list, product, magic);

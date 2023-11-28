@@ -35,8 +35,9 @@ int main(int argc, const char *argv[]) {
   Vec3f_Set(meshes[0].rotation, 0, 135.0f, 0);
 
   texture.buffer = NULL;
-  lodepng_decode32_file(&texData, (unsigned int *)&texWidth,
-                        (unsigned int *)&texHeight, "suzanne.png");
+  lodepng_decode32_file(
+      &texData, (unsigned int *)&texWidth, (unsigned int *)&texHeight,
+      "suzanne.png");
   Texture_Init(&texture, (char *)texData, texWidth, texHeight);
   meshes[0].texture = &texture;
 
@@ -44,17 +45,18 @@ int main(int argc, const char *argv[]) {
   Camera_SetPosition(&renderer.camera, vertex);
   Camera_SetTarget(&renderer.camera, Vec3fZero);
 
-  Gif_Begin(&writer, "render.gif", renderer.width, renderer.height,
-            GIF_DEFAULT_FRAME_DURATION, renderer.bpp, 0);
+  Gif_Begin(
+      &writer, "render.gif", renderer.width, renderer.height,
+      GIF_DEFAULT_FRAME_DURATION, renderer.bpp, 0);
   printf("%d\n", (int)time(NULL));
   for (frame = 0; frame < 120; frame++) {
     Renderer_Clear(&renderer, SR_COLOR_BUFFER_BIT | SR_DEPTH_BUFFER_BIT);
     Renderer_RenderMesh(&renderer, meshes, 1);
     meshes[0].rotation[1] += 0.1f;
 
-    Gif_WriteFrame(&writer, (uint8_t *)renderer.backbuffer, renderer.width,
-                   renderer.height, GIF_DEFAULT_FRAME_DURATION, renderer.bpp,
-                   0);
+    Gif_WriteFrame(
+        &writer, (uint8_t *)renderer.backbuffer, renderer.width,
+        renderer.height, GIF_DEFAULT_FRAME_DURATION, renderer.bpp, 0);
   }
   printf("%d\n", (int)time(NULL));
 

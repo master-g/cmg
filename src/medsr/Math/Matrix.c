@@ -39,12 +39,12 @@ void Matrix_Copy(mat_t dst, const mat_t src) {
 }
 
 int Matrix_Equal(const mat_t a, const mat_t b) {
-  return ((a[0] == b[0]) && (a[4] == b[4]) && (a[8] == b[8]) &&
-          (a[12] == b[12]) && (a[1] == b[1]) && (a[5] == b[5]) &&
-          (a[9] == b[9]) && (a[13] == b[13]) && (a[2] == b[2]) &&
-          (a[6] == b[6]) && (a[10] == b[10]) && (a[14] == b[14]) &&
-          (a[3] == b[3]) && (a[7] == b[7]) && (a[11] == b[11]) &&
-          (a[15] == b[15]));
+  return (
+      (a[0] == b[0]) && (a[4] == b[4]) && (a[8] == b[8]) && (a[12] == b[12]) &&
+      (a[1] == b[1]) && (a[5] == b[5]) && (a[9] == b[9]) && (a[13] == b[13]) &&
+      (a[2] == b[2]) && (a[6] == b[6]) && (a[10] == b[10]) &&
+      (a[14] == b[14]) && (a[3] == b[3]) && (a[7] == b[7]) &&
+      (a[11] == b[11]) && (a[15] == b[15]));
 }
 
 void Matrix_Identity(mat_t m) {
@@ -76,10 +76,11 @@ float Matrix_Determinant(mat_t m) {
   tmp5 = m[8] * m[14] - m[10] * m[12];
   tmp6 = m[8] * m[13] - m[9] * m[12];
 
-  return ((((m[0] * (((m[5] * tmp1) - (m[6] * tmp2)) + (m[7] * tmp3))) -
-            (m[1] * (((m[4] * tmp1) - (m[6] * tmp4)) + (m[7] * tmp5)))) +
-           (m[2] * (((m[4] * tmp2) - (m[5] * tmp4)) + (m[7] * tmp6)))) -
-          (m[3] * (((m[4] * tmp3) - (m[5] * tmp5)) + (m[6] * tmp6))));
+  return (
+      (((m[0] * (((m[5] * tmp1) - (m[6] * tmp2)) + (m[7] * tmp3))) -
+        (m[1] * (((m[4] * tmp1) - (m[6] * tmp4)) + (m[7] * tmp5)))) +
+       (m[2] * (((m[4] * tmp2) - (m[5] * tmp4)) + (m[7] * tmp6)))) -
+      (m[3] * (((m[4] * tmp3) - (m[5] * tmp5)) + (m[6] * tmp6))));
 }
 
 void Matrix_Inverse(mat_t r, mat_t m) {
@@ -162,8 +163,8 @@ void Matrix_Multiply(mat_t r, const mat_t a, const mat_t b) {
   r[15] = a[3] * b[12] + a[7] * b[13] + a[11] * b[14] + a[15] * b[15];
 }
 
-void Matrix_TripleMultiply(mat_t r, const mat_t a, const mat_t b,
-                           const mat_t c) {
+void Matrix_TripleMultiply(
+    mat_t r, const mat_t a, const mat_t b, const mat_t c) {
   mat_t ab;
   Matrix_Multiply(ab, a, b);
   Matrix_Multiply(r, ab, c);
@@ -287,8 +288,8 @@ void Matrix_Transpose(mat_t m, const mat_t t) {
   m[15] = t[15];
 }
 
-void Matrix_LookAtLH(mat_t m, const vec3f_t eye, const vec3f_t target,
-                     const vec3f_t up) {
+void Matrix_LookAtLH(
+    mat_t m, const vec3f_t eye, const vec3f_t target, const vec3f_t up) {
   float ex, ey, ez;
   vec3f_t xAxis, yAxis, zAxis;
 
@@ -321,8 +322,8 @@ void Matrix_LookAtLH(mat_t m, const vec3f_t eye, const vec3f_t target,
   m[15] = 1;
 }
 
-void Matrix_PerspectiveLH(mat_t m, float width, float height, float zNear,
-                          float zFar) {
+void Matrix_PerspectiveLH(
+    mat_t m, float width, float height, float zNear, float zFar) {
   Matrix_Clear(m);
   m[0] = (2.0 * zNear) / width;
   m[1] = m[2] = m[3] = 0.0;
@@ -335,8 +336,8 @@ void Matrix_PerspectiveLH(mat_t m, float width, float height, float zNear,
   m[14] = (zNear * zFar) / (zNear - zFar);
 }
 
-void Matrix_PerspectiveFovLH(mat_t m, float fov, float aspect, float zNear,
-                             float zFar) {
+void Matrix_PerspectiveFovLH(
+    mat_t m, float fov, float aspect, float zNear, float zFar) {
   float t;
   t = 1.0f / ((float)tan(fov * 0.5));
   Matrix_Clear(m);

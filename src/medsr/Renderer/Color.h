@@ -12,11 +12,11 @@
 #include "Common.h"
 
 #define Color4i_Format(r, g, b, a)                                             \
-  (((r)&0xFF) << 24 | ((g)&0xFF) << 16 | ((b)&0xFF) << 8 | ((a)&0xFF))
+  (((r) & 0xFF) << 24 | ((g) & 0xFF) << 16 | ((b) & 0xFF) << 8 | ((a) & 0xFF))
 
 #define Color4i_Unpack(c, r, g, b, a)                                          \
   (*(r) = (((c) >> 24) & 0xFF), *(g) = (((c) >> 16) & 0xFF),                   \
-   *(b) = (((c) >> 8) & 0xFF), *(a) = ((c)&0xFF))
+   *(b) = (((c) >> 8) & 0xFF), *(a) = ((c) & 0xFF))
 
 #define Color4f_Format(c, r, g, b, a)                                          \
   ((c)[0] = (r) / 255.0f, (c)[1] = (g) / 255.0f, (c)[2] = (b) / 255.0f,        \

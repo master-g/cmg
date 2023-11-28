@@ -4,9 +4,9 @@
 #include "common.h"
 #include "payload.h"
 
-#define List_First(l) (l)->first
-#define List_Last(l) (l)->last
-#define List_Length(l) (l)->length
+#define list_first(l) (l)->first
+#define list_last(l) (l)->last
+#define list_len(l) (l)->length
 
 /*
  * ************************************************************
@@ -16,14 +16,16 @@
 
 typedef struct list_node_t {
   struct list_node_t *next;
-  payload_t *payload;
+  int owned;
+  const pdata *payload;
 
 } list_node_t;
 
-list_node_t *ListNode_Create(void);
-void ListNode_Destroy(list_node_t *node);
+list_node_t *list_node_with(const pdata *payload, int move);
 
-void ListNode_Print(list_node_t *node);
+void list_node_free(const list_node_t *node);
+
+void list_node_print(const list_node_t *node);
 
 /*
  * ************************************************************
@@ -38,38 +40,28 @@ typedef struct list_t {
 
 } list_t;
 
-list_t *List_Create(void);
+list_t *list_alloc(void);
 
-void List_Destroy(list_t *l);
+void list_free(list_t *l);
 
-int List_IsEmpty(list_t *l);
+int list_is_empty(const list_t *l);
 
-list_node_t *List_Prev(list_t *l, list_node_t *node);
+list_node_t *list_prev(list_t *l, const list_node_t *node);
 
-list_node_t *List_Insert(list_t *l, list_node_t *where, list_node_t *node);
+list_node_t *
+list_insert(list_t *l, const list_node_t *where, list_node_t *node);
 
-list_node_t *List_PushBack(list_t *l, list_node_t *node);
+list_node_t *list_push(list_t *l, list_node_t *node);
 
-list_node_t *List_PushFront(list_t *l, list_node_t *node);
+list_node_t *list_unshift(list_t *l, list_node_t *node);
 
-int List_Remove(list_t *l, list_node_t *node);
+int list_remove(list_t *l, const list_node_t *node, int free);
 
-list_node_t *List_Locate(list_t *l, int index);
+list_node_t *list_locate(const list_t *l, int index);
 
-void List_Print(list_t *l);
-
-/* helper functions */
-list_node_t *List_PushBack_Int(list_t *l, int data);
-list_node_t *List_PushBack_Char(list_t *l, char data);
-list_node_t *List_PushBack_String(list_t *l, const char *data);
-list_node_t *List_PushBack_UserDefine(list_t *l, size_t size, void *data);
-
-list_node_t *List_PushFront_Int(list_t *l, int data);
-list_node_t *List_PushFront_Char(list_t *l, char data);
-list_node_t *List_PushFront_String(list_t *l, const char *data);
-list_node_t *List_PushFront_UserDefine(list_t *l, size_t size, void *data);
+void list_print(list_t *l);
 
 /* test */
-void List_Test(void);
+void list_test(void);
 
 #endif /* LIST_H_ */

@@ -3,7 +3,7 @@
 
 #include "list.h"
 
-#define Tree_Count(t) (t)->count
+#define tree_num_of_nodes(t) (t)->count
 
 /*
  * ************************************************************
@@ -15,14 +15,14 @@ typedef struct tree_node_t {
   struct tree_node_t *sibling;
   struct tree_node_t *child;
 
-  payload_t *payload;
+  int own_pdata;
+  const pdata *data;
 
 } tree_node_t;
 
-tree_node_t *TreeNode_Create(void);
-void TreeNode_Destroy(tree_node_t *node);
-
-void TreeNode_Print(tree_node_t *node);
+tree_node_t *tree_node_with(const pdata *payload, int move);
+void tree_node_free(tree_node_t *node);
+void tree_node_print(tree_node_t *node);
 
 /*
  * ************************************************************
@@ -37,18 +37,15 @@ typedef struct tree_t {
 
 } tree_t;
 
-/* traverse function */
-typedef void (*Tree_DepthTraverseCallback)(tree_node_t *node, int flag);
+tree_t *tree_alloc(void);
 
-tree_t *Tree_Create(void);
+void tree_free(tree_t *t);
 
-void Tree_Destroy(tree_t *t);
+int tree_is_empty(const tree_t *t);
 
-int Tree_IsEmpty(tree_t *t);
-
-void Tree_AddNode(tree_t *t, tree_node_t *parent, tree_node_t *node);
+void tree_insert(tree_t *t, tree_node_t *parent, tree_node_t *node);
 
 /* Test */
-void Tree_Test(void);
+void tree_test(void);
 
 #endif /* TREE_H_ */

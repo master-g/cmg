@@ -45,8 +45,9 @@ typedef struct gif_writer_s {
  * The delay value is the time between frames in hundredths of a second - note
  * that not all viewers pay much attention to this value.
  */
-int Gif_Begin(gif_writer_t *writer, const char *filename, uint32_t width,
-              uint32_t height, uint32_t delay, int32_t bitDepth, int dither);
+int Gif_Begin(
+    gif_writer_t *writer, const char *filename, uint32_t width, uint32_t height,
+    uint32_t delay, int32_t bitDepth, int dither);
 
 /*
  * Writes out a new frame to a GIF in progress.
@@ -54,8 +55,9 @@ int Gif_Begin(gif_writer_t *writer, const char *filename, uint32_t width,
  * AFAIK, it is legal to use different bit depths for different frames of an
  * image - this may be handy to save bits in animations that don't change much.
  */
-int Gif_WriteFrame(gif_writer_t *writer, const uint8_t *image, uint32_t width,
-                   uint32_t height, uint32_t delay, int bitDepth, int dither);
+int Gif_WriteFrame(
+    gif_writer_t *writer, const uint8_t *image, uint32_t width, uint32_t height,
+    uint32_t delay, int bitDepth, int dither);
 
 /*
  * Writes the EOF code, closes the file handle, and frees temp memory used by a

@@ -22,8 +22,9 @@ void test_flushes() {
 
   printf("testing flushes...\n");
   if (size_eval_flushes != MAGIC_UNIQUE5_SIZE) {
-    printf("their size:%d != mine size:%d\n", size_eval_flushes,
-           MAGIC_UNIQUE5_SIZE);
+    printf(
+        "their size:%d != mine size:%d\n", size_eval_flushes,
+        MAGIC_UNIQUE5_SIZE);
     exit(-1);
   }
 
@@ -41,8 +42,9 @@ void test_unique5() {
 
   printf("testing unique5...\n");
   if (size_eval_unique5 != MAGIC_UNIQUE5_SIZE) {
-    printf("their size:%d != mine size:%d\n", size_eval_unique5,
-           MAGIC_UNIQUE5_SIZE);
+    printf(
+        "their size:%d != mine size:%d\n", size_eval_unique5,
+        MAGIC_UNIQUE5_SIZE);
     exit(-1);
   }
 
@@ -66,8 +68,9 @@ void test_others() {
   while (iter != NULL) {
     uint16_t their = eval_others(iter->product);
     if (their != iter->magic) {
-      printf("their[%d]=%d, mine[%d]=%d\n", iter->product, their, iter->product,
-             iter->magic);
+      printf(
+          "their[%d]=%d, mine[%d]=%d\n", iter->product, their, iter->product,
+          iter->magic);
       ret = -1;
       break;
     }

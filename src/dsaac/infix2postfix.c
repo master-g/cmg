@@ -7,101 +7,101 @@ void Error(void) {
   exit(0);
 }
 
-list_t *Convert_Infix2Posfix(const char *str) {
-  size_t strOffset = 0;
-  list_node_t *node = NULL;
-  char c = 0;
-  char cInStack = 0;
-  stack_t *symbolStack = Stack_Create();
-  list_t *outputList = List_Create();
+list_t *infix2posfix(const char *str) {
+  size_t str_offset = 0;
+  const list_node_t *node = NULL;
+  char c;
+  char c_in_stack;
+  stack_t *sym_stack = stack_alloc();
+  list_t *out_list = list_alloc();
 
-  while ((c = *(str + strOffset)) != '\0') {
+  while ((c = *(str + str_offset)) != '\0') {
     switch (c) {
     case '(':
-      Stack_PushChar(symbolStack, c);
+      stack_push(sym_stack, stack_node_with(pdata_from_u8(c), 1));
       break;
 
     case ')':
-      if (Stack_IsEmpty(symbolStack))
+      if (stack_is_empty(sym_stack))
         Error();
 
       /* pop stack until '(' */
-      while (*(char *)Stack_Top(symbolStack)->payload->data != '(')
-        List_PushBack(outputList, Stack_Pop(symbolStack));
+      while (stack_top(sym_stack)->payload->data.u8 != '(')
+        list_push(out_list, stack_pop(sym_stack));
       /* pop '(' but not ouput */
-      StackNode_Destroy(Stack_Pop(symbolStack));
+      stack_node_free(stack_pop(sym_stack));
       break;
 
     case '-':
     case '+':
       /* empty stack */
-      if (!Stack_IsEmpty(symbolStack)) {
+      if (!stack_is_empty(sym_stack)) {
         /* pop stack until '+', '-', '(' */
-        cInStack = *(char *)Stack_Top(symbolStack)->payload->data;
-        while (cInStack != '+' && cInStack != '-' && cInStack != '(') {
-          List_PushBack(outputList, Stack_Pop(symbolStack));
-          if (!Stack_IsEmpty(symbolStack))
+        c_in_stack = stack_top(sym_stack)->payload->data.u8;
+        while (c_in_stack != '+' && c_in_stack != '-' && c_in_stack != '(') {
+          list_push(out_list, stack_pop(sym_stack));
+          if (!stack_is_empty(sym_stack))
             break;
 
-          cInStack = *(char *)Stack_Top(symbolStack)->payload->data;
+          c_in_stack = stack_top(sym_stack)->payload->data.u8;
         }
 
-        if (!Stack_IsEmpty(symbolStack) &&
-            *(char *)Stack_Top(symbolStack)->payload->data != '(') {
-          List_PushBack(outputList, Stack_Pop(symbolStack));
+        if (!stack_is_empty(sym_stack) &&
+            stack_top(sym_stack)->payload->data.u8 != '(') {
+          list_push(out_list, stack_pop(sym_stack));
         }
       }
 
-      Stack_PushChar(symbolStack, c);
-      List_PushBack_Char(outputList, ' ');
+      stack_push(sym_stack, stack_node_with(pdata_from_u8(c), 1));
+      list_push(out_list, list_node_with(pdata_from_u8(' '), 1));
       break;
 
     case '/':
     case '*':
       /* empty stack */
-      if (!Stack_IsEmpty(symbolStack)) {
-        cInStack = *(char *)Stack_Top(symbolStack)->payload->data;
+      if (!stack_is_empty(sym_stack)) {
+        c_in_stack = stack_top(sym_stack)->payload->data.u8;
         /* pop stack until '+', '-', '(' */
-        while (cInStack != '+' && cInStack != '-' && cInStack != '(') {
-          List_PushBack(outputList, Stack_Pop(symbolStack));
-          if (Stack_IsEmpty(symbolStack))
+        while (c_in_stack != '+' && c_in_stack != '-' && c_in_stack != '(') {
+          list_push(out_list, stack_pop(sym_stack));
+          if (stack_is_empty(sym_stack))
             break;
 
-          cInStack = *(char *)Stack_Top(symbolStack)->payload;
+          c_in_stack = stack_top(sym_stack)->payload->data.u8;
         }
       }
 
-      Stack_PushChar(symbolStack, c);
-      List_PushBack_Char(outputList, ' ');
+      stack_push(sym_stack, stack_node_with(pdata_from_u8(c), 1));
+      list_push(out_list, list_node_with(pdata_from_u8(' '), 1));
       break;
 
     default:
       /* operands, output immediately */
       if (c != ' ')
-        List_PushBack_Char(outputList, c);
+        list_push(out_list, list_node_with(pdata_from_u8(c), 1));
       break;
     }
 
-    strOffset++;
+    str_offset++;
   }
 
   /* output the left symbols in stack */
-  while (!Stack_IsEmpty(symbolStack)) {
-    List_PushBack(outputList, Stack_Pop(symbolStack));
+  while (!stack_is_empty(sym_stack)) {
+    list_push(out_list, stack_pop(sym_stack));
   }
 
   /* print result */
   printf("postfix: ");
-  node = outputList->first;
+  node = out_list->first;
   while (node != NULL) {
-    printf("%c", *(char *)node->payload->data);
+    printf("%c", node->payload->data.u8);
     node = node->next;
   }
   printf("\n");
 
   /* clear */
-  Stack_Destroy(symbolStack);
-  List_Destroy(outputList);
+  stack_free(sym_stack);
+  list_free(out_list);
 
   return NULL;
 }

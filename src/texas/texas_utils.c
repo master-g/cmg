@@ -292,10 +292,10 @@ int texas_utils_hand_list_len(texas_hand_t *list) {
   return len;
 }
 
-void texas_utils_hand_list_push(texas_hand_t **list, unsigned int card1,
-                                unsigned int card2, unsigned int card3,
-                                unsigned int card4, unsigned int card5,
-                                unsigned short value) {
+void texas_utils_hand_list_push(
+    texas_hand_t **list, unsigned int card1, unsigned int card2,
+    unsigned int card3, unsigned int card4, unsigned int card5,
+    unsigned short value) {
   int i, sl;
   unsigned short ht;
   texas_hand_t *new_head = (texas_hand_t *)malloc(sizeof(texas_hand_t));
@@ -329,8 +329,9 @@ void texas_utils_hand_list_swap(texas_hand_t **a, texas_hand_t **b) {
   *b = temp;
 }
 
-void texas_utils_hand_list_merge(texas_hand_t **start1, texas_hand_t **end1,
-                                 texas_hand_t **start2, texas_hand_t **end2) {
+void texas_utils_hand_list_merge(
+    texas_hand_t **start1, texas_hand_t **end1, texas_hand_t **start2,
+    texas_hand_t **end2) {
   texas_hand_t *temp = NULL;
   texas_hand_t *astart;
   texas_hand_t *bstart;

@@ -2,11 +2,11 @@
 #include "list.h"
 #include "tree.h"
 
-extern list_t *Convert_Infix2Posfix(const char *);
+extern list_t *infix2posfix(const char *);
 
 int main(int argc, char **argv) {
-  Convert_Infix2Posfix("(123+234)*(35-47)/(55+63)");
-  Tree_Test();
+  infix2posfix("(123+234)*(35-47)/(55+63)");
+  tree_test();
   memtrack_list_allocations();
   return 0;
 }

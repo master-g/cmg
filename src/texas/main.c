@@ -90,8 +90,8 @@ void populate_flushes(FILE *fp) {
   texas_gen_flushes(flushes);
 
   fprintf(fp, "/**\n");
-  fprintf(fp,
-          " * this is a table lookup for all \"flush\" hands (e.g.  both\n");
+  fprintf(
+      fp, " * this is a table lookup for all \"flush\" hands (e.g.  both\n");
   fprintf(fp, " * flushes and straight-flushes).  entries containing a zero\n");
   fprintf(fp, " * mean that combination is not possible with a five-card\n");
   fprintf(fp, " * flush hand.\n");

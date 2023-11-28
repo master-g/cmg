@@ -98,8 +98,8 @@ void Matrix_Multiply(mat_t r, const mat_t a, const mat_t b);
  *	@param 	b
  *	@param 	c
  */
-void Matrix_TripleMultiply(mat_t r, const mat_t a, const mat_t b,
-                           const mat_t c);
+void Matrix_TripleMultiply(
+    mat_t r, const mat_t a, const mat_t b, const mat_t c);
 
 /**
  *	@brief	multiply matrix with another matrix
@@ -209,11 +209,11 @@ void Matrix_Transpose(mat_t m, const mat_t t);
  *	@param 	target 	target vector
  *	@param 	up      up direction
  */
-void Matrix_LookAtLH(mat_t m, const vec3f_t eye, const vec3f_t target,
-                     const vec3f_t up);
+void Matrix_LookAtLH(
+    mat_t m, const vec3f_t eye, const vec3f_t target, const vec3f_t up);
 
-void Matrix_PerspectiveLH(mat_t m, float width, float height, float zNear,
-                          float zFar);
+void Matrix_PerspectiveLH(
+    mat_t m, float width, float height, float zNear, float zFar);
 
 /**
  *	@brief	general form of the projection matrix
@@ -232,7 +232,7 @@ void Matrix_PerspectiveLH(mat_t m, float width, float height, float zNear,
  *	@param 	zNear
  *	@param 	zFar
  */
-void Matrix_PerspectiveFovLH(mat_t m, float fov, float aspect, float zNear,
-                             float zFar);
+void Matrix_PerspectiveFovLH(
+    mat_t m, float fov, float aspect, float zNear, float zFar);
 
 #endif /* KITSUNE_MATRIX_H_ */

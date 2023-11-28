@@ -9,8 +9,8 @@
 #include "Mesh.h"
 #include "Common.h"
 
-void Mesh_InitWithCapacity(mesh_t *mesh, const char *name, int vertexCapacity,
-                           int faceCapacity) {
+void Mesh_InitWithCapacity(
+    mesh_t *mesh, const char *name, int vertexCapacity, int faceCapacity) {
   memset(mesh, 0, sizeof(mesh_t));
   Mesh_SetVertexCapacity(mesh, vertexCapacity);
   Mesh_SetFaceCapacity(mesh, faceCapacity);

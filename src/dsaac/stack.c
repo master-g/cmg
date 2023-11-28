@@ -1,6 +1,13 @@
 #include "stack.h"
 
-stack_node_t *Stack_Pop(stack_t *s) {
+stack_node_t *stack_top(const stack_t *s) {
+  if (s && s->first) {
+    return s->first;
+  }
+  return NULL;
+}
+
+stack_node_t *stack_pop(stack_t *s) {
   stack_node_t *node = s->first;
   s->first = s->first->next;
   s->length--;
@@ -11,8 +18,8 @@ stack_node_t *Stack_Pop(stack_t *s) {
   return node;
 }
 
-void Stack_Print(stack_t *s) {
-  stack_node_t *node = s->first;
+void stack_print(const stack_t *s) {
+  const stack_node_t *node = s->first;
 
   DBGLog("**********************\n");
   DBGLog("Stack  : %p\n", (void *)s);
@@ -22,7 +29,7 @@ void Stack_Print(stack_t *s) {
   DBGLog("-------------\n");
 
   while (node != NULL) {
-    StackNode_Print(node);
+    stack_node_print(node);
 
     node = node->next;
   }
@@ -31,35 +38,28 @@ void Stack_Print(stack_t *s) {
 }
 
 void Stack_Test(void) {
-  int payload1 = 1;
-  char payload2 = 's';
-  char *payload3 = "this is a stack";
+  const char *payload3 = "this is a stack";
   stack_t *s = NULL;
   stack_node_t *node1 = NULL;
   stack_node_t *node2 = NULL;
   stack_node_t *node3 = NULL;
 
-  node1 = StackNode_Create();
-  node1->payload = Payload_CreateWithInt(payload1);
-  node2 = StackNode_Create();
-  node2->payload = Payload_CreateWithChar(payload2);
-  node3 = StackNode_Create();
-  node3->payload = Payload_CreateWithString(payload3);
+  node1 = stack_node_with(pdata_from_u32(1), 1);
+  node2 = stack_node_with(pdata_from_u8('s'), 1);
+  node3 = stack_node_with(pdata_from_string(payload3, 0), 1);
 
-  s = Stack_Create();
+  s = stack_alloc();
 
-  Stack_Push(s, node1);
-  Stack_Push(s, node2);
-  Stack_Push(s, node3);
+  stack_push(s, node1);
+  stack_push(s, node2);
+  stack_push(s, node3);
 
-  Stack_PushChar(s, 'a');
+  node1 = stack_pop(s);
+  stack_node_print(node1);
 
-  node1 = Stack_Pop(s);
-  StackNode_Print(node1);
+  stack_node_free(node1);
 
-  StackNode_Destroy(node1);
+  stack_print(s);
 
-  Stack_Print(s);
-
-  Stack_Destroy(s);
+  stack_free(s);
 }

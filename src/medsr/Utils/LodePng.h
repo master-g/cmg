@@ -111,34 +111,36 @@ typedef enum LodePNGColorType {
  explanation on PNG color types. Return value: LodePNG error code (0 means no
  error).
  */
-unsigned lodepng_decode_memory(unsigned char **out, unsigned *w, unsigned *h,
-                               const unsigned char *in, size_t insize,
-                               LodePNGColorType colortype, unsigned bitdepth);
+unsigned lodepng_decode_memory(
+    unsigned char **out, unsigned *w, unsigned *h, const unsigned char *in,
+    size_t insize, LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_decode_memory, but always decodes to 32-bit RGBA raw image*/
-unsigned lodepng_decode32(unsigned char **out, unsigned *w, unsigned *h,
-                          const unsigned char *in, size_t insize);
+unsigned lodepng_decode32(
+    unsigned char **out, unsigned *w, unsigned *h, const unsigned char *in,
+    size_t insize);
 
 /*Same as lodepng_decode_memory, but always decodes to 24-bit RGB raw image*/
-unsigned lodepng_decode24(unsigned char **out, unsigned *w, unsigned *h,
-                          const unsigned char *in, size_t insize);
+unsigned lodepng_decode24(
+    unsigned char **out, unsigned *w, unsigned *h, const unsigned char *in,
+    size_t insize);
 
 #ifdef LODEPNG_COMPILE_DISK
 /*
  Load PNG from disk, from file with given name.
  Same as the other decode functions, but instead takes a filename as input.
  */
-unsigned lodepng_decode_file(unsigned char **out, unsigned *w, unsigned *h,
-                             const char *filename, LodePNGColorType colortype,
-                             unsigned bitdepth);
+unsigned lodepng_decode_file(
+    unsigned char **out, unsigned *w, unsigned *h, const char *filename,
+    LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_decode_file, but always decodes to 32-bit RGBA raw image.*/
-unsigned lodepng_decode32_file(unsigned char **out, unsigned *w, unsigned *h,
-                               const char *filename);
+unsigned lodepng_decode32_file(
+    unsigned char **out, unsigned *w, unsigned *h, const char *filename);
 
 /*Same as lodepng_decode_file, but always decodes to 24-bit RGB raw image.*/
-unsigned lodepng_decode24_file(unsigned char **out, unsigned *w, unsigned *h,
-                               const char *filename);
+unsigned lodepng_decode24_file(
+    unsigned char **out, unsigned *w, unsigned *h, const char *filename);
 #endif /*LODEPNG_COMPILE_DISK*/
 #endif /*LODEPNG_COMPILE_DECODER*/
 
@@ -159,19 +161,20 @@ unsigned lodepng_decode24_file(unsigned char **out, unsigned *w, unsigned *h,
  types. bitdepth: the bit depth of the raw input image. See explanation on PNG
  color types. Return value: LodePNG error code (0 means no error).
  */
-unsigned lodepng_encode_memory(unsigned char **out, size_t *outsize,
-                               const unsigned char *image, unsigned w,
-                               unsigned h, LodePNGColorType colortype,
-                               unsigned bitdepth);
+unsigned lodepng_encode_memory(
+    unsigned char **out, size_t *outsize, const unsigned char *image,
+    unsigned w, unsigned h, LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_encode_memory, but always encodes from 32-bit RGBA raw
  * image.*/
-unsigned lodepng_encode32(unsigned char **out, size_t *outsize,
-                          const unsigned char *image, unsigned w, unsigned h);
+unsigned lodepng_encode32(
+    unsigned char **out, size_t *outsize, const unsigned char *image,
+    unsigned w, unsigned h);
 
 /*Same as lodepng_encode_memory, but always encodes from 24-bit RGB raw image.*/
-unsigned lodepng_encode24(unsigned char **out, size_t *outsize,
-                          const unsigned char *image, unsigned w, unsigned h);
+unsigned lodepng_encode24(
+    unsigned char **out, size_t *outsize, const unsigned char *image,
+    unsigned w, unsigned h);
 
 #ifdef LODEPNG_COMPILE_DISK
 /*
@@ -179,17 +182,17 @@ unsigned lodepng_encode24(unsigned char **out, size_t *outsize,
  Same as the other encode functions, but instead takes a filename as output.
  NOTE: This overwrites existing files without warning!
  */
-unsigned lodepng_encode_file(const char *filename, const unsigned char *image,
-                             unsigned w, unsigned h, LodePNGColorType colortype,
-                             unsigned bitdepth);
+unsigned lodepng_encode_file(
+    const char *filename, const unsigned char *image, unsigned w, unsigned h,
+    LodePNGColorType colortype, unsigned bitdepth);
 
 /*Same as lodepng_encode_file, but always encodes from 32-bit RGBA raw image.*/
-unsigned lodepng_encode32_file(const char *filename, const unsigned char *image,
-                               unsigned w, unsigned h);
+unsigned lodepng_encode32_file(
+    const char *filename, const unsigned char *image, unsigned w, unsigned h);
 
 /*Same as lodepng_encode_file, but always encodes from 24-bit RGB raw image.*/
-unsigned lodepng_encode24_file(const char *filename, const unsigned char *image,
-                               unsigned w, unsigned h);
+unsigned lodepng_encode24_file(
+    const char *filename, const unsigned char *image, unsigned w, unsigned h);
 #endif /*LODEPNG_COMPILE_DISK*/
 #endif /*LODEPNG_COMPILE_ENCODER*/
 
@@ -197,43 +200,48 @@ unsigned lodepng_encode24_file(const char *filename, const unsigned char *image,
 namespace lodepng {
 #ifdef LODEPNG_COMPILE_DECODER
 /*Same as lodepng_decode_memory, but decodes to an std::vector.*/
-unsigned decode(std::vector<unsigned char> &out, unsigned &w, unsigned &h,
-                const unsigned char *in, size_t insize,
-                LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
-unsigned decode(std::vector<unsigned char> &out, unsigned &w, unsigned &h,
-                const std::vector<unsigned char> &in,
-                LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned decode(
+    std::vector<unsigned char> &out, unsigned &w, unsigned &h,
+    const unsigned char *in, size_t insize,
+    LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned decode(
+    std::vector<unsigned char> &out, unsigned &w, unsigned &h,
+    const std::vector<unsigned char> &in, LodePNGColorType colortype = LCT_RGBA,
+    unsigned bitdepth = 8);
 #ifdef LODEPNG_COMPILE_DISK
 /*
  Converts PNG file from disk to raw pixel data in memory.
  Same as the other decode functions, but instead takes a filename as input.
  */
-unsigned decode(std::vector<unsigned char> &out, unsigned &w, unsigned &h,
-                const std::string &filename,
-                LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned decode(
+    std::vector<unsigned char> &out, unsigned &w, unsigned &h,
+    const std::string &filename, LodePNGColorType colortype = LCT_RGBA,
+    unsigned bitdepth = 8);
 #endif // LODEPNG_COMPILE_DISK
 #endif // LODEPNG_COMPILE_DECODER
 
 #ifdef LODEPNG_COMPILE_ENCODER
 /*Same as lodepng_encode_memory, but encodes to an std::vector.*/
-unsigned encode(std::vector<unsigned char> &out, const unsigned char *in,
-                unsigned w, unsigned h, LodePNGColorType colortype = LCT_RGBA,
-                unsigned bitdepth = 8);
-unsigned encode(std::vector<unsigned char> &out,
-                const std::vector<unsigned char> &in, unsigned w, unsigned h,
-                LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned encode(
+    std::vector<unsigned char> &out, const unsigned char *in, unsigned w,
+    unsigned h, LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned encode(
+    std::vector<unsigned char> &out, const std::vector<unsigned char> &in,
+    unsigned w, unsigned h, LodePNGColorType colortype = LCT_RGBA,
+    unsigned bitdepth = 8);
 #ifdef LODEPNG_COMPILE_DISK
 /*
  Converts 32-bit RGBA raw pixel data into a PNG file on disk.
  Same as the other encode functions, but instead takes a filename as output.
  NOTE: This overwrites existing files without warning!
  */
-unsigned encode(const std::string &filename, const unsigned char *in,
-                unsigned w, unsigned h, LodePNGColorType colortype = LCT_RGBA,
-                unsigned bitdepth = 8);
-unsigned encode(const std::string &filename,
-                const std::vector<unsigned char> &in, unsigned w, unsigned h,
-                LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned encode(
+    const std::string &filename, const unsigned char *in, unsigned w,
+    unsigned h, LodePNGColorType colortype = LCT_RGBA, unsigned bitdepth = 8);
+unsigned encode(
+    const std::string &filename, const std::vector<unsigned char> &in,
+    unsigned w, unsigned h, LodePNGColorType colortype = LCT_RGBA,
+    unsigned bitdepth = 8);
 #endif // LODEPNG_COMPILE_DISK
 #endif // LODEPNG_COMPILE_ENCODER
 } // namespace lodepng
@@ -253,13 +261,15 @@ struct LodePNGDecompressSettings {
                               the Adler32 checksum is corrupted*/
 
   /*use custom zlib decoder instead of built in one (default: null)*/
-  unsigned (*custom_zlib)(unsigned char **, size_t *, const unsigned char *,
-                          size_t, const LodePNGDecompressSettings *);
+  unsigned (*custom_zlib)(
+      unsigned char **, size_t *, const unsigned char *, size_t,
+      const LodePNGDecompressSettings *);
   /*use custom deflate decoder instead of built in one (default: null)
    if custom_zlib is used, custom_deflate is ignored since only the built in
    zlib function will call custom_deflate*/
-  unsigned (*custom_inflate)(unsigned char **, size_t *, const unsigned char *,
-                             size_t, const LodePNGDecompressSettings *);
+  unsigned (*custom_inflate)(
+      unsigned char **, size_t *, const unsigned char *, size_t,
+      const LodePNGDecompressSettings *);
 
   const void *custom_context; /*optional custom settings for custom functions*/
 };
@@ -291,13 +301,15 @@ struct LodePNGCompressSettings /*deflate = compress*/
                             slower. Default: true*/
 
   /*use custom zlib encoder instead of built in one (default: null)*/
-  unsigned (*custom_zlib)(unsigned char **, size_t *, const unsigned char *,
-                          size_t, const LodePNGCompressSettings *);
+  unsigned (*custom_zlib)(
+      unsigned char **, size_t *, const unsigned char *, size_t,
+      const LodePNGCompressSettings *);
   /*use custom deflate encoder instead of built in one (default: null)
    if custom_zlib is used, custom_deflate is ignored since only the built in
    zlib function will call custom_deflate*/
-  unsigned (*custom_deflate)(unsigned char **, size_t *, const unsigned char *,
-                             size_t, const LodePNGCompressSettings *);
+  unsigned (*custom_deflate)(
+      unsigned char **, size_t *, const unsigned char *, size_t,
+      const LodePNGCompressSettings *);
 
   const void *custom_context; /*optional custom settings for custom functions*/
 };
@@ -361,13 +373,14 @@ typedef struct LodePNGColorMode {
 void lodepng_color_mode_init(LodePNGColorMode *info);
 void lodepng_color_mode_cleanup(LodePNGColorMode *info);
 /*return value is error code (0 means no error)*/
-unsigned lodepng_color_mode_copy(LodePNGColorMode *dest,
-                                 const LodePNGColorMode *source);
+unsigned
+lodepng_color_mode_copy(LodePNGColorMode *dest, const LodePNGColorMode *source);
 
 void lodepng_palette_clear(LodePNGColorMode *info);
 /*add 1 color to the palette*/
-unsigned lodepng_palette_add(LodePNGColorMode *info, unsigned char r,
-                             unsigned char g, unsigned char b, unsigned char a);
+unsigned lodepng_palette_add(
+    LodePNGColorMode *info, unsigned char r, unsigned char g, unsigned char b,
+    unsigned char a);
 
 /*get the total amount of bits per pixel, based on colortype and bitdepth in the
  * struct*/
@@ -395,8 +408,8 @@ unsigned lodepng_has_palette_alpha(const LodePNGColorMode *info);
 unsigned lodepng_can_have_alpha(const LodePNGColorMode *info);
 /*Returns the byte size of a raw image buffer with given width, height and color
  * mode*/
-size_t lodepng_get_raw_size(unsigned w, unsigned h,
-                            const LodePNGColorMode *color);
+size_t
+lodepng_get_raw_size(unsigned w, unsigned h, const LodePNGColorMode *color);
 
 #ifdef LODEPNG_COMPILE_ANCILLARY_CHUNKS
 /*The information of a Time chunk in PNG.*/
@@ -505,16 +518,17 @@ unsigned lodepng_info_copy(LodePNGInfo *dest, const LodePNGInfo *source);
 #ifdef LODEPNG_COMPILE_ANCILLARY_CHUNKS
 void lodepng_clear_text(LodePNGInfo *info); /*use this to clear the texts again
                                                after you filled them in*/
-unsigned lodepng_add_text(LodePNGInfo *info, const char *key,
-                          const char *str); /*push back both texts at once*/
+unsigned lodepng_add_text(
+    LodePNGInfo *info, const char *key,
+    const char *str); /*push back both texts at once*/
 
 void lodepng_clear_itext(LodePNGInfo *info); /*use this to clear the itexts
                                                 again after you filled them in*/
-unsigned
-lodepng_add_itext(LodePNGInfo *info, const char *key, const char *langtag,
-                  const char *transkey,
-                  const char *str); /*push back the 4 texts of 1 chunk at once*/
-#endif                              /*LODEPNG_COMPILE_ANCILLARY_CHUNKS*/
+unsigned lodepng_add_itext(
+    LodePNGInfo *info, const char *key, const char *langtag,
+    const char *transkey,
+    const char *str); /*push back the 4 texts of 1 chunk at once*/
+#endif                /*LODEPNG_COMPILE_ANCILLARY_CHUNKS*/
 
 /*
  Converts raw buffer from one color type to another color type, based on
@@ -527,10 +541,9 @@ lodepng_add_itext(LodePNGInfo *info, const char *key, const char *langtag,
  LodePNGDecoderSettings. Note: for 16-bit per channel colors, uses big endian
  format like PNG does.
  */
-unsigned lodepng_convert(unsigned char *out, const unsigned char *in,
-                         LodePNGColorMode *mode_out,
-                         const LodePNGColorMode *mode_in, unsigned w,
-                         unsigned h, unsigned fix_png);
+unsigned lodepng_convert(
+    unsigned char *out, const unsigned char *in, LodePNGColorMode *mode_out,
+    const LodePNGColorMode *mode_in, unsigned w, unsigned h, unsigned fix_png);
 
 #ifdef LODEPNG_COMPILE_DECODER
 /*
@@ -620,10 +633,10 @@ typedef enum LodePNGAutoConvert {
  are less than 256 colors, ...
  The auto_convert parameter allows limiting it to not use palette, ...
  */
-unsigned lodepng_auto_choose_color(LodePNGColorMode *mode_out,
-                                   const unsigned char *image, unsigned w,
-                                   unsigned h, const LodePNGColorMode *mode_in,
-                                   LodePNGAutoConvert auto_convert);
+unsigned lodepng_auto_choose_color(
+    LodePNGColorMode *mode_out, const unsigned char *image, unsigned w,
+    unsigned h, const LodePNGColorMode *mode_in,
+    LodePNGAutoConvert auto_convert);
 
 /*Settings for the encoder.*/
 typedef struct LodePNGEncoderSettings {
@@ -696,25 +709,26 @@ void lodepng_state_copy(LodePNGState *dest, const LodePNGState *source);
  Same as lodepng_decode_memory, but uses a LodePNGState to allow custom settings
  and getting much more information about the PNG image and color mode.
  */
-unsigned lodepng_decode(unsigned char **out, unsigned *w, unsigned *h,
-                        LodePNGState *state, const unsigned char *in,
-                        size_t insize);
+unsigned lodepng_decode(
+    unsigned char **out, unsigned *w, unsigned *h, LodePNGState *state,
+    const unsigned char *in, size_t insize);
 
 /*
  Read the PNG header, but not the actual data. This returns only the information
  that is in the header chunk of the PNG, such as width, height and color type.
  The information is placed in the info_png field of the LodePNGState.
  */
-unsigned lodepng_inspect(unsigned *w, unsigned *h, LodePNGState *state,
-                         const unsigned char *in, size_t insize);
+unsigned lodepng_inspect(
+    unsigned *w, unsigned *h, LodePNGState *state, const unsigned char *in,
+    size_t insize);
 #endif /*LODEPNG_COMPILE_DECODER*/
 
 #ifdef LODEPNG_COMPILE_ENCODER
 /*This function allocates the out buffer with standard malloc and stores the
  * size in *outsize.*/
-unsigned lodepng_encode(unsigned char **out, size_t *outsize,
-                        const unsigned char *image, unsigned w, unsigned h,
-                        LodePNGState *state);
+unsigned lodepng_encode(
+    unsigned char **out, size_t *outsize, const unsigned char *image,
+    unsigned w, unsigned h, LodePNGState *state);
 #endif /*LODEPNG_COMPILE_ENCODER*/
 
 /*
@@ -737,8 +751,8 @@ unsigned lodepng_chunk_length(const unsigned char *chunk);
 void lodepng_chunk_type(char type[5], const unsigned char *chunk);
 
 /*check if the type is the given type*/
-unsigned char lodepng_chunk_type_equals(const unsigned char *chunk,
-                                        const char *type);
+unsigned char
+lodepng_chunk_type_equals(const unsigned char *chunk, const char *type);
 
 /*0: it's one of the critical chunk types, 1: it's an ancillary chunk (see PNG
  * standard)*/
@@ -773,8 +787,8 @@ const unsigned char *lodepng_chunk_next_const(const unsigned char *chunk);
  header. The out variable and outlength are updated to reflect the new
  reallocated buffer. Returns error code (0 if it went ok)
  */
-unsigned lodepng_chunk_append(unsigned char **out, size_t *outlength,
-                              const unsigned char *chunk);
+unsigned lodepng_chunk_append(
+    unsigned char **out, size_t *outlength, const unsigned char *chunk);
 
 /*
  Appends new chunk to out. The chunk to append is given by giving its length,
@@ -782,9 +796,9 @@ unsigned lodepng_chunk_append(unsigned char **out, size_t *outlength,
  outlength are updated to reflect the new reallocated buffer. Returne error code
  (0 if it went ok)
  */
-unsigned lodepng_chunk_create(unsigned char **out, size_t *outlength,
-                              unsigned length, const char *type,
-                              const unsigned char *data);
+unsigned lodepng_chunk_create(
+    unsigned char **out, size_t *outlength, unsigned length, const char *type,
+    const unsigned char *data);
 
 /*Calculate CRC32 of buffer*/
 unsigned lodepng_crc32(const unsigned char *buf, size_t len);
@@ -800,9 +814,9 @@ unsigned lodepng_crc32(const unsigned char *buf, size_t len);
 #ifdef LODEPNG_COMPILE_DECODER
 /*Inflate a buffer. Inflate is the decompression step of deflate. Out buffer
  * must be freed after use.*/
-unsigned lodepng_inflate(unsigned char **out, size_t *outsize,
-                         const unsigned char *in, size_t insize,
-                         const LodePNGDecompressSettings *settings);
+unsigned lodepng_inflate(
+    unsigned char **out, size_t *outsize, const unsigned char *in,
+    size_t insize, const LodePNGDecompressSettings *settings);
 
 /*
  Decompresses Zlib data. Reallocates the out buffer and appends the data. The
@@ -810,9 +824,9 @@ unsigned lodepng_inflate(unsigned char **out, size_t *outsize,
  Either, *out must be NULL and *outsize must be 0, or, *out must be a valid
  buffer and *outsize its size in bytes. out must be freed by user after usage.
  */
-unsigned lodepng_zlib_decompress(unsigned char **out, size_t *outsize,
-                                 const unsigned char *in, size_t insize,
-                                 const LodePNGDecompressSettings *settings);
+unsigned lodepng_zlib_decompress(
+    unsigned char **out, size_t *outsize, const unsigned char *in,
+    size_t insize, const LodePNGDecompressSettings *settings);
 #endif /*LODEPNG_COMPILE_DECODER*/
 
 #ifdef LODEPNG_COMPILE_ENCODER
@@ -823,23 +837,23 @@ unsigned lodepng_zlib_decompress(unsigned char **out, size_t *outsize,
  Either, *out must be NULL and *outsize must be 0, or, *out must be a valid
  buffer and *outsize its size in bytes. out must be freed by user after usage.
  */
-unsigned lodepng_zlib_compress(unsigned char **out, size_t *outsize,
-                               const unsigned char *in, size_t insize,
-                               const LodePNGCompressSettings *settings);
+unsigned lodepng_zlib_compress(
+    unsigned char **out, size_t *outsize, const unsigned char *in,
+    size_t insize, const LodePNGCompressSettings *settings);
 
 /*
  Find length-limited Huffman code for given frequencies. This function is in the
  public interface only for tests, it's used internally by lodepng_deflate.
  */
-unsigned lodepng_huffman_code_lengths(unsigned *lengths,
-                                      const unsigned *frequencies,
-                                      size_t numcodes, unsigned maxbitlen);
+unsigned lodepng_huffman_code_lengths(
+    unsigned *lengths, const unsigned *frequencies, size_t numcodes,
+    unsigned maxbitlen);
 
 /*Compress a buffer with deflate. See RFC 1951. Out buffer must be freed after
  * use.*/
-unsigned lodepng_deflate(unsigned char **out, size_t *outsize,
-                         const unsigned char *in, size_t insize,
-                         const LodePNGCompressSettings *settings);
+unsigned lodepng_deflate(
+    unsigned char **out, size_t *outsize, const unsigned char *in,
+    size_t insize, const LodePNGCompressSettings *settings);
 
 #endif /*LODEPNG_COMPILE_ENCODER*/
 #endif /*LODEPNG_COMPILE_ZLIB*/
@@ -853,8 +867,8 @@ unsigned lodepng_deflate(unsigned char **out, size_t *outsize,
  filename: the path to the file to load
  return value: error code (0 means ok)
  */
-unsigned lodepng_load_file(unsigned char **out, size_t *outsize,
-                           const char *filename);
+unsigned
+lodepng_load_file(unsigned char **out, size_t *outsize, const char *filename);
 
 /*
  Save a file from buffer to disk. Warning, if it exists, this function
@@ -862,8 +876,8 @@ unsigned lodepng_load_file(unsigned char **out, size_t *outsize,
  size of the buffer to write filename: the path to the file to save to return
  value: error code (0 means ok)
  */
-unsigned lodepng_save_file(const unsigned char *buffer, size_t buffersize,
-                           const char *filename);
+unsigned lodepng_save_file(
+    const unsigned char *buffer, size_t buffersize, const char *filename);
 #endif /*LODEPNG_COMPILE_DISK*/
 
 #ifdef LODEPNG_COMPILE_CPP
@@ -882,20 +896,23 @@ public:
 #ifdef LODEPNG_COMPILE_DECODER
 // Same as other lodepng::decode, but using a State for more settings and
 // information.
-unsigned decode(std::vector<unsigned char> &out, unsigned &w, unsigned &h,
-                State &state, const unsigned char *in, size_t insize);
-unsigned decode(std::vector<unsigned char> &out, unsigned &w, unsigned &h,
-                State &state, const std::vector<unsigned char> &in);
+unsigned decode(
+    std::vector<unsigned char> &out, unsigned &w, unsigned &h, State &state,
+    const unsigned char *in, size_t insize);
+unsigned decode(
+    std::vector<unsigned char> &out, unsigned &w, unsigned &h, State &state,
+    const std::vector<unsigned char> &in);
 #endif /*LODEPNG_COMPILE_DECODER*/
 
 #ifdef LODEPNG_COMPILE_ENCODER
 // Same as other lodepng::encode, but using a State for more settings and
 // information.
-unsigned encode(std::vector<unsigned char> &out, const unsigned char *in,
-                unsigned w, unsigned h, State &state);
-unsigned encode(std::vector<unsigned char> &out,
-                const std::vector<unsigned char> &in, unsigned w, unsigned h,
-                State &state);
+unsigned encode(
+    std::vector<unsigned char> &out, const unsigned char *in, unsigned w,
+    unsigned h, State &state);
+unsigned encode(
+    std::vector<unsigned char> &out, const std::vector<unsigned char> &in,
+    unsigned w, unsigned h, State &state);
 #endif /*LODEPNG_COMPILE_ENCODER*/
 
 #ifdef LODEPNG_COMPILE_DISK
@@ -909,38 +926,38 @@ void load_file(std::vector<unsigned char> &buffer, const std::string &filename);
  Save the binary data in an std::vector to a file on disk. The file is
  overwritten without warning.
  */
-void save_file(const std::vector<unsigned char> &buffer,
-               const std::string &filename);
+void save_file(
+    const std::vector<unsigned char> &buffer, const std::string &filename);
 #endif // LODEPNG_COMPILE_DISK
 #endif // LODEPNG_COMPILE_PNG
 
 #ifdef LODEPNG_COMPILE_ZLIB
 #ifdef LODEPNG_COMPILE_DECODER
 // Zlib-decompress an unsigned char buffer
-unsigned decompress(std::vector<unsigned char> &out, const unsigned char *in,
-                    size_t insize,
-                    const LodePNGDecompressSettings &settings =
-                        lodepng_default_decompress_settings);
+unsigned decompress(
+    std::vector<unsigned char> &out, const unsigned char *in, size_t insize,
+    const LodePNGDecompressSettings &settings =
+        lodepng_default_decompress_settings);
 
 // Zlib-decompress an std::vector
-unsigned decompress(std::vector<unsigned char> &out,
-                    const std::vector<unsigned char> &in,
-                    const LodePNGDecompressSettings &settings =
-                        lodepng_default_decompress_settings);
+unsigned decompress(
+    std::vector<unsigned char> &out, const std::vector<unsigned char> &in,
+    const LodePNGDecompressSettings &settings =
+        lodepng_default_decompress_settings);
 #endif // LODEPNG_COMPILE_DECODER
 
 #ifdef LODEPNG_COMPILE_ENCODER
 // Zlib-compress an unsigned char buffer
-unsigned compress(std::vector<unsigned char> &out, const unsigned char *in,
-                  size_t insize,
-                  const LodePNGCompressSettings &settings =
-                      lodepng_default_compress_settings);
+unsigned compress(
+    std::vector<unsigned char> &out, const unsigned char *in, size_t insize,
+    const LodePNGCompressSettings &settings =
+        lodepng_default_compress_settings);
 
 // Zlib-compress an std::vector
-unsigned compress(std::vector<unsigned char> &out,
-                  const std::vector<unsigned char> &in,
-                  const LodePNGCompressSettings &settings =
-                      lodepng_default_compress_settings);
+unsigned compress(
+    std::vector<unsigned char> &out, const std::vector<unsigned char> &in,
+    const LodePNGCompressSettings &settings =
+        lodepng_default_compress_settings);
 #endif // LODEPNG_COMPILE_ENCODER
 #endif // LODEPNG_COMPILE_ZLIB
 } // namespace lodepng

@@ -6,28 +6,30 @@
  * ************************************************************
  */
 
-list_node_t *ListNode_Create(void) {
-  list_node_t *node = (list_node_t *)malloc(sizeof(list_node_t));
+list_node_t *list_node_with(const pdata *payload, const int move) {
+  list_node_t *node = malloc(sizeof(list_node_t));
   memset(node, 0, sizeof(list_node_t));
+  node->owned = move;
+  node->payload = payload;
 
   return node;
 }
 
-void ListNode_Destroy(list_node_t *node) {
-  if (node->payload != NULL)
-    Payload_Destroy(node->payload);
+void list_node_free(const list_node_t *node) {
+  if (node->payload != NULL && node->owned)
+    pdata_free(node->payload);
 
-  free(node);
+  free((void *)node);
 }
 
-void ListNode_Print(list_node_t *node) {
+void list_node_print(const list_node_t *node) {
   DBGLog("%p | ", (void *)node);
   if (node == NULL) {
     printf("null \n");
     return;
   }
 
-  Payload_Print(node->payload);
+  pdata_print(node->payload);
 }
 
 /*
@@ -36,8 +38,8 @@ void ListNode_Print(list_node_t *node) {
  * ************************************************************
  */
 
-list_t *List_Create(void) {
-  list_t *ret = (list_t *)malloc(sizeof(list_t));
+list_t *list_alloc(void) {
+  list_t *ret = malloc(sizeof(list_t));
   memset(ret, 0, sizeof(list_t));
 
   ret->first = NULL;
@@ -46,22 +48,22 @@ list_t *List_Create(void) {
   return ret;
 }
 
-void List_Destroy(list_t *l) {
-  list_node_t *prev = NULL;
-  list_node_t *node = NULL;
+void list_free(list_t *l) {
+  const list_node_t *prev = NULL;
+  const list_node_t *node = NULL;
 
   for (node = l->first; node != NULL;) {
     prev = node;
     node = node->next;
-    ListNode_Destroy(prev);
+    list_node_free(prev);
   }
 
   free(l);
 }
 
-int List_IsEmpty(list_t *l) { return (int)(l->length == 0); }
+int list_is_empty(const list_t *l) { return l->length == 0; }
 
-list_node_t *List_Prev(list_t *l, list_node_t *node) {
+list_node_t *list_prev(list_t *l, const list_node_t *node) {
   list_node_t **pprev = NULL;
 
   for (pprev = &(l->first); *pprev != NULL; pprev = &(*pprev)->next) {
@@ -72,12 +74,13 @@ list_node_t *List_Prev(list_t *l, list_node_t *node) {
   return *pprev;
 }
 
-list_node_t *List_Insert(list_t *l, list_node_t *where, list_node_t *node) {
+list_node_t *
+list_insert(list_t *l, const list_node_t *where, list_node_t *node) {
   list_node_t *iter = l->first;
 
   /* inster front */
   if (where == l->first) {
-    List_PushFront(l, node);
+    list_unshift(l, node);
     return node;
   }
 
@@ -101,7 +104,7 @@ list_node_t *List_Insert(list_t *l, list_node_t *where, list_node_t *node) {
   return node;
 }
 
-list_node_t *List_PushBack(list_t *l, list_node_t *node) {
+list_node_t *list_push(list_t *l, list_node_t *node) {
   list_node_t *last = l->last;
 
   l->length++;
@@ -120,7 +123,7 @@ list_node_t *List_PushBack(list_t *l, list_node_t *node) {
   return node;
 }
 
-list_node_t *List_PushFront(list_t *l, list_node_t *node) {
+list_node_t *list_unshift(list_t *l, list_node_t *node) {
   /* empty list */
   if (l->last == NULL) {
     l->last = node;
@@ -134,7 +137,7 @@ list_node_t *List_PushFront(list_t *l, list_node_t *node) {
   return node;
 }
 
-int List_Remove(list_t *l, list_node_t *node) {
+int list_remove(list_t *l, const list_node_t *node, const int free) {
   list_node_t *prev = NULL;
   list_node_t *cur = l->first;
 
@@ -159,12 +162,13 @@ int List_Remove(list_t *l, list_node_t *node) {
 
   l->length--;
 
-  ListNode_Destroy(cur);
+  if (free)
+    list_node_free(cur);
 
   return 1;
 }
 
-list_node_t *List_Locate(list_t *l, int index) {
+list_node_t *list_locate(const list_t *l, const int index) {
   int i = 0;
   list_node_t *ret = l->first;
 
@@ -176,8 +180,8 @@ list_node_t *List_Locate(list_t *l, int index) {
   return ret;
 }
 
-void List_Print(list_t *l) {
-  list_node_t *node = l->first;
+void list_print(list_t *l) {
+  const list_node_t *node = l->first;
 
   DBGLog("**********************\n");
   DBGLog("List   : %p\n", (void *)l);
@@ -187,7 +191,7 @@ void List_Print(list_t *l) {
   DBGLog("-------------\n");
 
   while (node != NULL) {
-    ListNode_Print(node);
+    list_node_print(node);
 
     node = node->next;
   }
@@ -197,110 +201,32 @@ void List_Print(list_t *l) {
 
 /*
  * ************************************************************
- * helper
- * ************************************************************
- */
-list_node_t *List_PushBack_Int(list_t *l, int data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithInt(data);
-  List_PushBack(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushBack_Char(list_t *l, char data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithChar(data);
-  List_PushBack(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushBack_String(list_t *l, const char *data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithString(data);
-  List_PushBack(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushBack_UserDefine(list_t *l, size_t size, void *data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_Create(PayloadType_UserDefine, size, data);
-  List_PushBack(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushFront_Int(list_t *l, int data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithInt(data);
-  List_PushFront(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushFront_Char(list_t *l, char data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithChar(data);
-  List_PushFront(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushFront_String(list_t *l, const char *data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_CreateWithString(data);
-  List_PushFront(l, node);
-
-  return node;
-}
-
-list_node_t *List_PushFront_UserDefine(list_t *l, size_t size, void *data) {
-  list_node_t *node = ListNode_Create();
-  node->payload = Payload_Create(PayloadType_UserDefine, size, data);
-  List_PushFront(l, node);
-
-  return node;
-}
-
-/*
- * ************************************************************
  * test
  * ************************************************************
  */
-void List_Test(void) {
-  int payload1 = 1;
-  int payload2 = 2;
-  char payload3 = 'k';
-  char *payload4 = "payload 3";
+void list_test(void) {
   list_node_t *first = NULL;
   list_node_t *second = NULL;
   list_node_t *third = NULL;
   list_node_t *fourth = NULL;
 
-  list_t *l = List_Create();
+  list_t *l = list_alloc();
 
-  first = ListNode_Create();
-  first->payload = Payload_CreateWithInt(payload1);
-  List_PushFront(l, first);
+  first = list_node_with(pdata_from_u8(8), 1);
+  list_unshift(l, first);
 
-  second = ListNode_Create();
-  second->payload = Payload_CreateWithInt(payload2);
-  List_PushBack(l, second);
+  second = list_node_with(pdata_from_u32(32), 1);
+  list_push(l, second);
 
-  third = ListNode_Create();
-  third->payload = Payload_CreateWithChar(payload3);
-  List_Insert(l, NULL, third);
+  third = list_node_with(pdata_from_string("hello world!", 0), 1);
+  list_insert(l, NULL, third);
 
-  fourth = ListNode_Create();
-  fourth->payload = Payload_CreateWithString(payload4);
-  List_PushBack(l, fourth);
+  fourth = list_node_with(pdata_from_float(3.14), 1);
+  list_push(l, fourth);
 
-  List_Remove(l, first);
+  list_remove(l, first, 1);
 
-  List_Print(l);
+  list_print(l);
 
-  /* list_node_t *node1 = ListNode_Create(); */
-  List_Destroy(l);
+  list_free(l);
 }

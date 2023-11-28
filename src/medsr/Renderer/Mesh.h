@@ -42,8 +42,8 @@ typedef struct mesh_s {
 
 } mesh_t;
 
-void Mesh_InitWithCapacity(mesh_t *mesh, const char *name, int vertexCapacity,
-                           int faceCapacity);
+void Mesh_InitWithCapacity(
+    mesh_t *mesh, const char *name, int vertexCapacity, int faceCapacity);
 
 void Mesh_Copy(mesh_t *dst, const mesh_t *src);
 

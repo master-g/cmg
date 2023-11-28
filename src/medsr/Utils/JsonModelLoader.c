@@ -99,8 +99,9 @@ jsmntok_t *Json_Tokenize(const char *js, size_t len) {
 }
 
 int Json_TokenStrEqual(jsmntok_t *t, const char *js, const char *s) {
-  return (strncmp(js + t->start, s, t->end - t->start) == 0 &&
-          strlen(s) == (size_t)(t->end - t->start));
+  return (
+      strncmp(js + t->start, s, t->end - t->start) == 0 &&
+      strlen(s) == (size_t)(t->end - t->start));
 }
 
 void Json_TokenToStr(jsmntok_t *t, const char *js, char **str) {
@@ -303,8 +304,8 @@ void JsonModelLoader_Parse(const char *json, mesh_t **meshes, int *meshcount) {
   free(tokens);
 }
 
-void JsonModelLoader_LoadFromFile(const char *filename, mesh_t **mesh,
-                                  int *count) {
+void JsonModelLoader_LoadFromFile(
+    const char *filename, mesh_t **mesh, int *count) {
   FILE *fp;
   int pos, size;
   char *content = NULL;

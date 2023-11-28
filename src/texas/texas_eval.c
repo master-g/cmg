@@ -49,9 +49,9 @@ int texas_eval_is_loyal_straight_flush(unsigned short value) {
   return value == 1 ? 1 : 0;
 }
 
-unsigned short texas_eval_5hand(unsigned int c1, unsigned int c2,
-                                unsigned int c3, unsigned int c4,
-                                unsigned int c5) {
+unsigned short texas_eval_5hand(
+    unsigned int c1, unsigned int c2, unsigned int c3, unsigned int c4,
+    unsigned int c5) {
   unsigned int q = (c1 | c2 | c3 | c4 | c5) >> 16u;
   unsigned short s;
   if (c1 & c2 & c3 & c4 & c5 & 0xF000u) {
@@ -66,10 +66,9 @@ unsigned short texas_eval_5hand(unsigned int c1, unsigned int c2,
       (c5 & 0xFFu))];
 }
 
-unsigned short texas_eval_7hand(unsigned int c1, unsigned int c2,
-                                unsigned int c3, unsigned int c4,
-                                unsigned int c5, unsigned int c6,
-                                unsigned int c7) {
+unsigned short texas_eval_7hand(
+    unsigned int c1, unsigned int c2, unsigned int c3, unsigned int c4,
+    unsigned int c5, unsigned int c6, unsigned int c7) {
   unsigned int c[7];
   int i, q, best = 9999;
   c[0] = c1;
@@ -80,9 +79,9 @@ unsigned short texas_eval_7hand(unsigned int c1, unsigned int c2,
   c[5] = c6;
   c[6] = c7;
   for (i = 0; i < 21; i++) {
-    q = texas_eval_5hand(c[c75_premult[i][0]], c[c75_premult[i][1]],
-                         c[c75_premult[i][2]], c[c75_premult[i][3]],
-                         c[c75_premult[i][4]]);
+    q = texas_eval_5hand(
+        c[c75_premult[i][0]], c[c75_premult[i][1]], c[c75_premult[i][2]],
+        c[c75_premult[i][3]], c[c75_premult[i][4]]);
     if (q < best) {
       best = q;
     }

@@ -42,8 +42,8 @@ void Renderer_ClearColor(renderer_t *renderer, uint32_t color) {
   Renderer_ClearColor4i(renderer, r, g, b, a);
 }
 
-void Renderer_ClearColor4i(renderer_t *renderer, uint8_t r, uint8_t g,
-                           uint8_t b, uint8_t a) {
+void Renderer_ClearColor4i(
+    renderer_t *renderer, uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
   int i = 0;
   for (i = 0; i < (renderer->width * renderer->height); i++) {
     renderer->clearbuffer[i * renderer->bpp + 0] = r;
@@ -53,8 +53,8 @@ void Renderer_ClearColor4i(renderer_t *renderer, uint8_t r, uint8_t g,
   }
 }
 
-void Renderer_ClearColor4f(renderer_t *renderer, float r, float g, float b,
-                           float a) {
+void Renderer_ClearColor4f(
+    renderer_t *renderer, float r, float g, float b, float a) {
   uint8_t ir, ig, ib, ia;
   ir = (uint8_t)(255 * r);
   ig = (uint8_t)(255 * g);
@@ -66,16 +66,18 @@ void Renderer_ClearColor4f(renderer_t *renderer, float r, float g, float b,
 
 void Renderer_Clear(renderer_t *renderer, int flag) {
   if (flag & SR_COLOR_BUFFER_BIT)
-    memcpy(renderer->backbuffer, renderer->clearbuffer,
-           renderer->width * renderer->height * renderer->bpp);
+    memcpy(
+        renderer->backbuffer, renderer->clearbuffer,
+        renderer->width * renderer->height * renderer->bpp);
 
   if (flag & SR_DEPTH_BUFFER_BIT)
-    memcpy(renderer->depthbuffer, renderer->cleardepth,
-           sizeof(flag) * renderer->width * renderer->height);
+    memcpy(
+        renderer->depthbuffer, renderer->cleardepth,
+        sizeof(flag) * renderer->width * renderer->height);
 }
 
-void Renderer_PutPixel(renderer_t *renderer, int x, int y, float z,
-                       uint32_t color) {
+void Renderer_PutPixel(
+    renderer_t *renderer, int x, int y, float z, uint32_t color) {
   uint8_t r, g, b, a;
   int index, depthIndex;
 
@@ -95,15 +97,15 @@ void Renderer_PutPixel(renderer_t *renderer, int x, int y, float z,
   renderer->backbuffer[index + 3] = a;
 }
 
-void Renderer_DrawPixel(renderer_t *renderer, int x, int y, float z,
-                        uint32_t color) {
+void Renderer_DrawPixel(
+    renderer_t *renderer, int x, int y, float z, uint32_t color) {
   if (x > 0 && x <= renderer->width && y <= renderer->height && y > 0)
     Renderer_PutPixel(renderer, x, y, z, color);
 }
 
 /* Bresenham's line drawing algoritm */
-void Renderer_DrawLine(renderer_t *renderer, vec3f_t p0, vec3f_t p1,
-                       uint32_t color) {
+void Renderer_DrawLine(
+    renderer_t *renderer, vec3f_t p0, vec3f_t p1, uint32_t color) {
   int x0, y0, x1, y1;
   int dx, dy, sx, sy, e2, err;
   x0 = (int)p0[VecX];
@@ -136,8 +138,8 @@ void Renderer_DrawLine(renderer_t *renderer, vec3f_t p0, vec3f_t p1,
   }
 }
 
-void Renderer_Project(renderer_t *renderer, vertex_t *r, vertex_t *v,
-                      mat_t trans, mat_t world) {
+void Renderer_Project(
+    renderer_t *renderer, vertex_t *r, vertex_t *v, mat_t trans, mat_t world) {
   vec3f_t worldvec, normalvec;
   /* transforming the coordinates into 2D space */
   Vec3f_TransformCoordinates(r->coordinates, v->coordinates, trans);
@@ -165,10 +167,9 @@ typedef struct scanline_s {
 
 } scanline_t;
 
-void Renderer_ProcessScanLine(renderer_t *renderer, scanline_t *sl,
-                              vertex_t *va, vertex_t *vb, vertex_t *vc,
-                              vertex_t *vd, uint32_t color,
-                              texture_t *texture) {
+void Renderer_ProcessScanLine(
+    renderer_t *renderer, scanline_t *sl, vertex_t *va, vertex_t *vb,
+    vertex_t *vc, vertex_t *vd, uint32_t color, texture_t *texture) {
   float gradient, gradient1, gradient2, z1, z2, z, ndotl, snl, enl, su, eu, sv,
       ev, u, v;
   int sx, ex, x;
@@ -223,16 +224,17 @@ void Renderer_ProcessScanLine(renderer_t *renderer, scanline_t *sl,
      * changing the color value using the cosine of the angle
      * between the light vector and the normal vector
      */
-    Renderer_DrawPixel(renderer, x, sl->currentY, z,
-                       Color4i_Format((int)(r * ndotl * texColor[0]),
-                                      (int)(g * ndotl * texColor[1]),
-                                      (int)(b * ndotl * texColor[2]),
-                                      (int)(a * ndotl * texColor[3])));
+    Renderer_DrawPixel(
+        renderer, x, sl->currentY, z,
+        Color4i_Format(
+            (int)(r * ndotl * texColor[0]), (int)(g * ndotl * texColor[1]),
+            (int)(b * ndotl * texColor[2]), (int)(a * ndotl * texColor[3])));
   }
 }
 
-void Renderer_DrawTriangle(renderer_t *renderer, vertex_t *v1, vertex_t *v2,
-                           vertex_t *v3, uint32_t color, texture_t *texture) {
+void Renderer_DrawTriangle(
+    renderer_t *renderer, vertex_t *v1, vertex_t *v2, vertex_t *v3,
+    uint32_t color, texture_t *texture) {
   float dP1P2, dP1P3, nl1, nl2, nl3;
   vertex_t _v1, _v2, _v3;
   float *p1, *p2, *p3;
@@ -299,8 +301,8 @@ void Renderer_DrawTriangle(renderer_t *renderer, vertex_t *v1, vertex_t *v2,
         data.vc = _v1.texCoordinates[VecY];
         data.vd = _v2.texCoordinates[VecY];
 
-        Renderer_ProcessScanLine(renderer, &data, &_v1, &_v3, &_v1, &_v2, color,
-                                 texture);
+        Renderer_ProcessScanLine(
+            renderer, &data, &_v1, &_v3, &_v1, &_v2, color, texture);
       } else {
         data.ndotla = nl1;
         data.ndotlb = nl3;
@@ -317,8 +319,8 @@ void Renderer_DrawTriangle(renderer_t *renderer, vertex_t *v1, vertex_t *v2,
         data.vc = _v2.texCoordinates[VecY];
         data.vd = _v3.texCoordinates[VecY];
 
-        Renderer_ProcessScanLine(renderer, &data, &_v1, &_v3, &_v2, &_v3, color,
-                                 texture);
+        Renderer_ProcessScanLine(
+            renderer, &data, &_v1, &_v3, &_v2, &_v3, color, texture);
       }
     }
   } else {
@@ -341,8 +343,8 @@ void Renderer_DrawTriangle(renderer_t *renderer, vertex_t *v1, vertex_t *v2,
         data.vc = _v1.texCoordinates[VecY];
         data.vd = _v3.texCoordinates[VecY];
 
-        Renderer_ProcessScanLine(renderer, &data, &_v1, &_v2, &_v1, &_v3, color,
-                                 texture);
+        Renderer_ProcessScanLine(
+            renderer, &data, &_v1, &_v2, &_v1, &_v3, color, texture);
       } else {
         data.ndotla = nl2;
         data.ndotlb = nl3;
@@ -359,8 +361,8 @@ void Renderer_DrawTriangle(renderer_t *renderer, vertex_t *v1, vertex_t *v2,
         data.vc = _v1.texCoordinates[VecY];
         data.vd = _v3.texCoordinates[VecY];
 
-        Renderer_ProcessScanLine(renderer, &data, &_v2, &_v3, &_v1, &_v3, color,
-                                 texture);
+        Renderer_ProcessScanLine(
+            renderer, &data, &_v2, &_v3, &_v1, &_v3, color, texture);
       }
     }
   }
@@ -376,18 +378,20 @@ void Renderer_RenderMesh(renderer_t *renderer, mesh_t *meshes, int length) {
   mat_t worldView;
   mat_t transformMatrix;
 
-  Matrix_LookAtLH(viewMatrix, renderer->camera.position,
-                  renderer->camera.target, Vec3fUnitY);
-  Matrix_PerspectiveFovLH(projectionMatrix, 0.78f,
-                          (float)renderer->width / renderer->height, 0.01f,
-                          1.0f);
+  Matrix_LookAtLH(
+      viewMatrix, renderer->camera.position, renderer->camera.target,
+      Vec3fUnitY);
+  Matrix_PerspectiveFovLH(
+      projectionMatrix, 0.78f, (float)renderer->width / renderer->height, 0.01f,
+      1.0f);
 
   for (i = 0; i < length; i++) {
-    Matrix_Translation(translateMatrix, meshes[i].position[VecX],
-                       meshes[i].position[VecY], meshes[i].position[VecZ]);
-    Matrix_RotationYawPitchRoll(rypMatrix, meshes[i].rotation[VecY],
-                                meshes[i].rotation[VecX],
-                                meshes[i].rotation[VecZ]);
+    Matrix_Translation(
+        translateMatrix, meshes[i].position[VecX], meshes[i].position[VecY],
+        meshes[i].position[VecZ]);
+    Matrix_RotationYawPitchRoll(
+        rypMatrix, meshes[i].rotation[VecY], meshes[i].rotation[VecX],
+        meshes[i].rotation[VecZ]);
     Matrix_Multiply(worldMatrix, translateMatrix, rypMatrix);
 
     Matrix_Multiply(worldView, viewMatrix, worldMatrix);
@@ -403,15 +407,15 @@ void Renderer_RenderMesh(renderer_t *renderer, mesh_t *meshes, int length) {
 
       Vec3f_Transform(transformedNormal, curFace->normal, worldView);
       if (transformedNormal[VecZ] <= 0.0f) {
-        Renderer_Project(renderer, &pointA, vertexA, transformMatrix,
-                         worldMatrix);
-        Renderer_Project(renderer, &pointB, vertexB, transformMatrix,
-                         worldMatrix);
-        Renderer_Project(renderer, &pointC, vertexC, transformMatrix,
-                         worldMatrix);
+        Renderer_Project(
+            renderer, &pointA, vertexA, transformMatrix, worldMatrix);
+        Renderer_Project(
+            renderer, &pointB, vertexB, transformMatrix, worldMatrix);
+        Renderer_Project(
+            renderer, &pointC, vertexC, transformMatrix, worldMatrix);
 
-        Renderer_DrawTriangle(renderer, &pointA, &pointB, &pointC, 0xFFFFFFFF,
-                              meshes[i].texture);
+        Renderer_DrawTriangle(
+            renderer, &pointA, &pointB, &pointC, 0xFFFFFFFF, meshes[i].texture);
       }
     }
   }

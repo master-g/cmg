@@ -3,7 +3,7 @@
 
 #include "list.h"
 
-#define BTree_Count(t) (t)->count
+#define btree_num_of_nodes(t) (t)->count
 
 /*
  * ************************************************************
@@ -16,14 +16,14 @@ typedef struct btree_node_t {
   struct btree_node_t *left;
   struct btree_node_t *right;
 
-  payload_t *payload;
+  int owned;
+  const pdata *payload;
 
 } btree_node_t;
 
-btree_node_t *BTreeNode_Create();
-void BTreeNode_Destroy(btree_node_t *node);
-
-void BTreeNode_Print(btree_node_t *node);
+btree_node_t *btree_node_with(const pdata *payload, int move);
+void btree_node_free(const btree_node_t *node);
+void btree_node_print(const btree_node_t *node);
 
 /*
  * ************************************************************
@@ -38,18 +38,29 @@ typedef struct btree_t {
 
 } btree_t;
 
-btree_t *BTree_Create(void);
+typedef enum btree_walk_mode_t {
+  INORDER = 0,
+  PREORDER,
+  POSTORDER,
+} btree_walk_mode_t;
 
-void BTree_Destroy(btree_t *t);
+typedef void (*btree_walk_func)(btree_node_t *node);
 
-int BTree_IsEmpty(btree_t *t);
+btree_t *btree_alloc(void);
 
-btree_node_t *BTree_Find(btree_t *t, void *payload);
+void btree_walk(const btree_t *t, btree_walk_mode_t mode, btree_walk_func func);
 
-btree_node_t *BTree_FindMin(btree_t *t);
+void btree_free(btree_t *t);
 
-btree_node_t *BTree_FindMax(btree_t *t);
+int btree_is_empty(const btree_t *t);
 
-void BTree_Insert(btree_t *t, btree_node_t *node);
+btree_node_t *
+btree_find(const btree_t *t, const pdata *payload, pdata_cmp_func cmp);
+
+btree_node_t *btree_find_min(btree_t *t, pdata_cmp_func cmp);
+
+btree_node_t *btree_find_max(btree_t *t, pdata_cmp_func cmp);
+
+void btree_insert(btree_t *t, btree_node_t *node);
 
 #endif /* BTREE_H_ */

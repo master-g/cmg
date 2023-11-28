@@ -14,8 +14,9 @@ int main(int argc, char *argv[]) {
   texas_utils_dump_list(&list);
 
   for (iter = list; iter != NULL; iter = iter->next) {
-    printf("v: %4d, cards: %s, hand: %s, index: %d\n", iter->value,
-           iter->str_card, iter->str_desc, index);
+    printf(
+        "v: %4d, cards: %s, hand: %s, index: %d\n", iter->value, iter->str_card,
+        iter->str_desc, index);
     index++;
   }
 

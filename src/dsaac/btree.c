@@ -7,29 +7,33 @@
  * ************************************************************
  */
 
-btree_node_t *BTreeNode_Create() {
-  btree_node_t *node = (btree_node_t *)malloc(sizeof(btree_node_t));
+btree_node_t *btree_node_with(const pdata *payload, const int move) {
+  btree_node_t *node = malloc(sizeof(btree_node_t));
   memset(node, 0, sizeof(btree_node_t));
   if (node == NULL)
     return NULL;
 
+  node->payload = payload;
+  node->owned = move;
+
   return node;
 }
 
-void BTreeNode_Destroy(btree_node_t *node) {
-  Payload_Destroy(node->payload);
+void btree_node_free(const btree_node_t *node) {
+  if (node && node->owned)
+    pdata_free(node->payload);
 
-  free(node);
+  free((void *)node);
 }
 
-void BTreeNode_Print(btree_node_t *node) {
+void btree_node_print(const btree_node_t *node) {
   DBGLog("%p | ", (void *)node);
   if (node == NULL) {
     printf("null \n");
     return;
   }
 
-  Payload_Print(node->payload);
+  pdata_print(node->payload);
 }
 
 /*
@@ -38,8 +42,8 @@ void BTreeNode_Print(btree_node_t *node) {
  * ************************************************************
  */
 
-btree_t *BTree_Create(void) {
-  btree_t *ret = (btree_t *)malloc(sizeof(btree_t));
+btree_t *btree_alloc(void) {
+  btree_t *ret = malloc(sizeof(btree_t));
   memset(ret, 0, sizeof(btree_t));
 
   ret->root = NULL;
@@ -47,86 +51,143 @@ btree_t *BTree_Create(void) {
   return ret;
 }
 
-void BTree_Destroy(btree_t *t) {
-  list_t *l = NULL;
-  list_node_t *dnode = NULL;
-
-  int dirFlag = 1;
+void _btree_walk_inorder(const btree_t *t, const btree_walk_func func) {
+  stack_t *s = stack_alloc();
 
   btree_node_t *current = t->root;
+  while (current != NULL || !stack_is_empty(s)) {
+    // current and its left children
+    while (current != NULL) {
+      stack_push(s, stack_node_with(pdata_from_ref(current), 1));
+      current = current->left;
+    }
+    // pop and visit
+    const stack_node_t *sn = stack_pop(s);
+    current = sn->payload->data.p;
+    func(current);
+    stack_node_free(sn);
 
-  if (t->root == NULL)
-    return;
+    // handle right children
+    current = current->right;
+  }
 
-  if (t->root) {
-    l = List_Create();
-    List_PushBack_UserDefine(l, sizeof(btree_node_t **), &(t->root));
+  stack_free(s);
+}
 
-    current = t->root->left;
-    while ((current != NULL) && ((current != t->root) || dirFlag)) {
-      if (dirFlag) {
-        List_PushBack_UserDefine(l, sizeof(btree_node_t **), &current);
+void _btree_walk_preorder(const btree_t *t, const btree_walk_func func) {
+  stack_t *s = stack_alloc();
 
-        if (current->left != NULL)
-          current = current->left;
-        else
-          dirFlag = 0;
+  btree_node_t *current = t->root;
+  while (current != NULL || !stack_is_empty(s)) {
+    if (current != NULL) {
+      // visit
+      func(current);
+      // push
+      stack_push(s, stack_node_with(pdata_from_ref(current), 1));
+      // handle left children
+      current = current->left;
+    } else {
+      // handle right children
+      const stack_node_t *sn = stack_pop(s);
+      current = sn->payload->data.p;
+      stack_node_free(sn);
+
+      // handle right children
+      current = current->right;
+    }
+  }
+
+  stack_free(s);
+}
+
+void _btree_walk_postorder(const btree_t *t, const btree_walk_func func) {
+  stack_t *s = stack_alloc();
+
+  btree_node_t *current = t->root;
+  const btree_node_t *last_visited = NULL;
+
+  while (current != NULL || !stack_is_empty(s)) {
+    if (current != NULL) {
+      // push
+      stack_push(s, stack_node_with(pdata_from_ref(current), 1));
+      // handle left children
+      current = current->left;
+    } else {
+      btree_node_t *peek_node = stack_top(s)->payload->data.p;
+      // check if right children has been already visited
+      if (peek_node->right != NULL && last_visited != peek_node->right) {
+        // handle right children
+        current = peek_node->right;
       } else {
-        if (current->right != NULL) {
-          current = current->right;
-          dirFlag = 1;
-        } else
-          current = current->parent;
+        // visit
+        func(peek_node);
+        // pop
+        const stack_node_t *sn = stack_pop(s);
+        last_visited = sn->payload->data.p;
+        stack_node_free(sn);
       }
     }
+  }
 
-    for (dnode = l->first; dnode != NULL; dnode = dnode->next) {
-      BTreeNode_Print(*(btree_node_t **)dnode->payload->data);
-      BTreeNode_Destroy(*(btree_node_t **)dnode->payload->data);
-    }
+  stack_free(s);
+}
 
-    List_Destroy(l);
+void btree_walk(
+    const btree_t *t, const btree_walk_mode_t mode,
+    const btree_walk_func func) {
+  if (t == NULL || t->root == NULL || func == NULL)
+    return;
 
-    free(t);
+  switch (mode) {
+  case INORDER:
+    _btree_walk_inorder(t, func);
+    break;
+  case PREORDER:
+    _btree_walk_preorder(t, func);
+    break;
+  case POSTORDER:
+    _btree_walk_postorder(t, func);
+    break;
   }
 }
 
-int BTree_IsEmpty(btree_t *t) { return (int)(t->count == 0); }
+void btree_free(btree_t *t) {
+  btree_walk(t, INORDER, btree_node_free);
+  free(t);
+}
 
-btree_node_t *BTree_Find(btree_t *t, void *payload) {
+int btree_is_empty(const btree_t *t) { return t->count == 0; }
+
+btree_node_t *
+btree_find(const btree_t *t, const pdata *payload, const pdata_cmp_func cmp) {
   if (t == NULL || t->root == NULL) {
     return NULL;
   }
-  btree_node_t *current = t->root;
 
-  stack_t *s = Stack_Create();
-  stack_node_t *head =
-      Stack_PushUserDefine(s, sizeof(btree_node_t **), &current);
+  stack_t *s = stack_alloc();
+  stack_push(s, stack_node_with(pdata_from_ref(t->root), 1));
   btree_node_t *found = NULL;
-
-  while (!Stack_IsEmpty(s) && found == NULL) {
-    current = Stack_Pop(s);
-    if (PayloadComparators[current->payload->type](current->payload) == 0) {
-      found = current->payload->data;
+  while (!stack_is_empty(s)) {
+    const stack_node_t *sn = stack_top(s);
+    btree_node_t *current = sn->payload->data.p;
+    stack_node_free(sn);
+    if (cmp(current->payload, payload) == 0) {
+      found = current;
       break;
     }
     if (current->right != NULL) {
-      stack_node_t *right = StackNode_Create();
-      right->payload = current->right;
-      Stack_Push(s, right);
+      stack_push(s, stack_node_with(pdata_from_ref(current->right), 1));
     }
     if (current->left != NULL) {
-      stack_node_t *left = StackNode_Create();
-      left->payload = current->left;
-      Stack_Push(s, left);
+      stack_push(s, stack_node_with(pdata_from_ref(current->left), 1));
     }
   }
 
-  Stack_Destroy(s);
+  stack_free(s);
 
   return found;
 }
 
-btree_node_t *BTree_FindMin(btree_t *t) { return NULL; }
+btree_node_t *btree_find_min(btree_t *t, pdata_cmp_func cmp) { return NULL; }
 
-btree_node_t *BTree_FindMax(btree_t *t) { return NULL; }
+btree_node_t *btree_find_max(btree_t *t, pdata_cmp_func cmp) { return NULL; }

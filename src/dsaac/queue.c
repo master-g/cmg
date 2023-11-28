@@ -1,6 +1,6 @@
 #include "queue.h"
 
-queue_node_t *Queue_Dequeue(queue_t *q) {
+queue_node_t *queue_dequeue(queue_t *q) {
   queue_node_t *node = q->first;
   q->first = q->first->next;
   q->length--;
@@ -11,8 +11,8 @@ queue_node_t *Queue_Dequeue(queue_t *q) {
   return node;
 }
 
-void Queue_Print(queue_t *q) {
-  queue_node_t *node = q->first;
+void queue_print(queue_t *q) {
+  const queue_node_t *node = q->first;
 
   DBGLog("**********************\n");
   DBGLog("Queue  : %p\n", (void *)q);
@@ -22,7 +22,7 @@ void Queue_Print(queue_t *q) {
   DBGLog("-------------\n");
 
   while (node != NULL) {
-    QueueNode_Print(node);
+    queue_node_print(node);
 
     node = node->next;
   }
@@ -30,36 +30,27 @@ void Queue_Print(queue_t *q) {
   DBGLog("**********************\n");
 }
 
-void Queue_Test(void) {
-  int payload1 = 1;
-  char payload2 = 's';
-  char *payload3 = "this is a queue";
+void queue_test(void) {
   queue_t *q = NULL;
   queue_node_t *node1 = NULL;
   queue_node_t *node2 = NULL;
   queue_node_t *node3 = NULL;
 
-  node1 = QueueNode_Create();
-  node1->payload = Payload_CreateWithInt(payload1);
-  node2 = QueueNode_Create();
-  node2->payload = Payload_CreateWithChar(payload2);
-  node3 = QueueNode_Create();
-  node3->payload = Payload_CreateWithString(payload3);
+  node1 = queue_node_with(pdata_from_u32(1), 1);
+  node2 = queue_node_with(pdata_from_u8('q'), 1);
+  node3 = queue_node_with(pdata_from_string("this is a queue", 0), 1);
 
-  q = Queue_Create();
+  q = queue_alloc();
 
-  Queue_Enqueue(q, node1);
-  Queue_Enqueue(q, node2);
-  Queue_Enqueue(q, node3);
+  queue_enque(q, node1);
+  queue_enque(q, node2);
+  queue_enque(q, node3);
 
-  Queue_EnqueueChar(q, 'a');
+  node1 = queue_dequeue(q);
+  queue_node_print(node1);
 
-  node1 = Queue_Dequeue(q);
-  QueueNode_Print(node1);
+  queue_node_free(node1);
 
-  QueueNode_Destroy(node1);
-
-  Queue_Print(q);
-
-  Queue_Destroy(q);
+  queue_print(q);
+  queue_free(q);
 }

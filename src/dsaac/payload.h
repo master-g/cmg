@@ -11,34 +11,64 @@
 
 #include "common.h"
 
-typedef enum {
-  PayloadType_Char = 0,
-  PayloadType_Int,
-  PayloadType_String,
-  PayloadType_UserDefine,
+typedef union {
+  int8_t i8;
+  uint8_t u8;
+  int16_t i16;
+  uint16_t u16;
+  int32_t i32;
+  uint32_t u32;
+  int64_t i64;
+  uint64_t u64;
+  float f;
+  double d;
+  void *p;
+} pdata_t;
 
-  PayloadType_Count
+typedef void (*pdata_ud_free)(const void *ud);
 
-} PayloadType;
-
-typedef struct payload_t {
+typedef struct pdata {
   int type;
   size_t size;
-  void *data;
+  int own_data;
+  pdata_t data;
+  pdata_ud_free udfree;
 
-} payload_t;
+} pdata;
 
-typedef int (*Payload_CompareFunc)(payload_t *payload);
+typedef int (*pdata_cmp_func)(const pdata *a, const pdata *b);
 
-extern Payload_CompareFunc PayloadComparators[PayloadType_Count];
+pdata *pdata_from_i8(uint8_t data);
+pdata *pdata_from_u8(uint8_t data);
+pdata *pdata_from_i16(uint16_t data);
+pdata *pdata_from_u16(uint16_t data);
+pdata *pdata_from_i32(uint32_t data);
+pdata *pdata_from_u32(uint32_t data);
+pdata *pdata_from_i64(uint64_t data);
+pdata *pdata_from_u64(uint64_t data);
+pdata *pdata_from_float(float data);
+pdata *pdata_from_double(double data);
+pdata *pdata_from_string(const char *data, int move);
+pdata *pdata_from_bytes(void *data, size_t size, int move);
+pdata *pdata_from_ud(void *data, size_t size, int move, pdata_ud_free udfree);
+pdata *pdata_from_ref(void *data);
 
-payload_t *Payload_Create(int type, size_t size, void *data);
-payload_t *Payload_CreateWithInt(int data);
-payload_t *Payload_CreateWithChar(char data);
-payload_t *Payload_CreateWithString(const char *data);
+#define pdata_i8(pd) ((pd)->data.i8)
+#define pdata_u8(pd) ((pd)->data.u8)
+#define pdata_i16(pd) ((pd)->data.i16)
+#define pdata_u16(pd) ((pd)->data.u16)
+#define pdata_i32(pd) ((pd)->data.i32)
+#define pdata_u32(pd) ((pd)->data.u32)
+#define pdata_i64(pd) ((pd)->data.i64)
+#define pdata_u64(pd) ((pd)->data.u64)
+#define pdata_float(pd) ((pd)->data.f)
+#define pdata_double(pd) ((pd)->data.d)
+#define pdata_raw(pd) ((pd)->data.p)
 
-void Payload_Destroy(payload_t *payload);
+void pdata_free(const pdata *pd);
 
-void Payload_Print(payload_t *payload);
+void pdata_print(const pdata *pd);
+
+void pdata_test();
 
 #endif /* PAYLOAD_H_ */

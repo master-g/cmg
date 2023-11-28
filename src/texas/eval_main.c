@@ -75,13 +75,8 @@ int main(int argc, char **argv) {
     return -1;
   }
 
-  const int value = texas_eval_5hand(
-      cards[0],
-      cards[1],
-      cards[2],
-      cards[3],
-      cards[4]
-      );
+  const int value =
+      texas_eval_5hand(cards[0], cards[1], cards[2], cards[3], cards[4]);
   printf("eval value: %d\n", value);
 
   return 0;

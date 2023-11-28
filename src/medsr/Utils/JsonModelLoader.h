@@ -13,7 +13,7 @@
 
 void JsonModelLoader_Parse(const char *json, mesh_t **mesh, int *count);
 
-void JsonModelLoader_LoadFromFile(const char *filename, mesh_t **mesh,
-                                  int *count);
+void JsonModelLoader_LoadFromFile(
+    const char *filename, mesh_t **mesh, int *count);
 
 #endif /* MEDSR_JSONMODELLOADER_H_ */

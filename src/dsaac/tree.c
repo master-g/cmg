@@ -6,29 +6,33 @@
  * ************************************************************
  */
 
-tree_node_t *TreeNode_Create(void) {
-  tree_node_t *node = (tree_node_t *)malloc(sizeof(tree_node_t));
-  memset(node, 0, sizeof(tree_node_t));
-  if (node == NULL)
-    return NULL;
+tree_node_t *tree_node_with(const pdata *payload, const int move) {
+  tree_node_t *node = malloc(sizeof(tree_node_t));
+  node->parent = NULL;
+  node->sibling = NULL;
+  node->child = NULL;
+  node->own_pdata = move;
+  node->data = payload;
 
   return node;
 }
 
-void TreeNode_Destroy(tree_node_t *node) {
-  Payload_Destroy(node->payload);
+void tree_node_free(tree_node_t *node) {
+  if (node && node->own_pdata) {
+    pdata_free(node->data);
+  }
 
   free(node);
 }
 
-void TreeNode_Print(tree_node_t *node) {
+void tree_node_print(tree_node_t *node) {
   DBGLog("%p | ", (void *)node);
   if (node == NULL) {
     printf("null \n");
     return;
   }
 
-  Payload_Print(node->payload);
+  pdata_print(node->data);
 }
 
 /*
@@ -37,8 +41,8 @@ void TreeNode_Print(tree_node_t *node) {
  * ************************************************************
  */
 
-tree_t *Tree_Create(void) {
-  tree_t *ret = (tree_t *)malloc(sizeof(tree_t));
+tree_t *tree_alloc(void) {
+  tree_t *ret = malloc(sizeof(tree_t));
   memset(ret, 0, sizeof(tree_t));
 
   ret->root = NULL;
@@ -84,18 +88,17 @@ tree_t *Tree_Create(void) {
  function to work only when first_flag is FALSE. To get a combined
  prefix/postfix traversal, define the function to ignore first_flag.
  */
-void Tree_Destroy(tree_t *t) {
+void tree_free(tree_t *t) {
   list_t *l = NULL;
-  list_node_t *dnode = NULL;
+  const list_node_t *dnode = NULL;
 
   /*
    * 1  1st exploration of node,  continue with 1st subnode
    * 0 node completely explored, continue with sibling
    */
-  int dirFlag = 1;
 
   /* the current node during exploration */
-  tree_node_t *current = t->root;
+  tree_node_t *current = NULL;
 
   if (t->root == NULL)
     return;
@@ -106,11 +109,12 @@ void Tree_Destroy(tree_t *t) {
    */
 
   if (t->root) {
-    l = List_Create();
-    List_PushBack_UserDefine(l, sizeof(tree_node_t **), &(t->root));
+    int dirFlag = 1;
+    l = list_alloc();
+    list_push(l, list_node_with(pdata_from_ref(t->root), 1));
     /* ----- the exploration loop */
     current = t->root->child;
-    while ((current != NULL) && ((current != t->root) || dirFlag)) {
+    while ((current != NULL) && (current != t->root || dirFlag)) {
       /*
        * --- process the node : TRUE prefix, FALSE postfix
        * (* process) (current, dir_flag);
@@ -122,7 +126,7 @@ void Tree_Destroy(tree_t *t) {
        */
       if (dirFlag) {
         /* add node to delete list */
-        List_PushBack_UserDefine(l, sizeof(tree_node_t **), &current);
+        list_push(l, list_node_with(pdata_from_ref(current), 1));
 
         if (current->child != NULL)
           current = current->child;
@@ -153,11 +157,11 @@ void Tree_Destroy(tree_t *t) {
     /* ASSERT ((current == root) && (dir_flag == FALSE)); */
 
     for (dnode = l->first; dnode != NULL; dnode = dnode->next) {
-      TreeNode_Print(*(tree_node_t **)dnode->payload->data);
-      TreeNode_Destroy(*(tree_node_t **)dnode->payload->data);
+      tree_node_print(dnode->payload->data.p);
+      tree_node_free(dnode->payload->data.p);
     }
 
-    List_Destroy(l);
+    list_free(l);
 
     free(t);
   }
@@ -168,9 +172,9 @@ void Tree_Destroy(tree_t *t) {
    */
 }
 
-int Tree_IsEmpty(tree_t *t) { return (int)(t->count == 0); }
+int tree_is_empty(const tree_t *t) { return t->count == 0; }
 
-void Tree_AddNode(tree_t *t, tree_node_t *parent, tree_node_t *node) {
+void tree_insert(tree_t *t, tree_node_t *parent, tree_node_t *node) {
   tree_node_t *current = NULL;
 
   t->count++;
@@ -199,7 +203,7 @@ void Tree_AddNode(tree_t *t, tree_node_t *parent, tree_node_t *node) {
 }
 
 /* test */
-void Tree_Test(void) {
+void tree_test(void) {
   tree_t *t = NULL;
   tree_node_t *root = NULL;
   tree_node_t *leaf_0_0 = NULL;
@@ -217,30 +221,23 @@ void Tree_Test(void) {
   const char *payload5 = "leaf_1_1";
   const char *payload6 = "leaf_2_0";
 
-  root = TreeNode_Create();
-  root->payload = Payload_CreateWithString(payload0);
-  leaf_0_0 = TreeNode_Create();
-  leaf_0_0->payload = Payload_CreateWithString(payload1);
-  leaf_0_1 = TreeNode_Create();
-  leaf_0_1->payload = Payload_CreateWithString(payload2);
-  leaf_0_2 = TreeNode_Create();
-  leaf_0_2->payload = Payload_CreateWithString(payload3);
-  leaf_1_0 = TreeNode_Create();
-  leaf_1_0->payload = Payload_CreateWithString(payload4);
-  leaf_1_1 = TreeNode_Create();
-  leaf_1_1->payload = Payload_CreateWithString(payload5);
-  leaf_2_0 = TreeNode_Create();
-  leaf_2_0->payload = Payload_CreateWithString(payload6);
+  root = tree_node_with(pdata_from_string(payload0, 0), 1);
+  leaf_0_0 = tree_node_with(pdata_from_string(payload1, 0), 1);
+  leaf_0_1 = tree_node_with(pdata_from_string(payload2, 0), 1);
+  leaf_0_2 = tree_node_with(pdata_from_string(payload3, 0), 1);
+  leaf_1_0 = tree_node_with(pdata_from_string(payload4, 0), 1);
+  leaf_1_1 = tree_node_with(pdata_from_string(payload5, 0), 1);
+  leaf_2_0 = tree_node_with(pdata_from_string(payload6, 0), 1);
 
-  t = Tree_Create();
+  t = tree_alloc();
 
-  Tree_AddNode(t, t->root, root);
-  Tree_AddNode(t, t->root, leaf_0_0);
-  Tree_AddNode(t, t->root, leaf_0_1);
-  Tree_AddNode(t, t->root, leaf_0_2);
-  Tree_AddNode(t, leaf_0_1, leaf_1_0);
-  Tree_AddNode(t, leaf_0_1, leaf_1_1);
-  Tree_AddNode(t, leaf_1_0, leaf_2_0);
+  tree_insert(t, t->root, root);
+  tree_insert(t, t->root, leaf_0_0);
+  tree_insert(t, t->root, leaf_0_1);
+  tree_insert(t, t->root, leaf_0_2);
+  tree_insert(t, leaf_0_1, leaf_1_0);
+  tree_insert(t, leaf_0_1, leaf_1_1);
+  tree_insert(t, leaf_1_0, leaf_2_0);
 
-  Tree_Destroy(t);
+  tree_free(t);
 }
