@@ -1,67 +1,174 @@
 #ifndef LIST_H_
 #define LIST_H_
 
-#include "common.h"
 #include "payload.h"
 
-#define list_first(l) (l)->first
-#define list_last(l) (l)->last
-#define list_len(l) (l)->length
+typedef struct list_t list_t;
 
-/*
- * ************************************************************
- * list_node_t
- * ************************************************************
+typedef int (*list_find_func)(const pdata *data, const pdata *key);
+
+typedef pdata *(*list_sum_fun)(
+    const list_t *l, int index, const pdata *data, const pdata *acc);
+
+/**
+ * \brief allocate a list
+ * \return a pointer to the list
  */
-
-typedef struct list_node_t {
-  struct list_node_t *next;
-  int owned;
-  const pdata *payload;
-
-} list_node_t;
-
-list_node_t *list_node_with(const pdata *payload, int move);
-
-void list_node_free(const list_node_t *node);
-
-void list_node_print(const list_node_t *node);
-
-/*
- * ************************************************************
- * list_t
- * ************************************************************
- */
-
-typedef struct list_t {
-  int length;
-  list_node_t *last;
-  list_node_t *first;
-
-} list_t;
-
 list_t *list_alloc(void);
 
+/**
+ * \brief free a list
+ * each node in the list will be freed
+ * if the payload of the node is not NULL, and is owned by the node,
+ * will be freed too
+ * \param l the list to be freed
+ */
 void list_free(list_t *l);
 
+/**
+ * \brief check if the list is empty
+ * \param l the list to be checked
+ * \return 1 if the list is empty, 0 otherwise
+ */
 int list_is_empty(const list_t *l);
 
-list_node_t *list_prev(list_t *l, const list_node_t *node);
+/**
+ * \brief insert a node into the list
+ * \param l the list to be inserted
+ * \param where position to be inserted
+ * \param data what to be inserted
+ * \return 1 if success, 0 otherwise
+ */
+int list_insert(list_t *l, int where, const pdata *data);
 
-list_node_t *
-list_insert(list_t *l, const list_node_t *where, list_node_t *node);
+/**
+ * \brief push a node to the end of the list
+ * \param l the list to be pushed
+ * \param data what to be pushed
+ * \return 1 if success, 0 otherwise
+ */
+int list_push(list_t *l, const pdata *data);
 
-list_node_t *list_push(list_t *l, list_node_t *node);
+/**
+ * \brief unshift a node to the head of the list
+ * \param l the list to be unshifted
+ * \param data what to be unshifted
+ * \return 1 if success, 0 otherwise
+ */
+int list_unshift(list_t *l, const pdata *data);
 
-list_node_t *list_unshift(list_t *l, list_node_t *node);
+/**
+ * \brief remove a node from the list
+ * \param l the list to be removed
+ * \param data what to be removed
+ * \return 1 if success, 0 otherwise
+ */
+int list_remove(list_t *l, const pdata *data);
 
-int list_remove(list_t *l, const list_node_t *node, int free);
+/**
+ * \brief remove a node from the list at the specified position
+ * \param l the list to be removed
+ * \param index position to be removed
+ * \return NULL if failed, otherwise the payload of the removed node
+ */
+const pdata *list_remove_at(list_t *l, int index);
 
-list_node_t *list_locate(const list_t *l, int index);
+/**
+ * \brief remove the first node from the list
+ * \param l the list to be removed
+ * \return NULL if failed, otherwise the payload of the removed node
+ */
+const pdata *list_remove_first(list_t *l);
 
-void list_print(list_t *l);
+/**
+ * \brief remove the last node from the list
+ * \param l the list to be removed
+ * \return NULL if failed, otherwise the payload of the removed node
+ */
+const pdata *list_remove_last(list_t *l);
 
-/* test */
-void list_test(void);
+/**
+ * \brief return the first node of the list
+ * \param l the list to be checked
+ * \return NULL if failed, otherwise the payload of the first node
+ */
+const pdata *list_first(const list_t *l);
+
+/**
+ * \brief return the last node of the list
+ * \param l the list to be checked
+ * \return NULL if failed, otherwise the payload of the last node
+ */
+const pdata *list_last(const list_t *l);
+
+/**
+ * \brief return the node at the specified position
+ * \param l the list to be checked
+ * \param index position to be checked
+ * \return NULL if failed, otherwise the payload of the node
+ */
+const pdata *list_get(const list_t *l, int index);
+
+/**
+ * \brief return the length of the list
+ * \param l the list to be checked
+ * \return 0 if failed or empty, otherwise the length of the list
+ */
+size_t list_len(const list_t *l);
+
+/**
+ * \brief find the index of the specified payload
+ * \param l the list to be checked
+ * \param data what to be checked
+ * \return -1 if failed, otherwise the index of the payload
+ */
+int list_index_of(const list_t *l, const pdata *data);
+
+/**
+ * \brief find the node with the specified payload
+ * \param l the list to be checked
+ * \param finder the function to be used to find the node
+ * \param key the key to be used to find the node
+ * \return -1 if failed, otherwise the index of the payload
+ */
+int list_find(const list_t *l, list_find_func finder, const pdata *key);
+
+/**
+ * \brief iterate the list
+ * \param l the list to be iterated
+ * \param ctx the context to be passed to the function
+ * \param func the function to be used to iterate the list
+ */
+void list_foreach_self_ctx_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, void *ctx_, int index, const pdata *data));
+
+void list_foreach_ctx_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(void *ctx_, int index, const pdata *data));
+
+void list_foreach_self_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, int index, const pdata *data));
+
+void list_foreach_self_ctx(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, void *ctx_, const pdata *data));
+
+void list_foreach_self(
+    const list_t *l, void (*func)(const list_t *l_, const pdata *data));
+
+void list_foreach_ctx(
+    const list_t *l, void *ctx, void (*func)(void *ctx_, const pdata *data));
+
+void list_foreach_indexed(
+    const list_t *l, void (*func)(int index, const pdata *data));
+
+/**
+ * \brief iterate the list
+ * \param l the list to be iterated
+ * \param func the function to be used to iterate the list
+ */
+void list_foreach(const list_t *l, void(func)(const pdata *));
 
 #endif /* LIST_H_ */

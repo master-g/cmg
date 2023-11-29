@@ -1,12 +1,17 @@
 #include "common.h"
-#include "list.h"
-#include "tree.h"
 
-extern list_t *infix2posfix(const char *);
+#include "test.h"
+
+extern void infix2posfix(const char *);
 
 int main(int argc, char **argv) {
+  test_payload();
+  test_list();
+  test_stack();
+  test_queue();
+  test_tree();
+
   infix2posfix("(123+234)*(35-47)/(55+63)");
-  tree_test();
   memtrack_list_allocations();
   return 0;
 }

@@ -1,36 +1,22 @@
 #include "list.h"
+#include "common.h"
 
-/*
- * ************************************************************
- * list_node_t
- * ************************************************************
- */
+typedef struct list_node_t {
+  struct list_node_t *prev;
+  struct list_node_t *next;
+  const pdata *payload;
+} list_node_t;
 
-list_node_t *list_node_with(const pdata *payload, const int move) {
+list_node_t *list_node_with(const pdata *payload) {
   list_node_t *node = malloc(sizeof(list_node_t));
-  memset(node, 0, sizeof(list_node_t));
-  node->owned = move;
+  node->prev = NULL;
+  node->next = NULL;
   node->payload = payload;
 
   return node;
 }
 
-void list_node_free(const list_node_t *node) {
-  if (node->payload != NULL && node->owned)
-    pdata_free(node->payload);
-
-  free((void *)node);
-}
-
-void list_node_print(const list_node_t *node) {
-  DBGLog("%p | ", (void *)node);
-  if (node == NULL) {
-    printf("null \n");
-    return;
-  }
-
-  pdata_print(node->payload);
-}
+void list_node_free(const list_node_t *node) { free((void *)node); }
 
 /*
  * ************************************************************
@@ -38,10 +24,16 @@ void list_node_print(const list_node_t *node) {
  * ************************************************************
  */
 
+struct list_t {
+  size_t length;
+  list_node_t *last;
+  list_node_t *first;
+};
+
 list_t *list_alloc(void) {
   list_t *ret = malloc(sizeof(list_t));
-  memset(ret, 0, sizeof(list_t));
 
+  ret->length = 0;
   ret->first = NULL;
   ret->last = NULL;
 
@@ -63,170 +55,321 @@ void list_free(list_t *l) {
 
 int list_is_empty(const list_t *l) { return l->length == 0; }
 
-list_node_t *list_prev(list_t *l, const list_node_t *node) {
-  list_node_t **pprev = NULL;
-
-  for (pprev = &(l->first); *pprev != NULL; pprev = &(*pprev)->next) {
-    if ((*pprev)->next == node)
-      break;
+int list_insert(list_t *l, const int where, const pdata *data) {
+  if (l == NULL || where < 0 || where > l->length) {
+    return -1;
   }
 
-  return *pprev;
-}
-
-list_node_t *
-list_insert(list_t *l, const list_node_t *where, list_node_t *node) {
-  list_node_t *iter = l->first;
-
-  /* inster front */
-  if (where == l->first) {
-    list_unshift(l, node);
-    return node;
+  list_node_t *node = list_node_with(data);
+  if (node == NULL) {
+    return -1;
   }
-
-  /* find position node in list */
-  while (iter->next != where && iter->next != NULL)
-    iter = iter->next;
-
-  /* position node is not in the list */
-  if (iter->next != where)
-    return node;
-
-  /* insert(list, NULL, node) */
-  if (iter->next == NULL)
-    l->last = node;
-
-  node->next = iter->next;
-  iter->next = node;
-
-  l->length++;
-
-  return node;
-}
-
-list_node_t *list_push(list_t *l, list_node_t *node) {
-  list_node_t *last = l->last;
-
-  l->length++;
-
-  /* empty list */
-  if (l->first == NULL) {
+  if (l->length == 0) {
     l->first = node;
     l->last = node;
-    node->next = NULL;
-  } else {
-    last->next = node;
-    node->next = NULL;
+  } else if (where == 0) {
+    node->next = l->first;
+    l->first->prev = node;
+    l->first = node;
+  } else if (where == l->length) {
+    node->prev = l->last;
+    l->last->next = node;
     l->last = node;
-  }
-
-  return node;
-}
-
-list_node_t *list_unshift(list_t *l, list_node_t *node) {
-  /* empty list */
-  if (l->last == NULL) {
-    l->last = node;
-    l->last->next = NULL;
-  }
-
-  node->next = l->first;
-  l->first = node;
-  l->length++;
-
-  return node;
-}
-
-int list_remove(list_t *l, const list_node_t *node, const int free) {
-  list_node_t *prev = NULL;
-  list_node_t *cur = l->first;
-
-  if (node == l->first) {
-    l->first = l->first->next;
   } else {
-    while (cur != NULL && cur != node && cur->next != NULL) {
-      prev = cur;
-      cur = cur->next;
+    list_node_t *current = l->first;
+    for (int i = 0; i < where; i++) {
+      current = current->next;
     }
-
-    /* can't find node in list */
-    if (cur == NULL || cur != node)
-      return 0;
-
-    /* remove last node */
-    if (cur == l->last)
-      l->last = prev;
-
-    prev->next = cur->next;
+    node->prev = current->prev;
+    node->next = current;
+    current->prev->next = node;
+    current->prev = node;
   }
-
-  l->length--;
-
-  if (free)
-    list_node_free(cur);
+  l->length++;
 
   return 1;
 }
 
-list_node_t *list_locate(const list_t *l, const int index) {
-  int i = 0;
-  list_node_t *ret = l->first;
+int list_push(list_t *l, const pdata *data) {
+  if (l == NULL) {
+    return -1;
+  }
+  list_node_t *node = list_node_with(data);
+  if (node == NULL) {
+    return -1;
+  }
 
-  while (i != index) {
-    ret = ret->next;
+  if (l->length == 0) {
+    l->first = node;
+    l->last = node;
+  } else {
+    node->prev = l->last;
+    l->last->next = node;
+    l->last = node;
+  }
+  l->length++;
+
+  return 1;
+}
+
+int list_unshift(list_t *l, const pdata *data) {
+  if (l == NULL) {
+    return -1;
+  }
+  list_node_t *node = list_node_with(data);
+  if (node == NULL) {
+    return -1;
+  }
+
+  if (l->length == 0) {
+    l->first = node;
+    l->last = node;
+  } else {
+    node->next = l->first;
+    l->first->prev = node;
+    l->first = node;
+  }
+  l->length++;
+
+  return 1;
+}
+
+int list_remove(list_t *l, const pdata *data) {
+  const list_node_t *current = l->first;
+  while (current != NULL) {
+    if (current->payload == data) {
+      if (current->prev != NULL)
+        current->prev->next = current->next;
+      if (current->next != NULL)
+        current->next->prev = current->prev;
+
+      l->length--;
+      list_node_free(current);
+      return 1;
+    }
+    current = current->next;
+  }
+  return 0;
+}
+
+const pdata *list_remove_at(list_t *l, const int index) {
+  if (l == NULL || index < 0 || index >= l->length)
+    return NULL;
+
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    if (index == i) {
+      if (current->prev != NULL)
+        current->prev->next = current->next;
+      if (current->next != NULL)
+        current->next->prev = current->prev;
+
+      l->length--;
+      const pdata *ret = current->payload;
+      list_node_free(current);
+      return ret;
+    }
     i++;
   }
+
+  return NULL;
+}
+
+const pdata *list_remove_first(list_t *l) {
+  if (l->first == NULL)
+    return NULL;
+
+  if (l->first == l->last) {
+    const pdata *ret = l->first->payload;
+    list_node_free(l->first);
+    l->first = NULL;
+    l->last = NULL;
+    l->length--;
+    return ret;
+  }
+
+  const pdata *ret = l->first->payload;
+  list_node_t *next = l->first->next;
+  list_node_free(l->first);
+  l->first = next;
+  l->length--;
 
   return ret;
 }
 
-void list_print(list_t *l) {
-  const list_node_t *node = l->first;
+const pdata *list_remove_last(list_t *l) {
+  if (l->last == NULL)
+    return NULL;
 
-  DBGLog("**********************\n");
-  DBGLog("List   : %p\n", (void *)l);
-  DBGLog("length : %d\n", l->length);
-  DBGLog("first  : %p\n", (void *)l->first);
-  DBGLog("last   : %p\n", (void *)l->last);
-  DBGLog("-------------\n");
-
-  while (node != NULL) {
-    list_node_print(node);
-
-    node = node->next;
+  if (l->first == l->last) {
+    const pdata *ret = l->last->payload;
+    list_node_free(l->last);
+    l->first = NULL;
+    l->last = NULL;
+    l->length--;
+    return ret;
   }
 
-  DBGLog("**********************\n");
+  const pdata *ret = l->last->payload;
+  list_node_t *prev = l->last->prev;
+  list_node_free(l->last);
+  l->last = prev;
+  l->length--;
+
+  return ret;
 }
 
-/*
- * ************************************************************
- * test
- * ************************************************************
- */
-void list_test(void) {
-  list_node_t *first = NULL;
-  list_node_t *second = NULL;
-  list_node_t *third = NULL;
-  list_node_t *fourth = NULL;
+const pdata *list_first(const list_t *l) {
+  if (l->first == NULL)
+    return NULL;
+  return l->first->payload;
+}
 
-  list_t *l = list_alloc();
+const pdata *list_last(const list_t *l) {
+  if (l->last == NULL)
+    return NULL;
+  return l->last->payload;
+}
 
-  first = list_node_with(pdata_from_u8(8), 1);
-  list_unshift(l, first);
+const pdata *list_get(const list_t *l, int index) {
+  if (index < 0 || index >= l->length)
+    return NULL;
 
-  second = list_node_with(pdata_from_u32(32), 1);
-  list_push(l, second);
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    if (index == 0)
+      return current->payload;
+    index--;
+  }
+  return NULL;
+}
 
-  third = list_node_with(pdata_from_string("hello world!", 0), 1);
-  list_insert(l, NULL, third);
+size_t list_len(const list_t *l) {
+  if (l == NULL)
+    return 0;
+  return l->length;
+}
 
-  fourth = list_node_with(pdata_from_float(3.14), 1);
-  list_push(l, fourth);
+int list_index_of(const list_t *l, const pdata *data) {
+  if (l == NULL)
+    return -1;
 
-  list_remove(l, first, 1);
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    if (current->payload == data) {
+      return i;
+    }
+    i++;
+  }
+  return -1;
+}
 
-  list_print(l);
+int list_find(const list_t *l, const list_find_func finder, const pdata *key) {
+  if (l == NULL || finder == NULL)
+    return -1;
 
-  list_free(l);
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    if (finder(current->payload, key) == 0) {
+      return i;
+    }
+    i++;
+  }
+  return -1;
+}
+
+void list_foreach_self_ctx_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, void *ctx_, int index, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(l, ctx, i, current->payload);
+    i++;
+  }
+}
+
+void list_foreach_ctx_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(void *ctx_, int index, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(ctx, i, current->payload);
+    i++;
+  }
+}
+
+void list_foreach_self_indexed(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, int index, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(l, i, current->payload);
+    i++;
+  }
+}
+
+void list_foreach_self_ctx(
+    const list_t *l, void *ctx,
+    void (*func)(const list_t *l_, void *ctx_, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(l, ctx, current->payload);
+  }
+}
+
+void list_foreach_self(
+    const list_t *l, void (*func)(const list_t *l_, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(l, current->payload);
+  }
+}
+
+void list_foreach_ctx(
+    const list_t *l, void *ctx, void (*func)(void *ctx_, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(ctx, current->payload);
+  }
+}
+
+void list_foreach_indexed(
+    const list_t *l, void (*func)(int index, const pdata *data)) {
+  if (l == NULL || func == NULL)
+    return;
+  int i = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(i, current->payload);
+    i++;
+  }
+}
+
+void list_foreach(const list_t *l, void (*func)(const pdata *)) {
+  if (l == NULL || func == NULL)
+    return;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    func(current->payload);
+  }
 }
