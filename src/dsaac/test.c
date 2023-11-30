@@ -3,8 +3,10 @@
 
 #include "list.h"
 #include "payload.h"
+#include "queue.h"
 #include "stack.h"
 #include "test.h"
+#include "tree.h"
 
 void custom_free(void *data) { free(data); }
 
@@ -104,13 +106,58 @@ void test_stack() {
   stack_push(s, pud);
 
   while (!stack_is_empty(s)) {
+    char *buf = NULL;
+    size_t size = 0;
     const pdata *d = stack_pop(s);
+    pdata_print(d, &buf, &size);
+    free(buf);
     pdata_free(d);
   }
 
   stack_free(s);
 }
 
-void test_queue() {}
+void test_queue() {
+  queue_t *q = queue_alloc();
 
-void test_tree() {}
+  queue_enqueue(q, pdata_from_i8(8));
+  queue_enqueue(q, pdata_from_u8(8));
+  queue_enqueue(q, pdata_from_u16(16));
+  queue_enqueue(q, pdata_from_u32(32));
+  queue_enqueue(q, pdata_from_u64(64));
+  queue_enqueue(q, pdata_from_float(3.14));
+  queue_enqueue(q, pdata_from_double(3.1415926));
+  queue_enqueue(q, pdata_from_str("this is a string"));
+  const char *ud = (char *)malloc(1024);
+  queue_enqueue(q, pdata_from_ud((void *)ud, 1024, (void *)custom_free));
+
+  while (!queue_is_empty(q)) {
+    char *buf = NULL;
+    size_t size = 0;
+    const pdata *d = queue_dequeue(q);
+    pdata_print(d, &buf, &size);
+    free(buf);
+    pdata_free(d);
+  }
+
+  queue_free(q);
+}
+
+void test_tree() {
+  tree_t *root = tree_alloc(pdata_from_u8(1));
+  tree_t *left = tree_alloc(pdata_from_u8(2));
+  tree_t *right = tree_alloc(pdata_from_u8(3));
+
+  root->child = left;
+  left->parent = root;
+  left->sibling = right;
+  right->parent = root;
+
+  char *buf = NULL;
+  size_t size = 0;
+  tree_to_dot(root, &buf, &size);
+  printf("%s\n", buf);
+  free(buf);
+
+  tree_free(root);
+}

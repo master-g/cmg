@@ -1,9 +1,9 @@
 /*
- *  pd.c
+ *  payload.c
  *  DSAAC
  *
- *  Created by Master.G on 13-8-18.
- *  Copyright (c) 2013 Master.G. All rights reserved.
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
  */
 
 #include "payload.h"
@@ -21,6 +21,7 @@ enum ptype {
   PDATA_U64,
   PDATA_FLOAT,
   PDATA_DOUBLE,
+  PDATA_CHAR,
   PDATA_STR,
   PDATA_RAW,
   PDATA_USER_DEFINED,
@@ -37,6 +38,7 @@ typedef union {
   uint32_t u32;
   int64_t i64;
   uint64_t u64;
+  char c;
   float f;
   double d;
   void *p;
@@ -129,10 +131,18 @@ pdata *pdata_from_double(const double data) {
   return pd;
 }
 
+pdata *pdata_from_char(const char data) {
+  pdata *pd = malloc(sizeof(pdata));
+  pd->type = PDATA_I8;
+  pd->size = sizeof(char);
+  pd->data.i8 = data;
+  return pd;
+}
+
 pdata *pdata_from_str(const char *data) {
   pdata *pd = malloc(sizeof(pdata));
   pd->type = PDATA_STR;
-  pd->size = strlen(data) + 1;
+  pd->size = strlen(data);
   pd->data.p = (void *)data;
 
   return pd;
@@ -161,6 +171,13 @@ int pdata_type(const pdata *data) {
     return -1;
   }
   return data->type;
+}
+
+size_t pdata_size(const pdata *data) {
+  if (data == NULL) {
+    return 0;
+  }
+  return data->size;
 }
 
 int8_t pdata_i8(const pdata *data) {
@@ -213,6 +230,11 @@ double pdata_double(const pdata *data) {
   return data->data.d;
 }
 
+char pdata_char(const pdata *data) {
+  assert(data->type == PDATA_CHAR);
+  return data->data.c;
+}
+
 char *pdata_str(const pdata *data) {
   assert(data->type == PDATA_STR);
   return data->data.p;
@@ -227,51 +249,86 @@ void pdata_free(const pdata *pd) {
   free((void *)pd);
 }
 
-void pdata_print(const pdata *pd) {
+ssize_t pdata_print(const pdata *pd, char **buf, size_t *size) {
+  if (buf == NULL || size == NULL) {
+    return -1;
+  }
+  char cache[64];
+  memset(cache, 0, 64);
+
   if (pd == NULL) {
-    printf("null\n");
-    return;
+    sprintf(cache, "nil");
+  } else {
+    switch (pd->type) {
+    case PDATA_I8:
+      sprintf(cache, "%d", pd->data.i8);
+      break;
+    case PDATA_U8:
+      sprintf(cache, "%u", pd->data.u8);
+      break;
+    case PDATA_I16:
+      sprintf(cache, "%d", pd->data.i16);
+      break;
+    case PDATA_U16:
+      sprintf(cache, "%u", pd->data.u16);
+      break;
+    case PDATA_I32:
+      sprintf(cache, "%d", pd->data.i32);
+      break;
+    case PDATA_U32:
+      sprintf(cache, "%u", pd->data.u32);
+      break;
+    case PDATA_I64:
+      sprintf(cache, "%lld", pd->data.i64);
+      break;
+    case PDATA_U64:
+      sprintf(cache, "%llu", pd->data.u64);
+      break;
+    case PDATA_FLOAT:
+      sprintf(cache, "%f", pd->data.f);
+      break;
+    case PDATA_DOUBLE:
+      sprintf(cache, "%f", pd->data.d);
+      break;
+    case PDATA_CHAR:
+      sprintf(cache, "%c", pd->data.c);
+      break;
+    case PDATA_STR:
+      snprintf(cache, 64, "%s", (char *)pd->data.p);
+      break;
+    case PDATA_RAW:
+      sprintf(cache, "raw: %p", pd->data.p);
+      break;
+    case PDATA_USER_DEFINED:
+      sprintf(
+          cache, "ud: %p, size: %lu, udfree: %p", pd->data.p, pd->size,
+          pd->udfree);
+      break;
+    default:
+      sprintf(cache, "unknown type");
+    }
   }
-  switch (pd->type) {
-  case PDATA_I8:
-    printf("i8: %d\n", pd->data.i8);
-    break;
-  case PDATA_U8:
-    printf("u8: %u\n", pd->data.u8);
-    break;
-  case PDATA_I16:
-    printf("i16: %d\n", pd->data.i16);
-  case PDATA_U16:
-    printf("u16: %u\n", pd->data.u16);
-    break;
-  case PDATA_I32:
-    printf("i32: %i\n", pd->data.i32);
-    break;
-  case PDATA_U32:
-    printf("u32: %u\n", pd->data.u32);
-    break;
-  case PDATA_I64:
-    printf("i64: %lld\n", pd->data.i64);
-    break;
-  case PDATA_U64:
-    printf("u64: %llu\n", pd->data.u64);
-    break;
-  case PDATA_FLOAT:
-    printf("float: %f\n", pd->data.f);
-    break;
-  case PDATA_DOUBLE:
-    printf("double: %f\n", pd->data.d);
-    break;
-  case PDATA_STR:
-    printf("str: %s\n", (char *)pd->data.p);
-    break;
-  case PDATA_RAW:
-    printf("raw: %p\n", pd->data.p);
-    break;
-  case PDATA_USER_DEFINED:
-    printf(
-        "ud: %p, size: %lu\n, udfree: %p\n", pd->data.p, pd->size, pd->udfree);
-  default:
-    printf("unknown type\n");
+
+  const int required_size = snprintf(NULL, 0, "%s", cache);
+  if (required_size < 0) {
+    return -1;
   }
+
+  if (*buf == NULL) {
+    *size = (size_t)required_size + 1;
+    *buf = malloc(*size);
+    if (*buf == NULL) {
+      return -1;
+    }
+  } else {
+    if (*size < (size_t)required_size + 1) {
+      return -1;
+    }
+  }
+
+  snprintf(*buf, *size, "%s", cache);
+
+  *size = (size_t)required_size;
+
+  return required_size;
 }

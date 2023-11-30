@@ -1,9 +1,16 @@
+/*
+ *  queue.h
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #ifndef QUEUE_H_
 #define QUEUE_H_
 
 #include "list.h"
 
-#define queue_t list_t;
+typedef list_t queue_t;
 
 #define queue_alloc list_alloc
 #define queue_free list_free

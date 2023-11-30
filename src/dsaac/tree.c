@@ -1,6 +1,8 @@
 #include "tree.h"
 #include "list.h"
 
+#include <stack.h>
+
 tree_t *tree_alloc(const pdata *data) {
   tree_t *ret = malloc(sizeof(tree_t));
 
@@ -16,13 +18,12 @@ void _tree_free_impl(tree_t *node) { free(node); }
 
 void tree_free(tree_t *root) { tree_foreach(root, _tree_free_impl); }
 
-void tree_node_visitor_from_list_node(
-    const pdata *data, void (*func)(tree_t *)) {
+void tree_node_visitor_from_list_node(void *func, const pdata *data) {
   if (data == NULL || func == NULL) {
     return;
   }
   tree_t *t = pdata_raw(data);
-  (*func)(t);
+  ((void (*)(tree_t *))func)(t);
 }
 
 /*
@@ -136,4 +137,102 @@ void tree_foreach(tree_t *root, void (*func)(tree_t *node)) {
    * ----- the root post order
    * (* process) (root, FALSE);
    */
+}
+
+#define DOT_HEADER                                                             \
+  "digraph g {\
+fontname=\"Helvetica,Arial,sans-serif\"\
+node [fontname=\"Helvetica,Arial,sans-serif\"]\
+edge [fontname=\"Helvetica,Arial,sans-serif\"]\
+node [fontsize = \"16\", shape = \"ellipse\"];\
+edge [];"
+
+#define DOT_TAIL "}"
+
+ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
+  if (root == NULL || buf == NULL || size == NULL) {
+    return -1;
+  }
+
+  ssize_t total_size = 0;
+  list_t *head = list_alloc();
+  list_t *tail = list_alloc();
+
+  char *header = malloc(strlen(DOT_HEADER));
+  strcpy(header, DOT_HEADER);
+
+  list_push(head, pdata_from_str(header));
+
+  stack_t *s = stack_alloc();
+  stack_push(s, pdata_from_ref(root));
+  while (!stack_is_empty(s)) {
+    const pdata *d = stack_pop(s);
+    pdata_free(d);
+  }
+  stack_free(s);
+
+  char *end = malloc(strlen(DOT_TAIL));
+  strcpy(end, DOT_TAIL);
+  list_push(tail, pdata_from_str(end));
+
+  // calculate total size
+  list_iter_t *head_iter = list_iter_alloc(head);
+  while (list_iter_next(head_iter)) {
+    const pdata *d = list_iter_get(head_iter);
+    total_size += pdata_size(d);
+  }
+
+  list_iter_t *tail_iter = list_iter_alloc(tail);
+  while (list_iter_next(tail_iter)) {
+    const pdata *d = list_iter_get(tail_iter);
+    total_size += pdata_size(d);
+  }
+
+  total_size++;
+
+  // allocate buffer if needed
+  if (*buf == NULL) {
+    *size = total_size;
+    *buf = malloc(total_size);
+    if (*buf == NULL) {
+      return -1;
+    }
+  } else {
+    if (*size < total_size) {
+      // FIXME: memory leak
+      return -1;
+    }
+  }
+
+  // actual print
+  size_t pos = 0;
+  list_iter_reset(head_iter);
+  while (list_iter_next(head_iter)) {
+    const pdata *d = list_iter_get(head_iter);
+    memcpy(*buf + pos, pdata_raw(d), pdata_size(d));
+    pos += pdata_size(d);
+    free(pdata_raw(d));
+  }
+  list_iter_free(head_iter);
+
+  list_iter_reset(tail_iter);
+  while (list_iter_next(tail_iter)) {
+    const pdata *d = list_iter_get(tail_iter);
+    memcpy(*buf + pos, pdata_raw(d), pdata_size(d));
+    pos += pdata_size(d);
+    free(pdata_raw(d));
+  }
+  list_iter_free(tail_iter);
+  // the tailing '\0'
+  (*buf)[pos] = '\0';
+
+  // free lists
+  list_foreach(head, pdata_free);
+  list_foreach(tail, pdata_free);
+  list_free(head);
+  list_free(tail);
+
+  *size = total_size;
+
+  return total_size;
 }

@@ -1,3 +1,10 @@
+/*
+ *  list.c
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #include "list.h"
 #include "common.h"
 
@@ -29,6 +36,66 @@ struct list_t {
   list_node_t *last;
   list_node_t *first;
 };
+
+/*
+ * ************************************************************
+ * iter
+ * ************************************************************
+ */
+
+struct list_iter_t {
+  const list_t *l;
+  list_node_t *current;
+};
+
+list_iter_t *list_iter_alloc(const list_t *l) {
+  list_iter_t *iter = malloc(sizeof(list_iter_t));
+  iter->l = l;
+  iter->current = l->first;
+  return iter;
+}
+
+int list_iter_next(list_iter_t *iter) {
+  if (iter == NULL || iter->current == NULL) {
+    return 0;
+  }
+
+  iter->current = iter->current->next;
+  return 1;
+}
+
+int list_iter_prev(list_iter_t *iter) {
+  if (iter == NULL || iter->current == NULL) {
+    return 0;
+  }
+
+  iter->current = iter->current->prev;
+  return 1;
+}
+
+void list_iter_reset(list_iter_t *iter) {
+  if (iter == NULL || iter->l == NULL) {
+    return;
+  }
+
+  iter->current = iter->l->first;
+}
+
+const pdata *list_iter_get(const list_iter_t *iter) {
+  if (iter == NULL || iter->current == NULL) {
+    return NULL;
+  }
+
+  return iter->current->payload;
+}
+
+void list_iter_free(list_iter_t *iter) { free(iter); }
+
+/*
+ * ************************************************************
+ * list
+ * ************************************************************
+ */
 
 list_t *list_alloc(void) {
   list_t *ret = malloc(sizeof(list_t));

@@ -1,3 +1,10 @@
+/*
+ *  infix2postfix.c
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #include "common.h"
 #include "list.h"
 #include "stack.h"

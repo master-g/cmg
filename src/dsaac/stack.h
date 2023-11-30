@@ -1,3 +1,11 @@
+/*
+ *  stack.h
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
+
 #ifndef STACK_H_
 #define STACK_H_
 

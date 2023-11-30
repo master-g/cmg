@@ -1,3 +1,10 @@
+/*
+ *  common.h
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #ifndef COMMON_H_
 #define COMMON_H_
 

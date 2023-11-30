@@ -1,3 +1,10 @@
+/*
+ *  list.h
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #ifndef LIST_H_
 #define LIST_H_
 
@@ -9,6 +16,15 @@ typedef int (*list_find_func)(const pdata *data, const pdata *key);
 
 typedef pdata *(*list_sum_fun)(
     const list_t *l, int index, const pdata *data, const pdata *acc);
+
+typedef struct list_iter_t list_iter_t;
+
+list_iter_t *list_iter_alloc(const list_t *l);
+int list_iter_next(list_iter_t *iter);
+int list_iter_prev(list_iter_t *iter);
+void list_iter_reset(list_iter_t *iter);
+const pdata *list_iter_get(const list_iter_t *iter);
+void list_iter_free(list_iter_t *iter);
 
 /**
  * \brief allocate a list

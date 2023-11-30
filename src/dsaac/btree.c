@@ -1,3 +1,10 @@
+/*
+ *  btree.c
+ *  DSAAC
+ *
+ *  Created by Master.G on 23-11-30.
+ *  Copyright (c) 2023 Master.G. All rights reserved.
+ */
 #include "btree.h"
 #include "stack.h"
 
@@ -25,7 +32,7 @@ btree_node_t *btree_node_with(const pdata *payload) {
   return node;
 }
 
-void btree_node_free(const btree_node_t *node) { free((void *)node); }
+void btree_node_free(const pdata *node) { free(pdata_raw(node)); }
 
 /*
  * ************************************************************

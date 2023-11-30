@@ -27,11 +27,13 @@ pdata *pdata_from_i64(uint64_t data);
 pdata *pdata_from_u64(uint64_t data);
 pdata *pdata_from_float(float data);
 pdata *pdata_from_double(double data);
+pdata *pdata_from_char(char data);
 pdata *pdata_from_str(const char *data);
 pdata *pdata_from_ref(void *data);
 pdata *pdata_from_ud(void *data, size_t size, pdata_ud_free udfree);
 
 int pdata_type(const pdata *data);
+size_t pdata_size(const pdata *data);
 int8_t pdata_i8(const pdata *data);
 uint8_t pdata_u8(const pdata *data);
 int16_t pdata_i16(const pdata *data);
@@ -42,11 +44,12 @@ int64_t pdata_i64(const pdata *data);
 uint64_t pdata_u64(const pdata *data);
 float pdata_float(const pdata *data);
 double pdata_double(const pdata *data);
+char pdata_char(const pdata *data);
 char *pdata_str(const pdata *data);
 void *pdata_raw(const pdata *data);
 
 void pdata_free(const pdata *pd);
 
-void pdata_print(const pdata *pd);
+ssize_t pdata_print(const pdata *pd, char **buf, size_t *size);
 
 #endif /* PAYLOAD_H_ */
