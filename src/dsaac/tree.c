@@ -236,3 +236,38 @@ ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
 
   return total_size;
 }
+
+/**
+*digraph g {
+fontname="Helvetica,Arial,sans-serif"
+node [fontname="Helvetica,Arial,sans-serif"]
+edge [fontname="Helvetica,Arial,sans-serif"]
+node [fontsize = "16", shape = "ellipse"];
+edge [];
+"node0" [
+label = "<f0> 0x10ba8 | root"
+shape = "record"
+];
+"node1" [
+label = "<f0> 0xf7fc4380 | node1"
+shape = "record"
+];
+"node2" [
+label = "<f0> 0xf7fc4388 | node1-1"
+shape = "record"
+];
+"node3" [
+label = "<f0> 0xf7fc4390 | node2"
+shape = "record"
+];
+"node0":f0 -> "node1":f0 [
+id = 0
+];
+"node1":f0 -> "node2":f0 [
+id = 1
+];
+"node1":f1 -> "node3":f0 [
+id = 2
+];
+}
+*/
