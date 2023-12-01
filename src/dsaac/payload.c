@@ -133,7 +133,7 @@ pdata *pdata_from_double(const double data) {
 
 pdata *pdata_from_char(const char data) {
   pdata *pd = malloc(sizeof(pdata));
-  pd->type = PDATA_I8;
+  pd->type = PDATA_CHAR;
   pd->size = sizeof(char);
   pd->data.i8 = data;
   return pd;

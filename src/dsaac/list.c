@@ -32,7 +32,6 @@ void list_node_free(const list_node_t *node) { free((void *)node); }
  */
 
 struct list_t {
-  size_t length;
   list_node_t *last;
   list_node_t *first;
 };
@@ -45,48 +44,78 @@ struct list_t {
 
 struct list_iter_t {
   const list_t *l;
+  int where; // -1 for before first, 0 for in list, 1 for beyond list
   list_node_t *current;
 };
+
+#define LIST_ITER_AHEAD -1
+#define LIST_ITER_INSIDE 0
+#define LIST_ITER_BEYOND 1
 
 list_iter_t *list_iter_alloc(const list_t *l) {
   list_iter_t *iter = malloc(sizeof(list_iter_t));
   iter->l = l;
-  iter->current = l->first;
+  iter->where = LIST_ITER_AHEAD;
   return iter;
 }
 
-int list_iter_next(list_iter_t *iter) {
-  if (iter == NULL || iter->current == NULL) {
-    return 0;
+const pdata *list_iter_next(list_iter_t *iter) {
+  if (iter == NULL || iter->l == NULL) {
+    return NULL;
+  }
+  if (iter->where == LIST_ITER_AHEAD) {
+    iter->where = LIST_ITER_INSIDE;
+    iter->current = iter->l->first;
+    return iter->current ? iter->current->payload : NULL;
   }
 
-  iter->current = iter->current->next;
-  return 1;
+  if (iter->where == LIST_ITER_BEYOND) {
+    return NULL;
+  }
+
+  if (iter->current) {
+    iter->current = iter->current->next;
+    if (iter->current) {
+      return iter->current->payload;
+    }
+    iter->where = LIST_ITER_BEYOND;
+  }
+
+  return NULL;
 }
 
-int list_iter_prev(list_iter_t *iter) {
-  if (iter == NULL || iter->current == NULL) {
-    return 0;
+const pdata *list_iter_prev(list_iter_t *iter) {
+  if (iter == NULL || iter->l == NULL) {
+    return NULL;
   }
 
-  iter->current = iter->current->prev;
-  return 1;
+  if (iter->where == LIST_ITER_BEYOND) {
+    iter->where = LIST_ITER_INSIDE;
+    iter->current = iter->l->last;
+    return iter->current ? iter->current->payload : NULL;
+  }
+
+  if (iter->where == LIST_ITER_AHEAD) {
+    return NULL;
+  }
+
+  if (iter->current) {
+    iter->current = iter->current->prev;
+    if (iter->current) {
+      return iter->current->payload;
+    }
+    iter->where = LIST_ITER_AHEAD;
+  }
+
+  return NULL;
 }
 
 void list_iter_reset(list_iter_t *iter) {
   if (iter == NULL || iter->l == NULL) {
     return;
   }
-
+  iter->where = LIST_ITER_AHEAD;
   iter->current = iter->l->first;
-}
-
-const pdata *list_iter_get(const list_iter_t *iter) {
-  if (iter == NULL || iter->current == NULL) {
-    return NULL;
-  }
-
-  return iter->current->payload;
 }
 
 void list_iter_free(list_iter_t *iter) { free(iter); }
@@ -100,7 +129,6 @@ void list_iter_free(list_iter_t *iter) { free(iter); }
 list_t *list_alloc(void) {
   list_t *ret = malloc(sizeof(list_t));
 
-  ret->length = 0;
   ret->first = NULL;
   ret->last = NULL;
 
@@ -120,41 +148,51 @@ void list_free(list_t *l) {
   free(l);
 }
 
-int list_is_empty(const list_t *l) { return l->length == 0; }
+int list_is_empty(const list_t *l) {
+  if (l == NULL || l->first == NULL || l->last == NULL) {
+    return 1;
+  }
+
+  return 0;
+}
 
 int list_insert(list_t *l, const int where, const pdata *data) {
-  if (l == NULL || where < 0 || where > l->length) {
+  if (l == NULL || where < 0) {
     return -1;
+  }
+
+  if (where == 0) {
+    return list_unshift(l, data);
+  }
+
+  const size_t len = list_len(l);
+  if (where > len) {
+    return -1;
+  }
+
+  if (where == len) {
+    return list_push(l, data);
   }
 
   list_node_t *node = list_node_with(data);
   if (node == NULL) {
     return -1;
   }
-  if (l->length == 0) {
-    l->first = node;
-    l->last = node;
-  } else if (where == 0) {
-    node->next = l->first;
-    l->first->prev = node;
-    l->first = node;
-  } else if (where == l->length) {
-    node->prev = l->last;
-    l->last->next = node;
-    l->last = node;
-  } else {
-    list_node_t *current = l->first;
-    for (int i = 0; i < where; i++) {
-      current = current->next;
-    }
-    node->prev = current->prev;
-    node->next = current;
-    current->prev->next = node;
-    current->prev = node;
-  }
-  l->length++;
 
-  return 1;
+  int i = 0;
+  for (list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    if (i == where) {
+      node->prev = current->prev;
+      node->next = current;
+      current->prev->next = node;
+      current->prev = node;
+      return 1;
+    }
+    i++;
+  }
+
+  return -1;
 }
 
 int list_push(list_t *l, const pdata *data) {
@@ -166,7 +204,7 @@ int list_push(list_t *l, const pdata *data) {
     return -1;
   }
 
-  if (l->length == 0) {
+  if (l->first == NULL) {
     l->first = node;
     l->last = node;
   } else {
@@ -174,7 +212,6 @@ int list_push(list_t *l, const pdata *data) {
     l->last->next = node;
     l->last = node;
   }
-  l->length++;
 
   return 1;
 }
@@ -188,7 +225,7 @@ int list_unshift(list_t *l, const pdata *data) {
     return -1;
   }
 
-  if (l->length == 0) {
+  if (l->first == NULL) {
     l->first = node;
     l->last = node;
   } else {
@@ -196,12 +233,11 @@ int list_unshift(list_t *l, const pdata *data) {
     l->first->prev = node;
     l->first = node;
   }
-  l->length++;
 
   return 1;
 }
 
-int list_remove(list_t *l, const pdata *data) {
+int list_remove(const list_t *l, const pdata *data) {
   const list_node_t *current = l->first;
   while (current != NULL) {
     if (current->payload == data) {
@@ -210,7 +246,6 @@ int list_remove(list_t *l, const pdata *data) {
       if (current->next != NULL)
         current->next->prev = current->prev;
 
-      l->length--;
       list_node_free(current);
       return 1;
     }
@@ -219,9 +254,10 @@ int list_remove(list_t *l, const pdata *data) {
   return 0;
 }
 
-const pdata *list_remove_at(list_t *l, const int index) {
-  if (l == NULL || index < 0 || index >= l->length)
+const pdata *list_remove_at(const list_t *l, const int index) {
+  if (list_is_empty(l)) {
     return NULL;
+  }
 
   int i = 0;
   for (const list_node_t *current = l->first; current != NULL;
@@ -232,7 +268,6 @@ const pdata *list_remove_at(list_t *l, const int index) {
       if (current->next != NULL)
         current->next->prev = current->prev;
 
-      l->length--;
       const pdata *ret = current->payload;
       list_node_free(current);
       return ret;
@@ -252,7 +287,6 @@ const pdata *list_remove_first(list_t *l) {
     list_node_free(l->first);
     l->first = NULL;
     l->last = NULL;
-    l->length--;
     return ret;
   }
 
@@ -260,7 +294,6 @@ const pdata *list_remove_first(list_t *l) {
   list_node_t *next = l->first->next;
   list_node_free(l->first);
   l->first = next;
-  l->length--;
 
   return ret;
 }
@@ -274,7 +307,6 @@ const pdata *list_remove_last(list_t *l) {
     list_node_free(l->last);
     l->first = NULL;
     l->last = NULL;
-    l->length--;
     return ret;
   }
 
@@ -282,7 +314,6 @@ const pdata *list_remove_last(list_t *l) {
   list_node_t *prev = l->last->prev;
   list_node_free(l->last);
   l->last = prev;
-  l->length--;
 
   return ret;
 }
@@ -300,7 +331,12 @@ const pdata *list_last(const list_t *l) {
 }
 
 const pdata *list_get(const list_t *l, int index) {
-  if (index < 0 || index >= l->length)
+  if (l == NULL) {
+    return NULL;
+  }
+  const size_t len = list_len(l);
+
+  if (index < 0 || index >= len)
     return NULL;
 
   for (const list_node_t *current = l->first; current != NULL;
@@ -313,9 +349,14 @@ const pdata *list_get(const list_t *l, int index) {
 }
 
 size_t list_len(const list_t *l) {
-  if (l == NULL)
+  if (l == NULL || l->first == NULL)
     return 0;
-  return l->length;
+  size_t len = 0;
+  for (const list_node_t *current = l->first; current != NULL;
+       current = current->next) {
+    len++;
+  }
+  return len;
 }
 
 int list_index_of(const list_t *l, const pdata *data) {

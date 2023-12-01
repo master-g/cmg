@@ -81,6 +81,27 @@ void test_list() {
   list_free(l);
 }
 
+void test_list_iter() {
+  list_t *l = list_alloc();
+  list_push(l, pdata_from_i8(0));
+  list_push(l, pdata_from_i8(1));
+  list_push(l, pdata_from_i8(2));
+  list_push(l, pdata_from_i8(3));
+  list_push(l, pdata_from_i8(4));
+
+  printf("[");
+  list_iter_t *iter = list_iter_alloc(l);
+  const pdata *d = NULL;
+  while ((d = list_iter_next(iter)) != NULL) {
+    printf("%d, ", pdata_i8(d));
+  }
+  list_iter_free(iter);
+  printf("]\n");
+
+  list_foreach(l, pdata_free);
+  list_free(l);
+}
+
 void test_stack() {
   stack_t *s = stack_alloc();
 
@@ -143,15 +164,35 @@ void test_queue() {
   queue_free(q);
 }
 
-void test_tree() {
-  tree_t *root = tree_alloc(pdata_from_u8(1));
-  tree_t *left = tree_alloc(pdata_from_u8(2));
-  tree_t *right = tree_alloc(pdata_from_u8(3));
+void free_tree_payload(const tree_t *t) {
+  if (t && t->data) {
+    pdata_free(t->data);
+  }
+}
 
-  root->child = left;
-  left->parent = root;
-  left->sibling = right;
-  right->parent = root;
+void test_tree() {
+  tree_t *root = tree_alloc(pdata_from_str("root"));
+  tree_t *n1_1 = tree_alloc(pdata_from_str("n1_1"));
+  tree_t *n1_2 = tree_alloc(pdata_from_str("n1_2"));
+  tree_t *n2_1 = tree_alloc(pdata_from_str("n2_1"));
+  tree_t *n2_2 = tree_alloc(pdata_from_str("n2_2"));
+  tree_t *n2_3 = tree_alloc(pdata_from_str("n2_3"));
+  tree_t *n3_1 = tree_alloc(pdata_from_str("n3_1"));
+
+  root->child = n1_1;
+  n1_1->parent = root;
+  n1_1->sibling = n1_2;
+  n1_2->parent = root;
+  n1_2->sibling = NULL;
+  n1_2->child = n2_1;
+  n2_1->parent = n1_2;
+  n2_1->sibling = n2_2;
+  n2_2->parent = n1_2;
+  n2_2->sibling = n2_3;
+  n2_3->parent = n1_2;
+  n2_3->sibling = NULL;
+  n2_3->child = n3_1;
+  n3_1->parent = n2_3;
 
   char *buf = NULL;
   size_t size = 0;
@@ -159,5 +200,6 @@ void test_tree() {
   printf("%s\n", buf);
   free(buf);
 
+  tree_foreach(root, free_tree_payload);
   tree_free(root);
 }

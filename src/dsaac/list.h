@@ -20,10 +20,9 @@ typedef pdata *(*list_sum_fun)(
 typedef struct list_iter_t list_iter_t;
 
 list_iter_t *list_iter_alloc(const list_t *l);
-int list_iter_next(list_iter_t *iter);
-int list_iter_prev(list_iter_t *iter);
+const pdata *list_iter_next(list_iter_t *iter);
+const pdata *list_iter_prev(list_iter_t *iter);
 void list_iter_reset(list_iter_t *iter);
-const pdata *list_iter_get(const list_iter_t *iter);
 void list_iter_free(list_iter_t *iter);
 
 /**
@@ -79,7 +78,7 @@ int list_unshift(list_t *l, const pdata *data);
  * \param data what to be removed
  * \return 1 if success, 0 otherwise
  */
-int list_remove(list_t *l, const pdata *data);
+int list_remove(const list_t *l, const pdata *data);
 
 /**
  * \brief remove a node from the list at the specified position
@@ -87,7 +86,7 @@ int list_remove(list_t *l, const pdata *data);
  * \param index position to be removed
  * \return NULL if failed, otherwise the payload of the removed node
  */
-const pdata *list_remove_at(list_t *l, int index);
+const pdata *list_remove_at(const list_t *l, int index);
 
 /**
  * \brief remove the first node from the list
