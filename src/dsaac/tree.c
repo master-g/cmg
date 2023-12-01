@@ -1,7 +1,7 @@
 #include "tree.h"
+#include "dot.h"
 #include "list.h"
-
-#include <stack.h>
+#include "stack.h"
 
 tree_t *tree_alloc(const pdata *data) {
   tree_t *ret = malloc(sizeof(tree_t));
@@ -140,17 +140,7 @@ void tree_foreach(tree_t *root, void (*func)(const tree_t *node)) {
    */
 }
 
-#define DOT_HEADER                                                             \
-  "digraph g {\
-fontname=\"Helvetica,Arial,sans-serif\"\n\
-node [fontname=\"Helvetica,Arial,sans-serif\"]\n\
-edge [fontname=\"Helvetica,Arial,sans-serif\"]\n\
-node [fontsize = \"16\", shape = \"ellipse\"];\n\
-edge [];\n"
-
-#define DOT_TAIL "}"
-
-const pdata *_tree_node_print(const tree_t *t) {
+void _tree_node_print(dot_t *dot, const tree_t *t) {
   char *data_buf = NULL;
   size_t data_size = 0;
   pdata_print(t->data, &data_buf, &data_size);
@@ -161,31 +151,24 @@ const pdata *_tree_node_print(const tree_t *t) {
 
   snprintf(
       node_buf, node_size,
-      "\"%p\" [\nlabel = \"%p | %s\"\nshape = \"record\"\n];\n", t, t,
+      "\"%p\" [\n\tlabel = \"%p | %s\"\n\tshape = \"record\"\n];\n", t, t,
       data_buf);
 
   free(data_buf);
 
-  const size_t slen = strlen(node_buf);
-  char *buf = malloc(slen + 1);
-  strcpy(buf, node_buf);
-  buf[slen] = '\0';
-
-  return pdata_from_str(buf);
+  dot_push_body(dot, node_buf);
 }
 
-const pdata *
-_tree_node_print_edge(const tree_t *from, const tree_t *to, const int id) {
-  char buf[1024];
-  const size_t size = 1024;
-  snprintf(buf, size, "\"%p\" -> \"%p\" [\nid=%d\n];\n", from, to, id);
+void _tree_node_print_edge(
+    dot_t *dot, const tree_t *from, const tree_t *to, const int id) {
 
-  const size_t slen = strlen(buf);
-  char *buf2 = malloc(slen + 1);
-  strcpy(buf2, buf);
-  buf2[slen] = '\0';
+  char buf[128];
+  const size_t size = 128;
+  memset(buf, 0, size);
 
-  return pdata_from_str(buf2);
+  snprintf(buf, size, "\"%p\" -> \"%p\" [\n\tid=%d\n];\n", from, to, id);
+
+  dot_push_foot(dot, buf);
 }
 
 ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
@@ -193,25 +176,22 @@ ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
     return -1;
   }
 
+  dot_t *dot = dot_alloc();
+
   ssize_t total_size = 0;
-  list_t *head = list_alloc();
-  list_t *tail = list_alloc();
-
-  char *header = malloc(strlen(DOT_HEADER));
-  strcpy(header, DOT_HEADER);
-
-  list_push(head, pdata_from_str(header));
 
   stack_t *s = stack_alloc();
   stack_push(s, pdata_from_ref(root));
+  int edge = 0;
   while (!stack_is_empty(s)) {
     const pdata *d = stack_pop(s);
     const tree_t *t = pdata_raw(d);
     pdata_free(d);
 
-    list_push(head, _tree_node_print(t));
+    _tree_node_print(dot, t);
     if (t->parent != NULL) {
-      list_push(tail, _tree_node_print_edge(t->parent, t, list_len(tail)));
+      _tree_node_print_edge(dot, t->parent, t, edge);
+      edge++;
     }
 
     tree_t *child = t->child;
@@ -222,72 +202,8 @@ ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
   }
   stack_free(s);
 
-  char *end = malloc(strlen(DOT_TAIL));
-  strcpy(end, DOT_TAIL);
-  list_push(tail, pdata_from_str(end));
-
-  // calculate total size
-  list_iter_t *head_iter = list_iter_alloc(head);
-  const pdata *d = NULL;
-  while ((d = list_iter_next(head_iter)) != NULL) {
-    total_size += pdata_size(d);
-  }
-
-  list_iter_t *tail_iter = list_iter_alloc(tail);
-  while ((d = list_iter_next(tail_iter)) != NULL) {
-    total_size += pdata_size(d);
-  }
-
-  total_size++;
-
-  // allocate buffer if needed
-  if (*buf == NULL) {
-    *size = total_size;
-    *buf = malloc(total_size);
-    if (*buf == NULL) {
-      total_size = -1;
-    }
-  } else {
-    if (*size < total_size) {
-      total_size = -1;
-    }
-  }
-
-  // actual print
-  size_t pos = 0;
-  list_iter_reset(head_iter);
-  while ((d = list_iter_next(head_iter)) != NULL) {
-    if (total_size > 0) {
-      memcpy(*buf + pos, pdata_raw(d), pdata_size(d));
-      pos += pdata_size(d);
-    }
-    free(pdata_raw(d));
-  }
-  list_iter_free(head_iter);
-
-  list_iter_reset(tail_iter);
-  while ((d = list_iter_next(tail_iter)) != NULL) {
-    if (total_size > 0) {
-      memcpy(*buf + pos, pdata_raw(d), pdata_size(d));
-      pos += pdata_size(d);
-    }
-    free(pdata_raw(d));
-  }
-  list_iter_free(tail_iter);
-  if (total_size > 0) {
-    // the tailing '\0'
-    (*buf)[pos] = '\0';
-  }
-
-  // free lists
-  list_foreach(head, pdata_free);
-  list_foreach(tail, pdata_free);
-  list_free(head);
-  list_free(tail);
-
-  if (total_size > 0) {
-    *size = total_size;
-  }
+  total_size = dot_dump(dot, buf, size);
+  dot_free(dot);
 
   return total_size;
 }
