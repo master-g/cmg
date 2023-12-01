@@ -241,11 +241,11 @@ int btree_insert(const btree_t *t, const pdata *data) {
       current = current->right;
     } else {
       // duplicate
-      return 0;
+      return -1;
     }
   }
 
-  return 1;
+  return 0;
 }
 
 int btree_remove(const btree_t *t, const pdata *data) {

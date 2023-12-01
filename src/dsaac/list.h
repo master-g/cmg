@@ -52,7 +52,7 @@ int list_is_empty(const list_t *l);
  * \param l the list to be inserted
  * \param where position to be inserted
  * \param data what to be inserted
- * \return 1 if success, 0 otherwise
+ * \return 0 if success
  */
 int list_insert(list_t *l, int where, const pdata *data);
 
@@ -60,7 +60,7 @@ int list_insert(list_t *l, int where, const pdata *data);
  * \brief push a node to the end of the list
  * \param l the list to be pushed
  * \param data what to be pushed
- * \return 1 if success, 0 otherwise
+ * \return 0 if success
  */
 int list_push(list_t *l, const pdata *data);
 
@@ -68,7 +68,7 @@ int list_push(list_t *l, const pdata *data);
  * \brief unshift a node to the head of the list
  * \param l the list to be unshifted
  * \param data what to be unshifted
- * \return 1 if success, 0 otherwise
+ * \return 0 if success
  */
 int list_unshift(list_t *l, const pdata *data);
 
@@ -76,7 +76,7 @@ int list_unshift(list_t *l, const pdata *data);
  * \brief remove a node from the list
  * \param l the list to be removed
  * \param data what to be removed
- * \return 1 if success, 0 otherwise
+ * \return 0 if success
  */
 int list_remove(const list_t *l, const pdata *data);
 

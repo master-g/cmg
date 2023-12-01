@@ -187,7 +187,7 @@ int list_insert(list_t *l, const int where, const pdata *data) {
       node->next = current;
       current->prev->next = node;
       current->prev = node;
-      return 1;
+      return 0;
     }
     i++;
   }
@@ -213,7 +213,7 @@ int list_push(list_t *l, const pdata *data) {
     l->last = node;
   }
 
-  return 1;
+  return 0;
 }
 
 int list_unshift(list_t *l, const pdata *data) {
@@ -234,7 +234,7 @@ int list_unshift(list_t *l, const pdata *data) {
     l->first = node;
   }
 
-  return 1;
+  return 0;
 }
 
 int list_remove(const list_t *l, const pdata *data) {
@@ -247,11 +247,11 @@ int list_remove(const list_t *l, const pdata *data) {
         current->next->prev = current->prev;
 
       list_node_free(current);
-      return 1;
+      return 0;
     }
     current = current->next;
   }
-  return 0;
+  return -1;
 }
 
 const pdata *list_remove_at(const list_t *l, const int index) {

@@ -14,7 +14,7 @@ tree_t *tree_alloc(const pdata *data) {
   return ret;
 }
 
-void _tree_free_impl(tree_t *node) { free(node); }
+void _tree_free_impl(const tree_t *node) { free((void *)node); }
 
 void tree_free(tree_t *root) { tree_foreach(root, _tree_free_impl); }
 
@@ -64,7 +64,7 @@ void tree_node_visitor_from_list_node(void *func, const pdata *data) {
  function to work only when first_flag is FALSE. To get a combined
  prefix/postfix traversal, define the function to ignore first_flag.
  */
-void tree_foreach(tree_t *root, void (*func)(tree_t *node)) {
+void tree_foreach(tree_t *root, void (*func)(const tree_t *node)) {
   if (root == NULL) {
     return;
   }
@@ -161,7 +161,7 @@ const pdata *_tree_node_print(const tree_t *t) {
 
   snprintf(
       node_buf, node_size,
-      "\"%p\" [\nlabel = \"<f0> %p | %s\"\nshape = \"record\"\n];\n", t, t,
+      "\"%p\" [\nlabel = \"%p | %s\"\nshape = \"record\"\n];\n", t, t,
       data_buf);
 
   free(data_buf);
@@ -178,7 +178,7 @@ const pdata *
 _tree_node_print_edge(const tree_t *from, const tree_t *to, const int id) {
   char buf[1024];
   const size_t size = 1024;
-  snprintf(buf, size, "\"%p\":f0 -> \"%p\":f0 [\nid=%d\n];\n", from, to, id);
+  snprintf(buf, size, "\"%p\" -> \"%p\" [\nid=%d\n];\n", from, to, id);
 
   const size_t slen = strlen(buf);
   char *buf2 = malloc(slen + 1);
@@ -216,7 +216,7 @@ ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
 
     tree_t *child = t->child;
     while (child != NULL) {
-      stack_push(s, pdata_from_ref(child));
+      list_unshift(s, pdata_from_ref(child));
       child = child->sibling;
     }
   }
@@ -291,38 +291,3 @@ ssize_t tree_to_dot(tree_t *root, char **buf, size_t *size) {
 
   return total_size;
 }
-
-/**
-*digraph g {
-fontname="Helvetica,Arial,sans-serif"
-node [fontname="Helvetica,Arial,sans-serif"]
-edge [fontname="Helvetica,Arial,sans-serif"]
-node [fontsize = "16", shape = "ellipse"];
-edge [];
-"node0" [
-label = "<f0> 0x10ba8 | root"
-shape = "record"
-];
-"node1" [
-label = "<f0> 0xf7fc4380 | node1"
-shape = "record"
-];
-"node2" [
-label = "<f0> 0xf7fc4388 | node1-1"
-shape = "record"
-];
-"node3" [
-label = "<f0> 0xf7fc4390 | node2"
-shape = "record"
-];
-"node0":f0 -> "node1":f0 [
-id = 0
-];
-"node1":f0 -> "node2":f0 [
-id = 1
-];
-"node1":f1 -> "node3":f0 [
-id = 2
-];
-}
-*/
