@@ -279,10 +279,10 @@ ssize_t pdata_print(const pdata *pd, char **buf, size_t *size) {
       sprintf(cache, "%u", pd->data.u32);
       break;
     case PDATA_I64:
-      sprintf(cache, "%lld", pd->data.i64);
+      sprintf(cache, "%ld", pd->data.i64);
       break;
     case PDATA_U64:
-      sprintf(cache, "%llu", pd->data.u64);
+      sprintf(cache, "%lu", pd->data.u64);
       break;
     case PDATA_FLOAT:
       sprintf(cache, "%f", pd->data.f);

@@ -9,7 +9,7 @@
 #ifndef DOT_H_
 #define DOT_H_
 
-#include <stdio.h>
+#include <sys/types.h>
 
 typedef struct dot_t dot_t;
 

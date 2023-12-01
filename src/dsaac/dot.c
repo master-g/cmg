@@ -9,6 +9,7 @@
 #include "dot.h"
 #include "common.h"
 #include "list.h"
+#include <sys/types.h>
 
 #define DOT_HEADER "digraph G {\n"
 #define DOT_FOOTER "}\n"
