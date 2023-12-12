@@ -19,6 +19,9 @@ int main(int argc, char **argv) {
   // test_queue();
   test_tree();
 
+  const size_t ass = strlen("asshole");
+  printf("%lu\n", ass);
+
   infix2posfix("(123+234)*(35-47)/(55+63)");
   memtrack_list_allocations();
   return 0;

@@ -140,6 +140,27 @@ void tree_foreach(tree_t *root, void (*func)(const tree_t *node)) {
    */
 }
 
+tree_t *tree_add_child(tree_t *root, const pdata *data) {
+  if (root == NULL) {
+    return tree_alloc(data);
+  }
+
+  tree_t *node = tree_alloc(data);
+  node->parent = root;
+
+  tree_t *child = root->child;
+  if (child == NULL) {
+    root->child = node;
+  } else {
+    while (child->sibling != NULL) {
+      child = child->sibling;
+    }
+    child->sibling = node;
+  }
+
+  return node;
+}
+
 void _tree_node_print(dot_t *dot, const tree_t *t) {
   char *data_buf = NULL;
   size_t data_size = 0;

@@ -172,27 +172,13 @@ void free_tree_payload(const tree_t *t) {
 
 void test_tree() {
   tree_t *root = tree_alloc(pdata_from_str("root"));
-  tree_t *n1_1 = tree_alloc(pdata_from_str("n1_1"));
-  tree_t *n1_2 = tree_alloc(pdata_from_str("n1_2"));
-  tree_t *n2_1 = tree_alloc(pdata_from_str("n2_1"));
-  tree_t *n2_2 = tree_alloc(pdata_from_str("n2_2"));
-  tree_t *n2_3 = tree_alloc(pdata_from_str("n2_3"));
-  tree_t *n3_1 = tree_alloc(pdata_from_str("n3_1"));
+  tree_t *n1 = tree_add_child(root, pdata_from_str("n1"));
+  tree_t *n2 = tree_add_child(root, pdata_from_str("n2"));
 
-  root->child = n1_1;
-  n1_1->parent = root;
-  n1_1->sibling = n1_2;
-  n1_2->parent = root;
-  n1_2->sibling = NULL;
-  n1_2->child = n2_1;
-  n2_1->parent = n1_2;
-  n2_1->sibling = n2_2;
-  n2_2->parent = n1_2;
-  n2_2->sibling = n2_3;
-  n2_3->parent = n1_2;
-  n2_3->sibling = NULL;
-  n2_3->child = n3_1;
-  n3_1->parent = n2_3;
+  tree_add_child(n1, pdata_from_str("n11"));
+  tree_add_child(n1, pdata_from_str("n12"));
+  tree_add_child(n1, pdata_from_str("n13"));
+  tree_add_child(n2, pdata_from_str("n21"));
 
   char *buf = NULL;
   size_t size = 0;
