@@ -20,6 +20,7 @@ int main(int argc, char **argv) {
     perror("epoll_create1");
     exit(EXIT_FAILURE);
   }
+  printf("epoll_fd: %d\n", epoll_fd);
 
   // 创建 timerfd 实例
   timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_NONBLOCK);
@@ -27,6 +28,7 @@ int main(int argc, char **argv) {
     perror("timerfd_create");
     exit(EXIT_FAILURE);
   }
+  printf("timer_fd: %d\n", timer_fd);
 
   // 设置定时器的超时和间隔时间
   struct itimerspec timer_spec;
@@ -40,6 +42,7 @@ int main(int argc, char **argv) {
     perror("timerfd_settime");
     exit(EXIT_FAILURE);
   }
+  printf("timer_fd started!\n");
 
   // 将 timer_fd 加入到 epoll 监听列表中
   event.events = EPOLLIN;
@@ -48,6 +51,7 @@ int main(int argc, char **argv) {
     perror("epoll_ctl");
     exit(EXIT_FAILURE);
   }
+  printf("timer_fd added to epoll_fd!\n");
 
   // 开始监听
   while (1) {
@@ -59,7 +63,7 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < num_events; ++i) {
       if (events[i].data.fd == timer_fd) {
-        printf("timer_fd timeout!\n");
+        printf("tick!\n");
         uint64_t exp;
         ssize_t s = read(timer_fd, &exp, sizeof(uint64_t));
         if (s != sizeof(uint64_t)) {
