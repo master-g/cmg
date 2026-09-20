@@ -19,6 +19,10 @@ int main(int argc, char **argv) {
 
   unsigned int cards[5];
   size_t card_index = 0;
+  if (argc - 1 != (int)(sizeof(cards) / sizeof(cards[0]))) {
+    printf("invalid card count: %d\n", argc - 1);
+    return -1;
+  }
   for (int i = 1; i < argc; i++) {
     unsigned int suit = 0;
     unsigned int rank = 0;
@@ -63,16 +67,12 @@ int main(int argc, char **argv) {
     } else if (argv[i][next_pos] == 'S') {
       suit = TEXAS_CARD_SUIT_SPADE;
     } else {
-      printf("unknown suit: %c\n", argv[i][1]);
+      printf("unknown suit: %c\n", argv[i][next_pos]);
+      return -1;
     }
 
     cards[card_index] = make_card(rank, suit);
     card_index++;
-  }
-
-  if (card_index != 5) {
-    printf("invalid card count: %zu\n", card_index);
-    return -1;
   }
 
   const int value =

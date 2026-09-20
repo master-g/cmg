@@ -25,19 +25,16 @@ void dump_array(FILE *fp, const char *name, uint16_t *arr, int len) {
       columns = max_columns;
     }
 
+    int buf_off = 0;
     for (int col = 0; col < columns; col++) {
-      char blob[6];
+      char blob[8]; // "65535," + '\0'
       int offset = row * max_columns + col;
-      int buf_off = 6 * col; // strlen("%4d, ") = 6
-      uint16_t v = arr[offset];
-      int n = snprintf(blob, sizeof(blob), "%u,", v);
+      snprintf(blob, sizeof(blob), "%u,", arr[offset]);
 
-      if (col == columns - 1) {
-        memset(blob + n, '\0', 6 - n);
-      } else {
-        memset(blob + n, ' ', 6 - n);
-      }
-      snprintf(buf + buf_off, sizeof(buf), "%s", blob);
+      // 每列定宽 6 字符, 末列不补尾随空格
+      buf_off += snprintf(
+          buf + buf_off, sizeof(buf) - buf_off,
+          col == columns - 1 ? "%s" : "%-6s", blob);
     }
     fprintf(fp, "    %s\n", buf);
   }
@@ -197,10 +194,12 @@ int main(int argc, char *argv[]) {
   fclose(fp);
 
   printf("run following command to generate minimal-perfect-hash\n");
-  printf("you can find mph's source code here "
-         "https://burtleburtle.net/bob/hash/perfect.html\n");
-  printf("or a more modern version "
-         "https://github.com/driedfruit/jenkins-minimal-perfect-hash\n");
+  printf(
+      "you can find mph's source code here "
+      "https://burtleburtle.net/bob/hash/perfect.html\n");
+  printf(
+      "or a more modern version "
+      "https://github.com/driedfruit/jenkins-minimal-perfect-hash\n");
   printf("$ mph -dps < temp_other_keys.txt\n");
 
   // source
