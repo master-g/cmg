@@ -6,6 +6,7 @@
 #include <string.h>
 #include <texas_array.h>
 #include <texas_eval.h>
+#include <texas_utils.h>
 
 unsigned int make_card(const unsigned int rank, const unsigned int suit) {
   return texas_eval_primes[rank] | (rank << 8u) | suit | (1u << (16 + rank));
@@ -13,14 +14,16 @@ unsigned int make_card(const unsigned int rank, const unsigned int suit) {
 
 int main(int argc, char **argv) {
   if (argc < 2) {
-    printf("usage: %s <input>\n", argv[0]);
+    printf(
+        "usage: %s <card>...  (5 or 7 cards, e.g. AS KS QS JS 10S)\n", argv[0]);
     return -1;
   }
 
-  unsigned int cards[5];
+  unsigned int cards[7];
   size_t card_index = 0;
-  if (argc - 1 != (int)(sizeof(cards) / sizeof(cards[0]))) {
-    printf("invalid card count: %d\n", argc - 1);
+  const int count = argc - 1;
+  if (count != 5 && count != 7) {
+    printf("invalid card count: %d (want 5 or 7)\n", count);
     return -1;
   }
   for (int i = 1; i < argc; i++) {
@@ -75,9 +78,15 @@ int main(int argc, char **argv) {
     card_index++;
   }
 
-  const int value =
-      texas_eval_5hand(cards[0], cards[1], cards[2], cards[3], cards[4]);
-  printf("eval value: %d\n", value);
+  /* 7 张走完美哈希的快速路径, 与逐一枚举 21 个子集同结果 */
+  const unsigned short value =
+      count == 7
+          ? texas_eval_7hand_fast(cards)
+          : texas_eval_5hand(cards[0], cards[1], cards[2], cards[3], cards[4]);
+
+  char desc[20];
+  texas_utils_str_hand(texas_eval_hand_rank(value), desc);
+  printf("eval value: %d (%s)\n", value, desc);
 
   return 0;
 }
