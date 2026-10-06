@@ -24,9 +24,9 @@ SOFTWARE.
 
 #include "ai.h"
 
-const ai_t AI_Standard = {HandList_StandardAnalyze, HandList_StandardEvaluator};
+const ai_t AI_Standard = {Analysis_Standard};
 
-const ai_t AI_Advanced = {HandList_AdvancedAnalyze, HandList_AdvancedEvaluator};
+const ai_t AI_Advanced = {Analysis_Advanced};
 
 int AI_Bid(const ai_view_t *view) {
   int shouldbid = 0;
@@ -36,7 +36,7 @@ int AI_Bid(const ai_view_t *view) {
 
   /* the fewer hands the cards need, the more they are worth */
   CardArray_Copy(&cards, view->cards);
-  handlist = HandList_StandardAnalyze(&cards);
+  handlist = Analysis_Standard(&cards);
   handlistlen = rk_list_count(handlist);
   rk_list_clear_destroy(handlist);
 
@@ -184,6 +184,112 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   AI_AppendHand(hand, HandList_GetHand(hands->first));
 }
 
+#define BEAT_NODE_CAPACITY 255
+
+#define BEAT_VALUE_FACTOR 10
+
+/* nodes for beat list sort */
+typedef struct beat_node_s {
+  hand_t *hand;
+  int value;
+  int order; /* search order, breaks ties so the sort is deterministic */
+
+} beat_node_t;
+
+/* sort function */
+static int BeatNode_ValueSort(const void *a, const void *b) {
+  const beat_node_t *na = *(beat_node_t *const *)a;
+  const beat_node_t *nb = *(beat_node_t *const *)b;
+
+  return na->value != nb->value ? na->value - nb->value : na->order - nb->order;
+}
+
+/* the beat that leaves the cards in the best shape, bombs come last */
+static int AI_BestBeat(
+    card_array_t *array, hand_t *tobeat, hand_t *beat, Analysis_Func analyze) {
+  int i = 0;
+  int nodei = 0;
+  int bombi = 0;
+  int canbeat = 0;
+  rk_list_t *hl = NULL;
+  rk_list_node_t *node = NULL;
+  card_array_t temp;
+  beat_node_t *hnodes[BEAT_NODE_CAPACITY];
+  hand_t *hbombs[BEAT_NODE_CAPACITY];
+
+  memset(hnodes, 0, sizeof(beat_node_t *) * BEAT_NODE_CAPACITY);
+  memset(hbombs, 0, sizeof(hand_t *) * BEAT_NODE_CAPACITY);
+
+  /* search beat list */
+  hl = Beat_SearchAll(array, tobeat);
+
+  /* separate bomb/nuke and normal hands */
+  node = hl->first;
+
+  while (node != NULL) {
+    if (Hand_IsBomb(HandList_GetHand(node)) ||
+        Hand_IsNuke(HandList_GetHand(node))) {
+      hbombs[bombi++] = node->payload;
+    } else {
+      hnodes[nodei] = (beat_node_t *)malloc(sizeof(beat_node_t));
+      hnodes[nodei]->hand = node->payload;
+      hnodes[nodei]->order = nodei;
+      nodei++;
+    }
+
+    node = node->next;
+  }
+
+  /* calculate value */
+  if (nodei > 1) {
+    for (i = 0; i < nodei; i++) {
+      hand_t *leftover;
+      CardArray_Copy(&temp, array);
+
+      /* evaluate the value of cards left after hand was played */
+      leftover = hnodes[i]->hand;
+      CardArray_Subtract(&temp, &leftover->cards);
+
+      hnodes[i]->value =
+          Analysis_CountHands(analyze, &temp) * BEAT_VALUE_FACTOR +
+          CARD_RANK(leftover->cards.cards[0]);
+    }
+
+    /* sort primal hands */
+    qsort(hnodes, (size_t)nodei, sizeof(beat_node_t *), BeatNode_ValueSort);
+  }
+
+  /* re-build hand list */
+  rk_list_destroy(hl);
+  hl = rk_list_create();
+
+  for (i = bombi; i >= 0; i--) {
+    if (hbombs[i]) {
+      rk_list_push(hl, hbombs[i]);
+    }
+  }
+
+  for (i = nodei; i >= 0; i--) {
+    if (hnodes[i]) {
+      rk_list_push(hl, hnodes[i]->hand);
+    }
+  }
+
+  /* select beat */
+  if (!rk_list_empty(hl)) {
+    Hand_Copy(beat, HandList_GetHand(hl->first));
+    canbeat = 1;
+  }
+
+  /* clean up */
+  for (i = 0; i < nodei; i++)
+    free(hnodes[i]);
+
+  rk_list_clear_destroy(hl);
+
+  return canbeat;
+}
+
 int AI_Beat(const ai_view_t *view, hand_t *hand) {
   int canbeat = 0;
   card_array_t cards;
@@ -193,7 +299,7 @@ int AI_Beat(const ai_view_t *view, hand_t *hand) {
   CardArray_Copy(&cards, view->cards);
   Hand_Copy(&tobeat, view->lastHand);
 
-  canbeat = HandList_BestBeat(&cards, &tobeat, hand, view->ai->evaluate);
+  canbeat = AI_BestBeat(&cards, &tobeat, hand, view->ai->analyze);
 
   /* peasant cooperation: the last hand came from the other peasant */
   if (canbeat && (view->seat != view->landlord) &&

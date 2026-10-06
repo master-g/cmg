@@ -22,23 +22,36 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef LANDLORD_ANALYSIS_H
+#define LANDLORD_ANALYSIS_H
+
+#include "hand.h"
 #include "handlist.h"
 
-void HandList_PushFront(rk_list_t *hl, hand_t *hand) {
-  hand_t *payload = (hand_t *)malloc(sizeof(hand_t));
-  Hand_Copy(payload, hand);
-  rk_list_push(hl, payload);
-}
+/* ************************************************************
+ * analysis: take cards apart into the hands they will be played as
+ *
+ * The result covers the cards exactly, every card is in one hand. How many
+ * hands it takes is how good the cards are, fewer is better.
+ * The caller destroys the list with rk_list_clear_destroy.
+ * ************************************************************/
 
-void HandList_Print(rk_list_t *hl) {
-  rk_list_node_t *node = NULL;
+/* an analysis takes cards apart */
+typedef rk_list_t *(*Analysis_Func)(card_array_t *cards);
 
-  if (hl == NULL || rk_list_empty(hl) || HandList_GetHand(hl->first)->type == 0)
-    return;
+/*
+ * greedy: nuke, bombs and 2 first, then whatever chains the rest forms
+ */
+rk_list_t *Analysis_Standard(card_array_t *array);
 
-  DBGLog("-----hand_list_t begin---------\n");
-  for (node = hl->first; node != NULL; node = node->next) {
-    Hand_Print(HandList_GetHand(node));
-  }
-  DBGLog("-----hand_list_t ended---------\n");
-}
+/*
+ * searches the ways to pull chains out for the split with the fewest hands
+ */
+rk_list_t *Analysis_Advanced(card_array_t *array);
+
+/*
+ * how many hands the cards take when taken apart by analyze
+ */
+int Analysis_CountHands(Analysis_Func analyze, card_array_t *array);
+
+#endif /* LANDLORD_ANALYSIS_H */

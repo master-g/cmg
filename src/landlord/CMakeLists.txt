@@ -2,6 +2,8 @@ include_directories(.)
 
 set(LANDLORD_SOURCES
         ai.c
+        analysis.c
+        beat.c
         card.c
         deck.c
         game.c

@@ -25,8 +25,9 @@ SOFTWARE.
 #ifndef LANDLORD_AI_H_
 #define LANDLORD_AI_H_
 
+#include "analysis.h"
+#include "beat.h"
 #include "hand.h"
-#include "handlist.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,10 +46,7 @@ extern "C" {
 
 /* how an AI takes cards apart, the only thing the AIs differ in */
 typedef struct ai_s {
-  /* split cards into hands */
-  rk_list_t *(*analyze)(card_array_t *cards);
-  /* how many hands the cards take to play, fewer is better */
-  int (*evaluate)(card_array_t *cards);
+  Analysis_Func analyze;
 } ai_t;
 
 /* greedy analysis: bombs first, then the chains that happen to be there */

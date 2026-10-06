@@ -26,6 +26,8 @@ SOFTWARE.
 #define LANDLORD_LANDLORD_H
 
 #include "ai.h"
+#include "analysis.h"
+#include "beat.h"
 #include "card.h"
 #include "common.h"
 #include "deck.h"

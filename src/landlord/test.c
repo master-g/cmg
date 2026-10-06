@@ -112,6 +112,12 @@ static void test_rules(void) {
   }
 }
 
+/* same cards in the same order */
+static int same_sequence(const card_array_t *a, const card_array_t *b) {
+  return a->length == b->length &&
+         memcmp(a->cards, b->cards, (size_t)a->length) == 0;
+}
+
 static hand_t parse(const char *str) {
   card_array_t cards;
   hand_t hand;
@@ -230,6 +236,64 @@ static void test_card_array(void) {
 }
 
 /* ************************************************************
+ * analysis: the hands cover the cards exactly and each one is legal
+ * ************************************************************/
+
+/* returns the number of hands */
+static int check_analysis(Analysis_Func analyze, card_array_t *cards) {
+  rk_list_t *hands = analyze(cards);
+  rk_list_node_t *node;
+  card_array_t covered;
+  card_array_t sorted;
+  int count = rk_list_count(hands);
+
+  CardArray_Clear(&covered);
+  for (node = hands->first; node != NULL; node = node->next) {
+    hand_t judged;
+
+    /* legal, and of the type the analysis says it is */
+    assert(Hand_Parse(&judged, &HandList_GetHand(node)->cards) != HAND_NONE);
+    assert(judged.type == HandList_GetHand(node)->type);
+    CardArray_Concat(&covered, &HandList_GetHand(node)->cards);
+  }
+
+  /* every card in exactly one hand */
+  CardArray_Copy(&sorted, cards);
+  CardArray_Sort(&sorted, NULL);
+  CardArray_Sort(&covered, NULL);
+  assert(same_sequence(&covered, &sorted));
+
+  rk_list_clear_destroy(hands);
+  return count;
+}
+
+static void test_analysis(void) {
+  mt19937_t mt;
+  deck_t deck;
+  int round;
+
+  printf("testing analysis...\n");
+  Random_Init(&mt, 1987);
+
+  for (round = 0; round < 20000; round++) {
+    card_array_t cards;
+    int standard;
+    int advanced;
+
+    Deck_Reset(&deck);
+    Deck_Shuffle(&deck, &mt);
+    Deck_Deal(&deck, &cards, 1 + (int)(Random_Int32(&mt) % 20));
+
+    standard = check_analysis(Analysis_Standard, &cards);
+    advanced = check_analysis(Analysis_Advanced, &cards);
+
+    /* searching must never do worse than being greedy */
+    assert(advanced <= standard);
+    assert(standard == Analysis_CountHands(Analysis_Standard, &cards));
+  }
+}
+
+/* ************************************************************
  * beat search: every hand it offers beats the hand it answers
  * ************************************************************/
 
@@ -254,7 +318,7 @@ static void test_beat_search(void) {
     Deck_Deal(&deck, &theirs, 17);
 
     /* answer every hand the other player could lead */
-    lead = HandList_StandardAnalyze(&theirs);
+    lead = Analysis_Standard(&theirs);
     for (leadnode = lead->first; leadnode != NULL; leadnode = leadnode->next) {
       hand_t tobeat;
       rk_list_t *beats;
@@ -262,7 +326,7 @@ static void test_beat_search(void) {
 
       assert(
           Hand_Parse(&tobeat, &HandList_GetHand(leadnode)->cards) != HAND_NONE);
-      beats = HandList_SearchBeatList(&mine, &tobeat);
+      beats = Beat_SearchAll(&mine, &tobeat);
 
       for (node = beats->first; node != NULL; node = node->next) {
         hand_t beat;
@@ -377,12 +441,6 @@ static void test_baseline(void) {
   Game_Clear(&game);
 }
 
-/* same cards in the same order */
-static int same_sequence(const card_array_t *a, const card_array_t *b) {
-  return a->length == b->length &&
-         memcmp(a->cards, b->cards, (size_t)a->length) == 0;
-}
-
 /* the same seed must give the same game, whatever was played before it */
 static void test_determinism(void) {
   game_t game;
@@ -452,7 +510,7 @@ static rk_list_t *cheat_analyze(card_array_t *cards) {
 }
 
 static void test_game_rejects_illegal_hands(void) {
-  const ai_t cheat = {cheat_analyze, HandList_StandardEvaluator};
+  const ai_t cheat = {cheat_analyze};
   game_t game;
   int i;
 
@@ -556,6 +614,7 @@ int main(int argc, char **argv) {
   test_parse_keeps_input();
   test_compare();
   test_card_array();
+  test_analysis();
   test_beat_search();
   test_ai_decides_from_a_view();
   test_games();

@@ -22,23 +22,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#ifndef LANDLORD_BEAT_H
+#define LANDLORD_BEAT_H
+
+#include "hand.h"
 #include "handlist.h"
 
-void HandList_PushFront(rk_list_t *hl, hand_t *hand) {
-  hand_t *payload = (hand_t *)malloc(sizeof(hand_t));
-  Hand_Copy(payload, hand);
-  rk_list_push(hl, payload);
-}
+/* ************************************************************
+ * beat search: the hands in some cards that beat a given hand
+ * ************************************************************/
 
-void HandList_Print(rk_list_t *hl) {
-  rk_list_node_t *node = NULL;
+/*
+ * search for one beat, result will be stored in beat
+ * 1, if [beat->type] != 0, then search [new beat] > [beat]
+ * 2, search [beat] > [tobeat], then store in [beat]
+ *
+ * returns 0 when there is none
+ */
+int Beat_Search(card_array_t *cards, hand_t *tobeat, hand_t *beat);
 
-  if (hl == NULL || rk_list_empty(hl) || HandList_GetHand(hl->first)->type == 0)
-    return;
+/*
+ * every hand in cards that beats tobeat, as judged by the rules
+ * the caller destroys the list with rk_list_clear_destroy
+ */
+rk_list_t *Beat_SearchAll(card_array_t *cards, hand_t *tobeat);
 
-  DBGLog("-----hand_list_t begin---------\n");
-  for (node = hl->first; node != NULL; node = node->next) {
-    Hand_Print(HandList_GetHand(node));
-  }
-  DBGLog("-----hand_list_t ended---------\n");
-}
+#endif /* LANDLORD_BEAT_H */
