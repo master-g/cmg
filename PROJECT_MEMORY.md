@@ -22,8 +22,8 @@
 ## 上次会话
 <!-- 整块改写：分支、验证命令及实际结果、停在何处；任务细节只留一行指向证据目录。 -->
 - [2026-10-06] main；Landlord 已迁入并推送, 远程 master 已删; 之后只读审计 + 架构审查 + 配置 agent skills(本地 Markdown tracker, 默认 triage 标签, 按子项目的领域文档) + 发布改造 spec, 未改 landlord 代码
-  证据: .scratch/landlord-modernization/spec.md(10 个阶段, 测试 seam 为规则 interface 与 Game 整局 interface)
+  证据: .scratch/landlord-modernization/ 下的 spec.md 与 issues/01–15(测试 seam 为规则 interface 与 Game 整局 interface)
 
 ## 下次运行
 <!-- 整块改写：接下来的任务和优先级，含仍受阻的项。 -->
-- [2026-10-06] 等用户运行 /to-tickets 把 spec 按阶段拆成工单(该技能只能由用户触发); 之后从阶段 0(自检目标接入 make test)开始执行
+- [2026-10-06] 按工单执行 landlord 改造: 01 无前置可立即开始; 01 完成后 02 与 06 可并行; 每张工单的依赖和验收条件见其文件, 做完把 Status 改掉
