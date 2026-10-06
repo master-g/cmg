@@ -1343,12 +1343,16 @@ int HandList_AdvancedEvaluator(card_array_t *array) {
 typedef struct beat_node_s {
   hand_t *hand;
   int value;
+  int order; /* search order, breaks ties so the sort is deterministic */
 
 } beat_node_t;
 
 /* sort function */
 int _BeatNode_ValueSort(const void *a, const void *b) {
-  return ((*(beat_node_t **)a)->value - (*(beat_node_t **)b)->value);
+  const beat_node_t *na = *(beat_node_t **)a;
+  const beat_node_t *nb = *(beat_node_t **)b;
+
+  return na->value != nb->value ? na->value - nb->value : na->order - nb->order;
 }
 
 int HandList_BestBeat(
@@ -1385,6 +1389,7 @@ int HandList_BestBeat(
     } else {
       hnodes[nodei] = (beat_node_t *)malloc(sizeof(beat_node_t));
       hnodes[nodei]->hand = node->payload;
+      hnodes[nodei]->order = nodei;
       nodei++;
     }
 

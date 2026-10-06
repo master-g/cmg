@@ -81,6 +81,41 @@ static void test_rules(void) {
 #define TEST_SEED_BEGIN 10000
 #define TEST_SEED_END 10200
 
+/* same cards in the same order */
+static int same_sequence(const card_array_t *a, const card_array_t *b) {
+  return a->length == b->length &&
+         memcmp(a->cards, b->cards, (size_t)a->length) == 0;
+}
+
+/* the same seed must give the same game, whatever was played before it */
+static void test_determinism(void) {
+  game_t game;
+  game_t first;
+  uint32_t seed;
+
+  printf("testing determinism...\n");
+  Game_Init(&game);
+  for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_BEGIN + 20; seed++) {
+    Game_Play(&game, seed);
+    first = game;
+    Game_Reset(&game);
+
+    /* an unrelated game in between must not matter */
+    Game_Play(&game, seed + 12345);
+    Game_Reset(&game);
+
+    Game_Play(&game, seed);
+    if (game.winner != first.winner || game.landlord != first.landlord ||
+        game.bid != first.bid ||
+        !same_sequence(&game.cardRecord, &first.cardRecord)) {
+      printf("  seed %u played differently the second time\n", (unsigned)seed);
+      assert(0);
+    }
+    Game_Reset(&game);
+  }
+  Game_Clear(&game);
+}
+
 static void test_games(void) {
   game_t game;
   uint32_t seed;
@@ -103,6 +138,7 @@ static void test_games(void) {
 int main(void) {
   test_rules();
   test_games();
+  test_determinism();
   printf("landlord: all tests passed\n");
   return 0;
 }

@@ -27,26 +27,17 @@ SOFTWARE.
 void Game_Init(game_t *game) {
   int i = 0;
 
+  memset(game, 0, sizeof(game_t));
+
+  /* every game is played by the same AI setup */
   for (i = 0; i < GAME_PLAYERS; i++) {
-    Player_SetupStandardAI(&game->players[i]);
+    Player_SetupAdvancedAI(&game->players[i]);
     game->players[i].identity = PlayerIdentity_Peasant;
     game->players[i].seatId = i;
-    game->players[i].handlist = NULL;
   }
 
-  game->bid = 0;
-  game->playerIndex = 0;
-  game->landlord = 0;
-  game->lastplay = 0;
-  game->winner = 0;
-  game->status = 0;
-  game->phase = 0;
-
-  Deck_Reset(&game->deck);
-  Deck_Shuffle(&game->deck, &game->mt);
-  CardArray_Clear(&game->cardRecord);
-  CardArray_Clear(&game->kittyCards);
   Random_Init(&game->mt, 0);
+  Deck_Reset(&game->deck);
 }
 
 void Game_Clear(game_t *game) {
@@ -68,10 +59,8 @@ void Game_Destroy(game_t *game) {
 void Game_Reset(game_t *game) {
   int i = 0;
 
-  for (i = 0; i < GAME_PLAYERS; i++) {
-    Player_SetupAdvancedAI(&game->players[i]);
+  for (i = 0; i < GAME_PLAYERS; i++)
     Player_Clear(&game->players[i]);
-  }
 
   game->bid = 0;
   game->playerIndex = 0;
@@ -83,7 +72,6 @@ void Game_Reset(game_t *game) {
 
   Hand_Clear(&game->lastHand);
   Deck_Reset(&game->deck);
-  Deck_Shuffle(&game->deck, &game->mt);
   CardArray_Clear(&game->kittyCards);
   CardArray_Clear(&game->cardRecord);
 }
@@ -93,7 +81,10 @@ void Game_Play(game_t *game, uint32_t seed) {
   int beat = 0;
   int bid = 0;
 
+  /* the seed alone decides the game: seed, then shuffle a fresh deck */
   Random_Init(&game->mt, seed);
+  Deck_Reset(&game->deck);
+  Deck_Shuffle(&game->deck, &game->mt);
 
   /* bid */
   /* TODO log */
@@ -121,7 +112,9 @@ void Game_Play(game_t *game, uint32_t seed) {
 
     /* check if bid stage is done */
     if (game->bid == 0) {
+      /* nobody bid, deal again from a reshuffled deck */
       Deck_Reset(&game->deck);
+      Deck_Shuffle(&game->deck, &game->mt);
     } else {
       /* setup landlord, game start! */
       game->landlord = game->highestBidder;
