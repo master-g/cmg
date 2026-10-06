@@ -85,11 +85,7 @@ int AdvancedAI_Beat(void *p, void *g) {
     }
 
     /* don't bomb/nuke teammate */
-    if (canbeat &&
-        (((beat.type ==
-           Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS)) ||
-          (beat.type ==
-           Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS)))))
+    if (canbeat && (Hand_IsBomb(&beat) || Hand_IsNuke(&beat)))
       canbeat = 0;
 
     if (canbeat && (teammate->cards.length < player->cards.length))

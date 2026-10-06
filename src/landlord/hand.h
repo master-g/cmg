@@ -109,9 +109,19 @@ void Hand_CountRank(card_array_t *array, int *count);
 int Hand_Parse(hand_t *hand, const card_array_t *array);
 
 /*
- * compare two hands
+ * compare two hands, this is the only place that knows which hand is greater
  */
 int Hand_Compare(hand_t *a, hand_t *b);
+
+/*
+ * four of a kind, beats everything but a higher bomb and the nuke
+ */
+int Hand_IsBomb(const hand_t *hand);
+
+/*
+ * both jokers, beats everything
+ */
+int Hand_IsNuke(const hand_t *hand);
 
 /*
  * hand print

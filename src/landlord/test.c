@@ -230,6 +230,59 @@ static void test_card_array(void) {
 }
 
 /* ************************************************************
+ * beat search: every hand it offers beats the hand it answers
+ * ************************************************************/
+
+static void test_beat_search(void) {
+  mt19937_t mt;
+  deck_t deck;
+  int round;
+  int offered = 0;
+
+  printf("testing beat search...\n");
+  Random_Init(&mt, 2014);
+
+  for (round = 0; round < 3000; round++) {
+    card_array_t mine;
+    card_array_t theirs;
+    rk_list_t *lead;
+    rk_list_node_t *leadnode;
+
+    Deck_Reset(&deck);
+    Deck_Shuffle(&deck, &mt);
+    Deck_Deal(&deck, &mine, 20);
+    Deck_Deal(&deck, &theirs, 17);
+
+    /* answer every hand the other player could lead */
+    lead = HandList_StandardAnalyze(&theirs);
+    for (leadnode = lead->first; leadnode != NULL; leadnode = leadnode->next) {
+      hand_t tobeat;
+      rk_list_t *beats;
+      rk_list_node_t *node;
+
+      assert(
+          Hand_Parse(&tobeat, &HandList_GetHand(leadnode)->cards) != HAND_NONE);
+      beats = HandList_SearchBeatList(&mine, &tobeat);
+
+      for (node = beats->first; node != NULL; node = node->next) {
+        hand_t beat;
+
+        assert(Hand_Parse(&beat, &HandList_GetHand(node)->cards) != HAND_NONE);
+        assert(Hand_Compare(&beat, &tobeat) == HAND_CMP_GREATER);
+        assert(CardArray_IsContain(&mine, &beat.cards));
+        offered++;
+      }
+
+      rk_list_clear_destroy(beats);
+    }
+
+    rk_list_clear_destroy(lead);
+  }
+
+  assert(offered > 0);
+}
+
+/* ************************************************************
  * whole game: seed -> one finished game
  * ************************************************************/
 
@@ -453,6 +506,7 @@ int main(int argc, char **argv) {
   test_parse_keeps_input();
   test_compare();
   test_card_array();
+  test_beat_search();
   test_games();
   test_game_rejects_illegal_hands();
   test_determinism();

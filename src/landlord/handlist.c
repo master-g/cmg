@@ -131,13 +131,15 @@ static int SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
 
   count = ctx->count;
 
-  /* can't beat nuke */
-  if (tobeat->type ==
-      Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS))
+  /*
+   * This only decides where to look, HandList_SearchBeatList asks the rules
+   * whether what was found really beats the hand.
+   */
+  if (Hand_IsNuke(tobeat))
     return 0;
 
   /* search for a higher rank bomb */
-  if (tobeat->type == HAND_PRIMAL_BOMB) {
+  if (Hand_IsBomb(tobeat)) {
     canbeat = SearchBeat_Primal(ctx, tobeat, beat, 4);
   } else {
     /* tobeat is not a nuke or bomb, search a bomb to beat it */
@@ -554,6 +556,7 @@ rk_list_t *HandList_SearchBeatList(card_array_t *cards, hand_t *tobeat) {
   rk_list_t *hl = NULL;
   hand_t htobeat;
   hand_t beat;
+  hand_t judged;
   int canbeat = 0;
 
   Hand_Clear(&beat);
@@ -564,8 +567,13 @@ rk_list_t *HandList_SearchBeatList(card_array_t *cards, hand_t *tobeat) {
     canbeat = SearchBeat_Any(cards, &htobeat, &beat);
 
     if (canbeat) {
+      /* keep searching from this one, whatever the rules say about it */
       Hand_Copy(&htobeat, &beat);
-      HandList_PushFront(hl, &beat);
+
+      /* the search proposes, the rules decide */
+      if ((Hand_Parse(&judged, &beat.cards) != HAND_NONE) &&
+          (Hand_Compare(&judged, tobeat) == HAND_CMP_GREATER))
+        HandList_PushFront(hl, &beat);
     }
   } while (canbeat);
 
@@ -1367,10 +1375,8 @@ int HandList_BestBeat(
   node = hl->first;
 
   while (node != NULL) {
-    if ((HandList_GetHand(node)->type ==
-         Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS)) ||
-        (HandList_GetHand(node)->type ==
-         Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS))) {
+    if (Hand_IsBomb(HandList_GetHand(node)) ||
+        Hand_IsNuke(HandList_GetHand(node))) {
       hbombs[bombi++] = node->payload;
     } else {
       hnodes[nodei] = (beat_node_t *)malloc(sizeof(beat_node_t));

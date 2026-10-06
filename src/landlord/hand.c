@@ -240,6 +240,16 @@ static int Hand_CompareBomb(hand_t *a, hand_t *b) {
   return ret;
 }
 
+int Hand_IsBomb(const hand_t *hand) {
+  return hand->type ==
+         Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS);
+}
+
+int Hand_IsNuke(const hand_t *hand) {
+  return hand->type ==
+         Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS);
+}
+
 int Hand_Compare(hand_t *a, hand_t *b) {
   int result = HAND_CMP_ILLEGAL;
 
