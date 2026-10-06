@@ -312,25 +312,64 @@ static void test_cards_by_rank(void) {
 }
 
 /* ************************************************************
+ * hand list: a value with a capacity, it refuses instead of overflowing
+ * ************************************************************/
+
+static void test_hand_list(void) {
+  /* static: two of these are too much for a test's stack to be polite */
+  static hand_list_t list;
+  hand_t solo = parse("♣3");
+  hand_t pair = parse("♠9 ♥9");
+  card_array_t played;
+  int i;
+
+  printf("testing hand list...\n");
+  HandList_Clear(&list);
+  assert(HandList_Count(&list) == 0);
+  assert(HandList_At(&list, 0) == NULL);
+
+  for (i = 0; i < HAND_LIST_CAPACITY; i++)
+    assert(HandList_Push(&list, i % 2 ? &pair : &solo) == 1);
+
+  /* full: the hand is refused and nothing changes */
+  assert(HandList_Push(&list, &pair) == 0);
+  assert(HandList_Count(&list) == HAND_LIST_CAPACITY);
+  assert(HandList_At(&list, HAND_LIST_CAPACITY) == NULL);
+  assert(HandList_At(&list, HAND_LIST_CAPACITY - 1)->type == pair.type);
+
+  /* hands made of played cards go, the others keep their order */
+  HandList_Clear(&list);
+  HandList_Push(&list, &solo);
+  HandList_Push(&list, &pair);
+  HandList_Push(&list, &solo);
+  CardArray_InitFromString(&played, "♣3 ♦K");
+  HandList_RemoveContained(&list, &played);
+  assert(HandList_Count(&list) == 1);
+  assert(HandList_At(&list, 0)->type == pair.type);
+}
+
+/* ************************************************************
  * analysis: the hands cover the cards exactly and each one is legal
  * ************************************************************/
 
 /* returns the number of hands */
-static int check_analysis(Analysis_Func analyze, card_array_t *cards) {
-  rk_list_t *hands = analyze(cards);
-  rk_list_node_t *node;
+static int check_analysis(Analysis_Func analyze, const card_array_t *cards) {
+  hand_list_t hands;
   card_array_t covered;
   card_array_t sorted;
-  int count = rk_list_count(hands);
+  int i;
+
+  analyze(cards, &hands);
 
   CardArray_Clear(&covered);
-  for (node = hands->first; node != NULL; node = node->next) {
+  for (i = 0; i < HandList_Count(&hands); i++) {
+    const hand_t *hand = HandList_At(&hands, i);
     hand_t judged;
 
     /* legal, and of the type the analysis says it is */
-    assert(Hand_Parse(&judged, &HandList_GetHand(node)->cards) != HAND_NONE);
-    assert(judged.type == HandList_GetHand(node)->type);
-    CardArray_Concat(&covered, &HandList_GetHand(node)->cards);
+    assert(Hand_Parse(&judged, &hand->cards) != HAND_NONE);
+    assert(judged.type == hand->type);
+    CardArray_Concat(&covered, &hand->cards);
   }
 
   /* every card in exactly one hand */
@@ -339,8 +378,7 @@ static int check_analysis(Analysis_Func analyze, card_array_t *cards) {
   CardArray_Sort(&covered);
   assert(same_sequence(&covered, &sorted));
 
-  rk_list_clear_destroy(hands);
-  return count;
+  return HandList_Count(&hands);
 }
 
 static void test_analysis(void) {
@@ -385,8 +423,8 @@ static void test_beat_search(void) {
   for (round = 0; round < 3000; round++) {
     card_array_t mine;
     card_array_t theirs;
-    rk_list_t *lead;
-    rk_list_node_t *leadnode;
+    hand_list_t lead;
+    int i;
 
     CardArray_Reset(&deck);
     CardArray_Shuffle(&deck, &mt);
@@ -394,29 +432,24 @@ static void test_beat_search(void) {
     CardArray_Deal(&deck, &theirs, 17);
 
     /* answer every hand the other player could lead */
-    lead = Analysis_Standard(&theirs);
-    for (leadnode = lead->first; leadnode != NULL; leadnode = leadnode->next) {
+    Analysis_Standard(&theirs, &lead);
+    for (i = 0; i < HandList_Count(&lead); i++) {
       hand_t tobeat;
-      rk_list_t *beats;
-      rk_list_node_t *node;
+      hand_list_t beats;
+      int j;
 
-      assert(
-          Hand_Parse(&tobeat, &HandList_GetHand(leadnode)->cards) != HAND_NONE);
-      beats = Beat_SearchAll(&mine, &tobeat);
+      assert(Hand_Parse(&tobeat, &HandList_At(&lead, i)->cards) != HAND_NONE);
+      Beat_SearchAll(&mine, &tobeat, &beats);
 
-      for (node = beats->first; node != NULL; node = node->next) {
+      for (j = 0; j < HandList_Count(&beats); j++) {
         hand_t beat;
 
-        assert(Hand_Parse(&beat, &HandList_GetHand(node)->cards) != HAND_NONE);
+        assert(Hand_Parse(&beat, &HandList_At(&beats, j)->cards) != HAND_NONE);
         assert(Hand_Compare(&beat, &tobeat) == HAND_CMP_GREATER);
         assert(CardArray_IsContain(&mine, &beat.cards));
         offered++;
       }
-
-      rk_list_clear_destroy(beats);
     }
-
-    rk_list_clear_destroy(lead);
   }
 
   assert(offered > 0);
@@ -473,9 +506,7 @@ static void print_baseline(void) {
     printf(
         "{%d, %d, %d, 0x%08xu}, /* %u */\n", s.winner, s.landlord, s.bid,
         (unsigned)s.plays, (unsigned)seed);
-    Game_Reset(&game);
   }
-  Game_Clear(&game);
 }
 
 static void test_baseline(void) {
@@ -513,9 +544,7 @@ static void test_baseline(void) {
           want->winner);
       assert(0);
     }
-    Game_Reset(&game);
   }
-  Game_Clear(&game);
 }
 
 /* the same seed must give the same game, whatever was played before it */
@@ -529,11 +558,9 @@ static void test_determinism(void) {
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_BEGIN + 20; seed++) {
     Game_Play(&game, seed);
     first = game;
-    Game_Reset(&game);
 
     /* an unrelated game in between must not matter */
     Game_Play(&game, seed + 12345);
-    Game_Reset(&game);
 
     Game_Play(&game, seed);
     if (game.winner != first.winner || game.landlord != first.landlord ||
@@ -542,9 +569,7 @@ static void test_determinism(void) {
       printf("  seed %u played differently the second time\n", (unsigned)seed);
       assert(0);
     }
-    Game_Reset(&game);
   }
-  Game_Clear(&game);
 }
 
 /* played cards plus the cards still held are exactly one deck */
@@ -574,8 +599,7 @@ static int is_whole_deck(const game_t *game) {
 }
 
 /* an analysis that calls two unrelated cards one hand, the AI will lead it */
-static rk_list_t *cheat_analyze(card_array_t *cards) {
-  rk_list_t *hl = rk_list_create();
+static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
   hand_t hand;
 
   Hand_Clear(&hand);
@@ -583,9 +607,9 @@ static rk_list_t *cheat_analyze(card_array_t *cards) {
   CardArray_PushBack(&hand.cards, CardArray_At(cards, 0));
   CardArray_PushBack(
       &hand.cards, CardArray_At(cards, CardArray_Length(cards) - 1));
-  HandList_PushFront(hl, &hand);
 
-  return hl;
+  HandList_Clear(hl);
+  HandList_Push(hl, &hand);
 }
 
 static void test_game_rejects_illegal_hands(void) {
@@ -604,8 +628,6 @@ static void test_game_rejects_illegal_hands(void) {
   Game_Play(&game, TEST_SEED_BEGIN);
   assert(game.status == GameStatus_Illegal);
   assert(CardArray_Length(&game.cardRecord) == 0);
-
-  Game_Clear(&game);
 }
 
 /* ************************************************************
@@ -677,9 +699,7 @@ static void test_games(void) {
       printf("  seed %u lost or duplicated cards\n", (unsigned)seed);
       assert(0);
     }
-    Game_Reset(&game);
   }
-  Game_Clear(&game);
 }
 
 int main(int argc, char **argv) {
@@ -695,6 +715,7 @@ int main(int argc, char **argv) {
   test_card_array();
   test_card_text();
   test_cards_by_rank();
+  test_hand_list();
   test_analysis();
   test_beat_search();
   test_ai_decides_from_a_view();

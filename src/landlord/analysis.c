@@ -25,6 +25,8 @@ SOFTWARE.
 #include "analysis.h"
 #include "beat.h"
 
+#include <limits.h>
+
 /*
  * extract hands like 34567 / 334455 / 333444555 etc
  * from the ranks held exactly `duplicate` times: consecutive ranks become one
@@ -32,7 +34,8 @@ SOFTWARE.
  * cards has to be sorted from high to low
  */
 static void HandList_ExtractConsecutive(
-    rk_list_t *hl, const card_array_t *cards, const int *count, int duplicate) {
+    hand_list_t *hl, const card_array_t *cards, const int *count,
+    int duplicate) {
   int rank = 0;
   int runtop = 0; /* highest rank of the run being collected */
   int runlen = 0; /* ranks in that run */
@@ -65,7 +68,7 @@ static void HandList_ExtractConsecutive(
       for (r = runtop; r > runtop - runlen; r--)
         CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
 
-      HandList_PushFront(hl, &hand);
+      HandList_Push(hl, &hand);
     } else {
       /* not a chain */
       for (r = runtop; r > runtop - runlen; r--) {
@@ -73,7 +76,7 @@ static void HandList_ExtractConsecutive(
         hand.type =
             Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAINLESS);
         CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
-        HandList_PushFront(hl, &hand);
+        HandList_Push(hl, &hand);
       }
     }
 
@@ -83,7 +86,7 @@ static void HandList_ExtractConsecutive(
 
 /* extract nuke/bomb/2 from array, these cards will be removed from array */
 static void
-HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
+HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
   int i = 0;
   hand_t hand;
 
@@ -94,7 +97,7 @@ HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
     CardArray_CopyRank(&hand.cards, array, CARD_RANK_R);
     CardArray_CopyRank(&hand.cards, array, CARD_RANK_r);
 
-    HandList_PushFront(hl, &hand);
+    HandList_Push(hl, &hand);
 
     count[CARD_RANK_r] = 0;
     count[CARD_RANK_R] = 0;
@@ -111,7 +114,7 @@ HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
           Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS);
       CardArray_CopyRank(&hand.cards, array, (uint8_t)i);
 
-      HandList_PushFront(hl, &hand);
+      HandList_Push(hl, &hand);
 
       count[i] = 0;
       CardArray_RemoveRank(array, (uint8_t)i);
@@ -126,7 +129,7 @@ HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
         count[CARD_RANK_r] != 0 ? CARD_RANK_r : CARD_RANK_R);
     hand.type = Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS);
 
-    HandList_PushFront(hl, &hand);
+    HandList_Push(hl, &hand);
     count[CARD_RANK_r] = 0;
     count[CARD_RANK_R] = 0;
     CardArray_RemoveRank(array, CARD_RANK_r);
@@ -159,20 +162,19 @@ HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
     }
     count[CARD_RANK_2] = 0;
     CardArray_RemoveRank(array, CARD_RANK_2);
-    HandList_PushFront(hl, &hand);
+    HandList_Push(hl, &hand);
   }
 }
 
-rk_list_t *Analysis_Standard(card_array_t *cards) {
+void Analysis_Standard(const card_array_t *cards, hand_list_t *hl) {
   int count[CARD_RANK_END];
-  rk_list_t *hl = NULL;
   card_array_t array;
 
   CardArray_Copy(&array, cards);
   CardArray_Sort(&array);
   CardArray_CountRanks(&array, count);
 
-  hl = rk_list_create();
+  HandList_Clear(hl);
 
   /* nuke, bomb and 2 */
   HandList_ExtractNukeBomb2(hl, &array, count);
@@ -181,17 +183,14 @@ rk_list_t *Analysis_Standard(card_array_t *cards) {
   HandList_ExtractConsecutive(hl, &array, count, 3);
   HandList_ExtractConsecutive(hl, &array, count, 2);
   HandList_ExtractConsecutive(hl, &array, count, 1);
-
-  return hl;
 }
 
-int Analysis_CountHands(Analysis_Func analyze, card_array_t *array) {
-  rk_list_t *hl = analyze(array);
-  int hands = rk_list_count(hl);
+int Analysis_CountHands(Analysis_Func analyze, const card_array_t *array) {
+  hand_list_t hl;
 
-  rk_list_clear_destroy(hl);
+  analyze(array, &hl);
 
-  return hands;
+  return HandList_Count(&hl);
 }
 
 /*
@@ -323,7 +322,7 @@ static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
 /*
  * extract all chains or primal hands in hand_ctx
  */
-static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
+static void HLAA_ExtractAllChains(hand_ctx_t *ctx, hand_list_t *hands) {
   int found = 0;
   int lastsearch = 0;
   hand_t workinghand;
@@ -336,12 +335,12 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
   found = HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
 
   while (found != 0) {
-    HandList_PushFront(hands, &lasthand);
+    HandList_Push(hands, &lasthand);
 
     Hand_Copy(&workinghand, &lasthand);
 
     while ((found = HLAA_TraverseChains(ctx, &lastsearch, &workinghand)) != 0)
-      HandList_PushFront(hands, &workinghand);
+      HandList_Push(hands, &workinghand);
 
     /* can't find any more hands, try to reduce chain length */
     if (lasthand.type != 0) {
@@ -383,166 +382,105 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
   }
 }
 
-/* advanced search tree payload */
-typedef struct hltree_payload_s {
-  /* hand context */
-  hand_ctx_t ctx;
-  /* hand */
-  hand_t hand;
-  /* evaluation weight */
+/*
+ * Pulling a chain out leaves cards that may hold further chains, so the ways
+ * to take cards apart form a tree: every node is the cards left after the
+ * chains on the path to it. Only the path being walked is kept.
+ */
+
+/* every step takes at least five cards out of twenty */
+#define ANALYSIS_MAX_DEPTH 4
+
+typedef struct analysis_best_s {
+  /* hands needed: chains on the path plus the leftover taken apart */
   int weight;
+  /* chains pulled out, from the first to the last */
+  int depth;
+  hand_t path[ANALYSIS_MAX_DEPTH];
+  /* what is left after them */
+  card_array_t leftover;
 
-} hltree_payload_t;
+} analysis_best_t;
 
-static rk_tree_t *HLAA_TreeAddHand(rk_tree_t *tree, rk_list_node_t *handnode) {
-  hltree_payload_t *oldpayload = NULL;
-  hltree_payload_t *newpayload = NULL;
+static void
+HLAA_Search(hand_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
+  hand_list_t chains;
+  int i = 0;
 
-  oldpayload = (hltree_payload_t *)tree->payload;
-  newpayload = (hltree_payload_t *)malloc(sizeof(hltree_payload_t));
+  HandList_Clear(&chains);
 
-  /* make diff here */
-  memcpy(&newpayload->ctx, &oldpayload->ctx, sizeof(hand_ctx_t));
-  Hand_Copy(&newpayload->hand, HandList_GetHand(handnode));
-  CardArray_Subtract(
-      &newpayload->ctx.cards, &HandList_GetHand(handnode)->cards);
-  CardArray_Copy(&newpayload->ctx.rcards, &newpayload->ctx.cards);
-  CardArray_Reverse(&newpayload->ctx.rcards);
-  CardArray_CountRanks(&newpayload->ctx.cards, newpayload->ctx.count);
-  newpayload->weight = oldpayload->weight + 1;
+  if (depth < ANALYSIS_MAX_DEPTH)
+    HLAA_ExtractAllChains(ctx, &chains);
 
-  /* expand the tree */
-  return rk_tree_add_child(tree, newpayload);
+  if (HandList_Count(&chains) == 0) {
+    /* nothing more to pull out, the rest is played as it is */
+    int weight = depth + Analysis_CountHands(Analysis_Standard, &ctx->cards);
+
+    /* on a tie the split found last wins */
+    if (weight <= best->weight) {
+      best->weight = weight;
+      best->depth = depth;
+      memcpy(best->path, path, sizeof(hand_t) * (size_t)depth);
+      CardArray_Copy(&best->leftover, &ctx->cards);
+    }
+
+    return;
+  }
+
+  for (i = 0; i < HandList_Count(&chains); i++) {
+    hand_ctx_t rest;
+
+    /* the cards without this chain */
+    Hand_Copy(&path[depth], HandList_At(&chains, i));
+    CardArray_Copy(&rest.cards, &ctx->cards);
+    CardArray_Subtract(&rest.cards, &path[depth].cards);
+    CardArray_Copy(&rest.rcards, &rest.cards);
+    CardArray_Reverse(&rest.rcards);
+    CardArray_CountRanks(&rest.cards, rest.count);
+
+    HLAA_Search(&rest, path, depth + 1, best);
+  }
 }
 
 /*
  * search hand via least hands
  */
-rk_list_t *Analysis_Advanced(card_array_t *array) {
-  rk_list_t *handlist = NULL;
-  rk_list_t *chains = NULL;
-  rk_list_t *others = NULL;
-  rk_list_node_t *hlnode = NULL;
-  rk_list_t *st = NULL;
-  rk_tree_t *grandtree = NULL;
-  rk_tree_t *workingtree = NULL;
-  rk_tree_t *tnode = NULL;
-  rk_tree_t *shortest = NULL;
-  hltree_payload_t *pload = NULL;
-
+void Analysis_Advanced(const card_array_t *array, hand_list_t *hl) {
+  hand_list_t bombs;
+  hand_t path[ANALYSIS_MAX_DEPTH];
+  analysis_best_t best;
   hand_ctx_t ctx;
+  int i = 0;
 
-  handlist = rk_list_create();
-
-  /* setup search context */
   HandCtx_Clear(&ctx);
-
-  /* build beat search context */
   CardArray_CountRanks(array, ctx.count);
   CardArray_Copy(&ctx.cards, array);
   CardArray_Sort(&ctx.cards);
 
-  /* extract bombs and 2 */
-  HandList_ExtractNukeBomb2(handlist, &ctx.cards, ctx.count);
+  /* nuke, bombs and 2 are never broken up */
+  HandList_Clear(&bombs);
+  HandList_ExtractNukeBomb2(&bombs, &ctx.cards, ctx.count);
 
-  /* finish building beat_search_context */
   CardArray_Copy(&ctx.rcards, &ctx.cards);
   CardArray_Reverse(&ctx.rcards);
 
-  /* magic goes here */
+  best.weight = INT_MAX;
+  best.depth = 0;
+  CardArray_Clear(&best.leftover);
+  HLAA_Search(&ctx, path, 0, &best);
 
-  /* root */
-  pload = (hltree_payload_t *)malloc(sizeof(hltree_payload_t));
-  memcpy(&pload->ctx, &ctx, sizeof(hand_ctx_t));
-  pload->weight = 0;
-  grandtree = rk_tree_create(pload);
-
-  /* first expansion */
-  chains = rk_list_create();
-  HLAA_ExtractAllChains(&ctx, chains);
-
-  /* no chains, fall back to standard analyze */
-  if (rk_list_empty(chains)) {
-    rk_list_clear_destroy(handlist);
-    rk_list_clear_destroy(chains);
-    rk_tree_clear_destroy(grandtree);
-    return Analysis_Standard(array);
+  /* no chains at all, this is the standard analysis */
+  if (best.depth == 0) {
+    Analysis_Standard(array, hl);
+    return;
   }
 
-  /* got chains, make first expand */
-  hlnode = chains->first;
-  st = rk_list_create();
+  /* the leftover, then the chains from the last pulled to the first */
+  Analysis_Standard(&best.leftover, hl);
 
-  while (hlnode != NULL) {
-    tnode = HLAA_TreeAddHand(grandtree, hlnode);
-    rk_list_push(st, tnode);
+  for (i = best.depth - 1; i >= 0; i--)
+    HandList_Push(hl, &best.path[i]);
 
-    hlnode = hlnode->next;
-  }
-
-  rk_list_clear_destroy(chains);
-
-  /* loop start */
-  while (!rk_list_empty(st)) {
-    /* pop stack */
-    workingtree = rk_list_pop(st);
-    chains = rk_list_create();
-    pload = (hltree_payload_t *)workingtree->payload;
-
-    /* expansion */
-    HLAA_ExtractAllChains(&pload->ctx, chains);
-
-    if (!rk_list_empty(chains)) {
-      /* push new nodes */
-      hlnode = chains->first;
-
-      while (hlnode != NULL) {
-        tnode = HLAA_TreeAddHand(workingtree, hlnode);
-        rk_list_push(st, tnode);
-
-        hlnode = hlnode->next;
-      }
-    }
-
-    rk_list_clear_destroy(chains);
-  }
-
-  /* tree construction complete */
-  rk_tree_dump_leaves(grandtree, st);
-
-  /* find shortest path */
-  while (!rk_list_empty(st)) {
-    /* pop stack */
-    workingtree = rk_list_pop(st);
-    pload = (hltree_payload_t *)workingtree->payload;
-
-    /* calculate other hands weight */
-    pload->weight += Analysis_CountHands(Analysis_Standard, &pload->ctx.cards);
-
-    if ((shortest == NULL) ||
-        (pload->weight < ((hltree_payload_t *)shortest->payload)->weight))
-      shortest = workingtree;
-  }
-
-  rk_list_clear_destroy(st);
-
-  /* extract shortest node's other hands */
-  others =
-      Analysis_Standard(&((hltree_payload_t *)(shortest->payload))->ctx.cards);
-
-  while (shortest != NULL &&
-         ((hltree_payload_t *)shortest->payload)->weight != 0) {
-    HandList_PushFront(
-        others, &((hltree_payload_t *)(shortest->payload))->hand);
-    shortest = shortest->parent;
-  }
-
-  rk_list_concat(others, handlist);
-  handlist->first = NULL;
-  handlist->last = NULL;
-  rk_list_destroy(handlist);
-
-  rk_tree_clear_destroy(grandtree);
-
-  return others;
+  for (i = 0; i < HandList_Count(&bombs); i++)
+    HandList_Push(hl, HandList_At(&bombs, i));
 }

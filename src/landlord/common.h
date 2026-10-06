@@ -35,8 +35,6 @@ SOFTWARE.
 #include <string.h>
 #include <time.h>
 
-#include "memtracker.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif

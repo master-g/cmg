@@ -62,7 +62,7 @@ typedef struct ai_view_s {
   int landlord;               /* landlord's seat, not known while bidding */
   int bid;                    /* highest bid so far */
   const card_array_t *cards;  /* the seat's own cards */
-  const rk_list_t *hands;     /* those cards taken apart, kept by the game */
+  const hand_list_t *hands;   /* those cards taken apart, kept by the game */
   const hand_t *lastHand;     /* the hand to beat, NULL when leading */
   int lastPlayer;             /* who played lastHand */
   int cardsLeft[AI_PLAYERS];  /* cards every seat still holds */

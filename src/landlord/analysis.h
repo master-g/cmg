@@ -33,25 +33,24 @@ SOFTWARE.
  *
  * The result covers the cards exactly, every card is in one hand. How many
  * hands it takes is how good the cards are, fewer is better.
- * The caller destroys the list with rk_list_clear_destroy.
  * ************************************************************/
 
 /* an analysis takes cards apart */
-typedef rk_list_t *(*Analysis_Func)(card_array_t *cards);
+typedef void (*Analysis_Func)(const card_array_t *cards, hand_list_t *hl);
 
 /*
  * greedy: nuke, bombs and 2 first, then whatever chains the rest forms
  */
-rk_list_t *Analysis_Standard(card_array_t *array);
+void Analysis_Standard(const card_array_t *array, hand_list_t *hl);
 
 /*
  * searches the ways to pull chains out for the split with the fewest hands
  */
-rk_list_t *Analysis_Advanced(card_array_t *array);
+void Analysis_Advanced(const card_array_t *array, hand_list_t *hl);
 
 /*
  * how many hands the cards take when taken apart by analyze
  */
-int Analysis_CountHands(Analysis_Func analyze, card_array_t *array);
+int Analysis_CountHands(Analysis_Func analyze, const card_array_t *array);
 
 #endif /* LANDLORD_ANALYSIS_H */

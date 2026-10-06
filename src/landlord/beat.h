@@ -39,12 +39,13 @@ SOFTWARE.
  *
  * returns 0 when there is none
  */
-int Beat_Search(card_array_t *cards, hand_t *tobeat, hand_t *beat);
+int Beat_Search(const card_array_t *cards, hand_t *tobeat, hand_t *beat);
 
 /*
- * every hand in cards that beats tobeat, as judged by the rules
- * the caller destroys the list with rk_list_clear_destroy
+ * every hand in cards that beats tobeat, as judged by the rules, in the order
+ * the search finds them
  */
-rk_list_t *Beat_SearchAll(card_array_t *cards, hand_t *tobeat);
+void Beat_SearchAll(
+    const card_array_t *cards, const hand_t *tobeat, hand_list_t *hl);
 
 #endif /* LANDLORD_BEAT_H */

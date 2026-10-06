@@ -40,14 +40,8 @@ void Game_Init(game_t *game) {
   CardArray_Reset(&game->deck);
 }
 
-void Game_Clear(game_t *game) {
-  int i = 0;
-
-  for (i = 0; i < GAME_PLAYERS; i++)
-    Player_Clear(&game->players[i]);
-}
-
-void Game_Reset(game_t *game) {
+/* back to an empty table, the seats keep their AI */
+static void Game_Reset(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++)
@@ -77,7 +71,7 @@ static void Game_MakeView(game_t *game, ai_view_t *view, hand_t *tobeat) {
   view->landlord = game->landlord;
   view->bid = game->bid;
   view->cards = &player->cards;
-  view->hands = player->handlist;
+  view->hands = &player->handlist;
   view->lastHand = tobeat;
   view->lastPlayer = game->lastplay;
   view->played = &game->cardRecord;
@@ -134,20 +128,10 @@ static int Game_AcceptHand(game_t *game, hand_t *played, hand_t *tobeat) {
 
   if (tobeat == NULL) {
     /* a lead is made of whole hands of the analysis, the rest still holds */
-    rk_list_node_t *node = player->handlist->first;
-
-    while (node != NULL) {
-      rk_list_node_t *next = node->next;
-
-      if (CardArray_IsContain(&hand.cards, &HandList_GetHand(node)->cards))
-        free(rk_list_remove(player->handlist, node));
-
-      node = next;
-    }
+    HandList_RemoveContained(&player->handlist, &hand.cards);
   } else {
     /* a beat may break hands up, take the cards apart again */
-    rk_list_clear_destroy(player->handlist);
-    player->handlist = player->ai->analyze(&player->cards);
+    player->ai->analyze(&player->cards, &player->handlist);
   }
 
   Hand_Copy(&game->lastHand, &hand);
@@ -167,6 +151,8 @@ void Game_Play(game_t *game, uint32_t seed) {
   hand_t tobeat;
 
   /* the seed alone decides the game: seed, then shuffle a fresh deck */
+  Game_Reset(game);
+
   game->seed = seed;
   Random_Init(&game->mt, seed);
   CardArray_Reset(&game->deck);
@@ -218,7 +204,7 @@ void Game_Play(game_t *game, uint32_t seed) {
     player_t *player = &game->players[i];
 
     CardArray_Sort(&player->cards);
-    player->handlist = player->ai->analyze(&player->cards);
+    player->ai->analyze(&player->cards, &player->handlist);
   }
 
   /* game play */

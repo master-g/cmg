@@ -24,21 +24,44 @@ SOFTWARE.
 
 #include "handlist.h"
 
-void HandList_PushFront(rk_list_t *hl, hand_t *hand) {
-  hand_t *payload = (hand_t *)malloc(sizeof(hand_t));
-  Hand_Copy(payload, hand);
-  rk_list_push(hl, payload);
+void HandList_Clear(hand_list_t *hl) { hl->count = 0; }
+
+int HandList_Count(const hand_list_t *hl) { return hl->count; }
+
+const hand_t *HandList_At(const hand_list_t *hl, int i) {
+  return ((i >= 0) && (i < hl->count)) ? &hl->hands[i] : NULL;
 }
 
-void HandList_Print(rk_list_t *hl) {
-  rk_list_node_t *node = NULL;
+int HandList_Push(hand_list_t *hl, const hand_t *hand) {
+  if (hl->count >= HAND_LIST_CAPACITY)
+    return 0;
 
-  if (hl == NULL || rk_list_empty(hl) || HandList_GetHand(hl->first)->type == 0)
-    return;
+  Hand_Copy(&hl->hands[hl->count++], hand);
+  return 1;
+}
+
+void HandList_RemoveContained(hand_list_t *hl, const card_array_t *cards) {
+  int i = 0;
+  int kept = 0;
+
+  for (i = 0; i < hl->count; i++) {
+    if (CardArray_IsContain(cards, &hl->hands[i].cards))
+      continue;
+
+    if (kept != i)
+      Hand_Copy(&hl->hands[kept], &hl->hands[i]);
+
+    kept++;
+  }
+
+  hl->count = kept;
+}
+
+void HandList_Print(const hand_list_t *hl) {
+  int i = 0;
 
   DBGLog("-----hand_list_t begin---------\n");
-  for (node = hl->first; node != NULL; node = node->next) {
-    Hand_Print(HandList_GetHand(node));
-  }
+  for (i = 0; i < hl->count; i++)
+    Hand_Print(&hl->hands[i]);
   DBGLog("-----hand_list_t ended---------\n");
 }

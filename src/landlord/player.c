@@ -25,8 +25,7 @@ SOFTWARE.
 #include "player.h"
 
 void Player_Clear(player_t *player) {
-  rk_list_clear_destroy(player->handlist);
-  player->handlist = NULL;
+  HandList_Clear(&player->handlist);
   player->identity = PlayerIdentity_Peasant;
   CardArray_Clear(&player->cards);
 }

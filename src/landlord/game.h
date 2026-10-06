@@ -80,12 +80,16 @@ typedef struct game_s {
 
 } game_t;
 
+/*
+ * seat three AIs at the table, once
+ */
 void Game_Init(game_t *game);
 
-void Game_Clear(game_t *game);
-
-void Game_Reset(game_t *game);
-
+/*
+ * Play one whole game. The seed alone decides it: the same seed gives the
+ * same game whatever was played before. Afterwards the game holds the
+ * result: status, winner, landlord, bid and every card played in order.
+ */
 void Game_Play(game_t *game, uint32_t seed);
 
 #ifdef __cplusplus

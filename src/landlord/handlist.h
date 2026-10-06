@@ -26,25 +26,51 @@ SOFTWARE.
 #define LANDLORD_HANDLIST_H
 
 #include "hand.h"
-#include "ruiko_algorithm.h"
 
 /* ************************************************************
- * hand list: a list whose payloads are hands
+ * hand list: an ordered list of hands, held by value
+ *
+ * 256 is above anything one seat's 20 cards can produce, the most being the
+ * ways to pick three kickers for a three trio chain. A full list refuses
+ * further hands, it never overflows.
  * ************************************************************/
 
-/*
- * append a copy of hand to the hand list
- */
-void HandList_PushFront(rk_list_t *hl, hand_t *hand);
+#define HAND_LIST_CAPACITY 256
+
+typedef struct hand_list_s {
+  int count;
+  hand_t hands[HAND_LIST_CAPACITY];
+} hand_list_t;
 
 /*
- * get payload as hand_t
+ * empty the list
  */
-#define HandList_GetHand(h) ((hand_t *)((h)->payload))
+void HandList_Clear(hand_list_t *hl);
+
+/*
+ * how many hands
+ */
+int HandList_Count(const hand_list_t *hl);
+
+/*
+ * the hand at position i, NULL when there is none
+ */
+const hand_t *HandList_At(const hand_list_t *hl, int i);
+
+/*
+ * append a copy of hand, returns 0 and leaves the list alone when it is full
+ */
+int HandList_Push(hand_list_t *hl, const hand_t *hand);
+
+/*
+ * remove every hand made only of cards in `cards`, keeping the order of the
+ * rest
+ */
+void HandList_RemoveContained(hand_list_t *hl, const card_array_t *cards);
 
 /*
  * print hand_list_t
  */
-void HandList_Print(rk_list_t *hl);
+void HandList_Print(const hand_list_t *hl);
 
 #endif /* LANDLORD_HANDLIST_H */

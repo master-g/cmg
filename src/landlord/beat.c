@@ -343,7 +343,8 @@ static int SearchBeat_TrioKickerChain(
   return canbeat;
 }
 
-static int SearchBeat_Any(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
+static int
+SearchBeat_Any(const card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   int canbeat = 0;
   hand_ctx_t ctx;
 
@@ -414,7 +415,7 @@ static int SearchBeat_Any(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   return canbeat;
 }
 
-int Beat_Search(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
+int Beat_Search(const card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   /* already in search loop, continue */
   if (beat->type != 0)
     return SearchBeat_Any(cards, beat, beat);
@@ -422,30 +423,25 @@ int Beat_Search(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
     return SearchBeat_Any(cards, tobeat, beat);
 }
 
-rk_list_t *Beat_SearchAll(card_array_t *cards, hand_t *tobeat) {
-  rk_list_t *hl = NULL;
+void Beat_SearchAll(
+    const card_array_t *cards, const hand_t *tobeat, hand_list_t *hl) {
   hand_t htobeat;
   hand_t beat;
   hand_t judged;
-  int canbeat = 0;
 
+  HandList_Clear(hl);
   Hand_Clear(&beat);
   Hand_Copy(&htobeat, tobeat);
 
-  hl = rk_list_create();
-  do {
-    canbeat = SearchBeat_Any(cards, &htobeat, &beat);
+  while (SearchBeat_Any(cards, &htobeat, &beat)) {
+    /* keep searching from this one, whatever the rules say about it */
+    Hand_Copy(&htobeat, &beat);
 
-    if (canbeat) {
-      /* keep searching from this one, whatever the rules say about it */
-      Hand_Copy(&htobeat, &beat);
-
-      /* the search proposes, the rules decide */
-      if ((Hand_Parse(&judged, &beat.cards) != HAND_NONE) &&
-          (Hand_Compare(&judged, tobeat) == HAND_CMP_GREATER))
-        HandList_PushFront(hl, &beat);
+    /* the search proposes, the rules decide */
+    if ((Hand_Parse(&judged, &beat.cards) != HAND_NONE) &&
+        (Hand_Compare(&judged, tobeat) == HAND_CMP_GREATER)) {
+      if (!HandList_Push(hl, &beat))
+        break;
     }
-  } while (canbeat);
-
-  return hl;
+  }
 }

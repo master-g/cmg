@@ -48,19 +48,14 @@ int main(void) {
       landlordwon++;
     else
       peasantwon++;
-
-    Game_Reset(&game);
   }
 
   printf("peasants : %d\n", peasantwon);
   printf("landlord : %d\n", landlordwon);
   printf("illegal  : %d\n", illegal);
 
-  Game_Clear(&game);
-
   printf("ended at %ld\n", (long)time(NULL));
   printf("\n");
 
-  memtrack_list_allocations();
   return 0;
 }

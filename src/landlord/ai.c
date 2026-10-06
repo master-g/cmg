@@ -31,14 +31,9 @@ const ai_t AI_Advanced = {Analysis_Advanced};
 int AI_Bid(const ai_view_t *view) {
   int shouldbid = 0;
   int handlistlen = 0;
-  card_array_t cards;
-  rk_list_t *handlist = NULL;
 
   /* the fewer hands the cards need, the more they are worth */
-  CardArray_Copy(&cards, view->cards);
-  handlist = Analysis_Standard(&cards);
-  handlistlen = rk_list_count(handlist);
-  rk_list_clear_destroy(handlist);
+  handlistlen = Analysis_CountHands(Analysis_Standard, view->cards);
 
   if (handlistlen > 9) {
     shouldbid = 0;
@@ -57,23 +52,23 @@ int AI_Bid(const ai_view_t *view) {
 }
 
 /* first hand of that type the seat holds */
-static const hand_t *AI_FindHand(const rk_list_t *hands, int type) {
-  const rk_list_node_t *node = NULL;
+static const hand_t *AI_FindHand(const hand_list_t *hands, int type) {
+  int i = 0;
 
-  for (node = hands->first; node != NULL; node = node->next) {
-    if (HandList_GetHand(node)->type == type)
-      return HandList_GetHand(node);
+  for (i = 0; i < HandList_Count(hands); i++) {
+    if (HandList_At(hands, i)->type == type)
+      return HandList_At(hands, i);
   }
 
   return NULL;
 }
 
-static int AI_CountHands(const rk_list_t *hands, int type) {
-  const rk_list_node_t *node = NULL;
+static int AI_CountHands(const hand_list_t *hands, int type) {
+  int i = 0;
   int count = 0;
 
-  for (node = hands->first; node != NULL; node = node->next) {
-    if (HandList_GetHand(node)->type == type)
+  for (i = 0; i < HandList_Count(hands); i++) {
+    if (HandList_At(hands, i)->type == type)
       count++;
   }
 
@@ -85,8 +80,8 @@ static void AI_AppendHand(hand_t *hand, const hand_t *part) {
 }
 
 void AI_Lead(const ai_view_t *view, hand_t *hand) {
-  const rk_list_t *hands = view->hands;
-  const rk_list_node_t *temp = NULL;
+  const hand_list_t *hands = view->hands;
+  int i = 0;
   const hand_t *node = NULL;
   int need = 0;
   int kickertype = 0;
@@ -94,12 +89,12 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   Hand_Clear(hand);
 
   /* empty hands */
-  if ((hands == NULL) || rk_list_empty(hands))
+  if ((hands == NULL) || (HandList_Count(hands) == 0))
     return;
 
   /* last hand */
-  if (rk_list_count(hands) == 1) {
-    AI_AppendHand(hand, HandList_GetHand(hands->first));
+  if (HandList_Count(hands) == 1) {
+    AI_AppendHand(hand, HandList_At(hands, 0));
     return;
   }
 
@@ -121,9 +116,9 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
     else
       return;
 
-    for (temp = hands->first; need > 0 && temp != NULL; temp = temp->next) {
-      if (HandList_GetHand(temp)->type == kickertype) {
-        AI_AppendHand(hand, HandList_GetHand(temp));
+    for (i = 0; (need > 0) && (i < HandList_Count(hands)); i++) {
+      if (HandList_At(hands, i)->type == kickertype) {
+        AI_AppendHand(hand, HandList_At(hands, i));
         need--;
       }
     }
@@ -178,125 +173,76 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   }
 
   /* just play */
-  AI_AppendHand(hand, HandList_GetHand(hands->first));
+  AI_AppendHand(hand, HandList_At(hands, 0));
 }
-
-#define BEAT_NODE_CAPACITY 255
 
 #define BEAT_VALUE_FACTOR 10
 
-/* nodes for beat list sort */
-typedef struct beat_node_s {
-  hand_t *hand;
-  int value;
-  int order; /* search order, breaks ties so the sort is deterministic */
-
-} beat_node_t;
-
-/* sort function */
-static int BeatNode_ValueSort(const void *a, const void *b) {
-  const beat_node_t *na = *(beat_node_t *const *)a;
-  const beat_node_t *nb = *(beat_node_t *const *)b;
-
-  return na->value != nb->value ? na->value - nb->value : na->order - nb->order;
-}
-
-/* the beat that leaves the cards in the best shape, bombs come last */
+/*
+ * Choose one of the hands that beat tobeat.
+ *
+ * A bomb or the nuke is taken whenever there is one, the last one found.
+ * Otherwise every candidate is valued by the hands the remaining cards would
+ * take (times ten) plus its own rank, and the highest value is played.
+ *
+ * NOTE: this is what the AI has always done and the baseline records it, but
+ * it reads backwards: it spends bombs first and keeps the split that needs
+ * the most hands. Changing it is a change of strategy, not a refactoring.
+ */
 static int AI_BestBeat(
-    card_array_t *array, hand_t *tobeat, hand_t *beat, Analysis_Func analyze) {
+    const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
+    Analysis_Func analyze) {
+  hand_list_t beats;
   int i = 0;
-  int nodei = 0;
-  int bombi = 0;
-  int canbeat = 0;
-  rk_list_t *hl = NULL;
-  rk_list_node_t *node = NULL;
-  card_array_t temp;
-  beat_node_t *hnodes[BEAT_NODE_CAPACITY];
-  hand_t *hbombs[BEAT_NODE_CAPACITY];
+  int normal = 0;
+  int chosen = -1;
+  int chosenvalue = 0;
 
-  memset(hnodes, 0, sizeof(beat_node_t *) * BEAT_NODE_CAPACITY);
-  memset(hbombs, 0, sizeof(hand_t *) * BEAT_NODE_CAPACITY);
+  Beat_SearchAll(cards, tobeat, &beats);
 
-  /* search beat list */
-  hl = Beat_SearchAll(array, tobeat);
+  for (i = 0; i < HandList_Count(&beats); i++) {
+    const hand_t *candidate = HandList_At(&beats, i);
 
-  /* separate bomb/nuke and normal hands */
-  node = hl->first;
-
-  while (node != NULL) {
-    if (Hand_IsBomb(HandList_GetHand(node)) ||
-        Hand_IsNuke(HandList_GetHand(node))) {
-      hbombs[bombi++] = node->payload;
-    } else {
-      hnodes[nodei] = (beat_node_t *)malloc(sizeof(beat_node_t));
-      hnodes[nodei]->hand = node->payload;
-      hnodes[nodei]->order = nodei;
-      nodei++;
-    }
-
-    node = node->next;
+    if (Hand_IsBomb(candidate) || Hand_IsNuke(candidate))
+      chosen = i;
+    else
+      normal++;
   }
 
-  /* calculate value */
-  if (nodei > 1) {
-    for (i = 0; i < nodei; i++) {
-      hand_t *leftover;
-      CardArray_Copy(&temp, array);
+  if (chosen < 0) {
+    for (i = 0; i < HandList_Count(&beats); i++) {
+      const hand_t *candidate = HandList_At(&beats, i);
+      card_array_t rest;
+      int value = 0;
 
-      /* evaluate the value of cards left after hand was played */
-      leftover = hnodes[i]->hand;
-      CardArray_Subtract(&temp, &leftover->cards);
+      /* a single candidate needs no valuing */
+      if (normal > 1) {
+        CardArray_Copy(&rest, cards);
+        CardArray_Subtract(&rest, &candidate->cards);
+        value = Analysis_CountHands(analyze, &rest) * BEAT_VALUE_FACTOR +
+                Hand_Rank(candidate);
+      }
 
-      hnodes[i]->value =
-          Analysis_CountHands(analyze, &temp) * BEAT_VALUE_FACTOR +
-          Hand_Rank(leftover);
-    }
-
-    /* sort primal hands */
-    qsort(hnodes, (size_t)nodei, sizeof(beat_node_t *), BeatNode_ValueSort);
-  }
-
-  /* re-build hand list */
-  rk_list_destroy(hl);
-  hl = rk_list_create();
-
-  for (i = bombi; i >= 0; i--) {
-    if (hbombs[i]) {
-      rk_list_push(hl, hbombs[i]);
+      if ((chosen < 0) || (value >= chosenvalue)) {
+        chosen = i;
+        chosenvalue = value;
+      }
     }
   }
 
-  for (i = nodei; i >= 0; i--) {
-    if (hnodes[i]) {
-      rk_list_push(hl, hnodes[i]->hand);
-    }
-  }
+  if (chosen < 0)
+    return 0;
 
-  /* select beat */
-  if (!rk_list_empty(hl)) {
-    Hand_Copy(beat, HandList_GetHand(hl->first));
-    canbeat = 1;
-  }
-
-  /* clean up */
-  for (i = 0; i < nodei; i++)
-    free(hnodes[i]);
-
-  rk_list_clear_destroy(hl);
-
-  return canbeat;
+  Hand_Copy(beat, HandList_At(&beats, chosen));
+  return 1;
 }
 
 int AI_Beat(const ai_view_t *view, hand_t *hand) {
   int canbeat = 0;
-  card_array_t cards;
-  hand_t tobeat;
 
   Hand_Clear(hand);
-  CardArray_Copy(&cards, view->cards);
-  Hand_Copy(&tobeat, view->lastHand);
 
-  canbeat = AI_BestBeat(&cards, &tobeat, hand, view->ai->analyze);
+  canbeat = AI_BestBeat(view->cards, view->lastHand, hand, view->ai->analyze);
 
   /* peasant cooperation: the last hand came from the other peasant */
   if (canbeat && (view->seat != view->landlord) &&

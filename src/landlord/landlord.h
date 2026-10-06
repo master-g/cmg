@@ -34,8 +34,6 @@ SOFTWARE.
 #include "hand.h"
 #include "handlist.h"
 #include "lmath.h"
-#include "memtracker.h"
 #include "player.h"
-#include "ruiko_algorithm.h"
 
 #endif /* LANDLORD_LANDLORD_H */

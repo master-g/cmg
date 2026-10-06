@@ -9,9 +9,7 @@ set(LANDLORD_SOURCES
         hand.c
         handlist.c
         lmath.c
-        memtracker.c
         player.c
-        ruiko_algorithm.c
         )
 
 # 基准: 跑 10000 局 AI 对战并打印胜负数
