@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include "game.h"
 
-void Game_Init(game_t* game) {
+void Game_Init(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++) {
@@ -49,14 +49,14 @@ void Game_Init(game_t* game) {
   Random_Init(&game->mt, 0);
 }
 
-void Game_Clear(game_t* game) {
+void Game_Clear(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++)
     Player_Clear(&game->players[i]);
 }
 
-void Game_Destroy(game_t* game) {
+void Game_Destroy(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++)
@@ -65,7 +65,7 @@ void Game_Destroy(game_t* game) {
   free(game);
 }
 
-void Game_Reset(game_t* game) {
+void Game_Reset(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++) {
@@ -88,7 +88,7 @@ void Game_Reset(game_t* game) {
   CardArray_Clear(&game->cardRecord);
 }
 
-void Game_Play(game_t* game, uint32_t seed) {
+void Game_Play(game_t *game, uint32_t seed) {
   int i = 0;
   int beat = 0;
   int bid = 0;
@@ -105,10 +105,10 @@ void Game_Play(game_t* game, uint32_t seed) {
     game->playerIndex = Random_Int32(&game->mt) % GAME_PLAYERS;
 
     for (i = 0; i < GAME_PLAYERS; i++) {
-      Deck_Deal(&game->deck, &Game_GetCurrentPlayer(game)->cards,
-                GAME_HAND_CARDS);
-      bid = Player_HandleEvent(Game_GetCurrentPlayer(game), Player_Event_Bid,
-                               game);
+      Deck_Deal(
+          &game->deck, &Game_GetCurrentPlayer(game)->cards, GAME_HAND_CARDS);
+      bid = Player_HandleEvent(
+          Game_GetCurrentPlayer(game), Player_Event_Bid, game);
 
       if (bid > game->bid) {
         DBGLog("\nPlayer ---- %d ---- bid for %d\n", game->playerIndex, bid);
@@ -165,8 +165,8 @@ void Game_Play(game_t* game, uint32_t seed) {
       DBGLog("\nPlayer ---- %d ---- played\n", game->playerIndex);
       Hand_Print(&game->lastHand);
     } else if ((game->phase == Phase_Query) || (game->phase == Phase_Pass)) {
-      beat = Player_HandleEvent(Game_GetCurrentPlayer(game), Player_Event_Beat,
-                                game);
+      beat = Player_HandleEvent(
+          Game_GetCurrentPlayer(game), Player_Event_Beat, game);
 
       /* has beat in this phase */
       if (beat == 0) {

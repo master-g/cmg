@@ -12,10 +12,10 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-	
+
+#include "lauxlib.h"
 #include "lua.h"
 #include "lualib.h"
-#include "lauxlib.h"
 
 int lua_landlord_open(lua_State *L);
 

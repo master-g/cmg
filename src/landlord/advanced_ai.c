@@ -28,8 +28,8 @@ SOFTWARE.
 /*
  * sort cards, analyze hands etc.
  */
-int AdvancedAI_GetReady(void* p, void* game) {
-  player_t* player = (player_t*)p;
+int AdvancedAI_GetReady(void *p, void *game) {
+  player_t *player = (player_t *)p;
 
   CardArray_Sort(&player->cards, NULL);
   CardArray_Copy(&player->record, &player->cards);
@@ -44,14 +44,12 @@ int AdvancedAI_GetReady(void* p, void* game) {
 /*
  * decide whether to bid for landlord
  */
-int AdvancedAI_Bid(void* p, void* g) {
-  return 0;
-}
+int AdvancedAI_Bid(void *p, void *g) { return 0; }
 
 /*
  * free play, result will return by hand_t *
  */
-int AdvancedAI_Play(void* p, void* game) {
+int AdvancedAI_Play(void *p, void *game) {
   /* TODO */
 
   return 0;
@@ -61,27 +59,27 @@ int AdvancedAI_Play(void* p, void* game) {
  * player must play a hand that can beat last player
  * if there is no hand can beat last player, tobeat->type will be 0
  */
-int AdvancedAI_Beat(void* p, void* g) {
+int AdvancedAI_Beat(void *p, void *g) {
   /*
    * HandList_SearchBeats can search for beat in loop mode
    * but we just simply find a beat here
    */
   int canbeat = 0;
   int i = 0;
-  hand_t* tobeat;
+  hand_t *tobeat;
   hand_t beat;
-  player_t* player = (player_t*)p;
-  player_t* prevplayer = NULL;
-  player_t* teammate = NULL;
-  player_t* landlord = NULL;
-  game_t* game = (game_t*)g;
+  player_t *player = (player_t *)p;
+  player_t *prevplayer = NULL;
+  player_t *teammate = NULL;
+  player_t *landlord = NULL;
+  game_t *game = (game_t *)g;
 
   Hand_Clear(&beat);
 
-  tobeat = &((game_t*)game)->lastHand;
+  tobeat = &((game_t *)game)->lastHand;
 
-  canbeat = HandList_BestBeat(&player->cards, tobeat, &beat,
-                              HandList_AdvancedEvaluator);
+  canbeat = HandList_BestBeat(
+      &player->cards, tobeat, &beat, HandList_AdvancedEvaluator);
 
   /*
      canbeat = HandList_SearchBeat(&player->cards, tobeat, &beat);

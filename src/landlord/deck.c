@@ -25,7 +25,7 @@ SOFTWARE.
 #include "deck.h"
 #include "lmath.h"
 
-void shuffle(uint8_t arr[], int len, mt19937_t* mt) {
+void shuffle(uint8_t arr[], int len, mt19937_t *mt) {
   int i = len, j;
   uint8_t tmp = 0;
 
@@ -41,24 +41,24 @@ void shuffle(uint8_t arr[], int len, mt19937_t* mt) {
   }
 }
 
-void Deck_Shuffle(deck_t* deck, void* mtctx) {
-  shuffle(deck->cards.cards, deck->cards.length, (mt19937_t*)mtctx);
+void Deck_Shuffle(deck_t *deck, void *mtctx) {
+  shuffle(deck->cards.cards, deck->cards.length, (mt19937_t *)mtctx);
 }
 
-void Deck_Reset(deck_t* deck) {
+void Deck_Reset(deck_t *deck) {
   CardArray_Reset(&deck->cards);
   CardArray_Clear(&deck->used);
 }
 
-uint8_t Deck_DealSingle(deck_t* deck) {
+uint8_t Deck_DealSingle(deck_t *deck) {
   return CardArray_PopBack(&deck->cards);
 }
 
-void Deck_RecycleSingle(deck_t* deck, uint8_t card) {
+void Deck_RecycleSingle(deck_t *deck, uint8_t card) {
   CardArray_PushBack(&deck->used, card);
 }
 
-int Deck_Deal(deck_t* deck, card_array_t* array, int count) {
+int Deck_Deal(deck_t *deck, card_array_t *array, int count) {
   int actualDealt = 0;
 
   CardArray_Clear(array);
@@ -72,7 +72,7 @@ int Deck_Deal(deck_t* deck, card_array_t* array, int count) {
   return actualDealt;
 }
 
-int Deck_Recycle(deck_t* deck, card_array_t* array) {
+int Deck_Recycle(deck_t *deck, card_array_t *array) {
   int actualRecycled = 0;
 
   actualRecycled = CardArray_Capacity(&deck->used) < array->length

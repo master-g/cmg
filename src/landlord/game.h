@@ -81,15 +81,15 @@ typedef struct game_s {
 
 } game_t;
 
-void Game_Init(game_t* game);
+void Game_Init(game_t *game);
 
-void Game_Clear(game_t* game);
+void Game_Clear(game_t *game);
 
-void Game_Destroy(game_t* game);
+void Game_Destroy(game_t *game);
 
-void Game_Reset(game_t* game);
+void Game_Reset(game_t *game);
 
-void Game_Play(game_t* game, uint32_t seed);
+void Game_Play(game_t *game, uint32_t seed);
 
 #ifdef __cplusplus
 }

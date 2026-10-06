@@ -26,12 +26,12 @@
 struct memblock {
   long magic;
   size_t size;
-  const char* file;
-  const char* expr;
+  const char *file;
+  const char *expr;
   int line;
   int padding;
-  struct memblock* next;
-  struct memblock* prev;
+  struct memblock *next;
+  struct memblock *prev;
 };
 
 static size_t memtrack_peak = 0;
@@ -40,16 +40,17 @@ static size_t memtrack_livebytes = 0;
 #define MAGIC1 0xDEADBEEF
 #define MAGIC2 0xBEEFDEAD
 
-struct memblock* memblockList = NULL;
+struct memblock *memblockList = NULL;
 
-static void memblock_print_info(struct memblock* mb) {
-  printf("%p %d bytes allocated with \"%s\" at %s:%d\n", (void*)&mb[1],
-         (int)mb->size, mb->expr, mb->file, mb->line);
+static void memblock_print_info(struct memblock *mb) {
+  printf(
+      "%p %d bytes allocated with \"%s\" at %s:%d\n", (void *)&mb[1],
+      (int)mb->size, mb->expr, mb->file, mb->line);
 }
 
-void* memtrack_malloc(size_t size, const char* expr, const char* file,
-                      int line) {
-  struct memblock* mb = (struct memblock*)malloc(size + sizeof(*mb));
+void *
+memtrack_malloc(size_t size, const char *expr, const char *file, int line) {
+  struct memblock *mb = (struct memblock *)malloc(size + sizeof(*mb));
 
   if (!mb) {
     printf("Unable to malloc memory!\n");
@@ -69,13 +70,14 @@ void* memtrack_malloc(size_t size, const char* expr, const char* file,
   if (memblockList)
     memblockList->prev = mb;
   memblockList = mb;
-  return (void*)&mb[1];
+  return (void *)&mb[1];
 }
 
-void* memtrack_calloc(size_t count, size_t elem_size, const char* expr,
-                      const char* file, int line) {
-  struct memblock* mb =
-      (struct memblock*)malloc(count * elem_size + sizeof(*mb));
+void *memtrack_calloc(
+    size_t count, size_t elem_size, const char *expr, const char *file,
+    int line) {
+  struct memblock *mb =
+      (struct memblock *)malloc(count * elem_size + sizeof(*mb));
 
   memset(mb, 0, count * elem_size + sizeof(*mb));
 
@@ -97,26 +99,28 @@ void* memtrack_calloc(size_t count, size_t elem_size, const char* expr,
   if (memblockList)
     memblockList->prev = mb;
   memblockList = mb;
-  return (void*)&mb[1];
+  return (void *)&mb[1];
 }
 
-void* memtrack_realloc(void* ptr, const char* eptr, size_t size,
-                       const char* expr, const char* file, int line) {
+void *memtrack_realloc(
+    void *ptr, const char *eptr, size_t size, const char *expr,
+    const char *file, int line) {
   if (!ptr)
     return memtrack_malloc(size, expr, file, line);
   else {
-    void* newPtr = NULL;
+    void *newPtr = NULL;
     size_t copysize = 0;
-    struct memblock* mb = &((struct memblock*)(ptr))[-1];
+    struct memblock *mb = &((struct memblock *)(ptr))[-1];
 
     if (mb->magic == MAGIC2) {
       printf("Memory has already been freed\n");
       memblock_print_info(mb);
       return NULL;
     } else if (mb->magic != MAGIC1) {
-      printf("Memory is not allocated in memtracker : %p (expr = \"%s\" from "
-             "%s:%d\n",
-             ptr, eptr, file, line);
+      printf(
+          "Memory is not allocated in memtracker : %p (expr = \"%s\" from "
+          "%s:%d\n",
+          ptr, eptr, file, line);
       return NULL;
     }
 
@@ -133,20 +137,22 @@ void* memtrack_realloc(void* ptr, const char* eptr, size_t size,
   }
 }
 
-void memtrack_free(void* ptr, const char* expr, const char* file, int line) {
+void memtrack_free(void *ptr, const char *expr, const char *file, int line) {
   if (!ptr)
     return;
   else {
-    struct memblock* mb = &((struct memblock*)(ptr))[-1];
+    struct memblock *mb = &((struct memblock *)(ptr))[-1];
 
     if (mb->magic != MAGIC1) {
       if (mb->magic == MAGIC2) {
-        printf("Memory free more than once: %p (expr = \"%s\" from %s:%d\n",
-               (void*)ptr, expr, file, line);
+        printf(
+            "Memory free more than once: %p (expr = \"%s\" from %s:%d\n",
+            (void *)ptr, expr, file, line);
         memblock_print_info(mb);
       } else
-        printf("Invalid free of ptr: %p (expr = \"%s\" from %s:%d\n",
-               (void*)ptr, expr, file, line);
+        printf(
+            "Invalid free of ptr: %p (expr = \"%s\" from %s:%d\n", (void *)ptr,
+            expr, file, line);
       return;
     }
     mb->magic = MAGIC2;
@@ -171,7 +177,7 @@ void memtrack_free(void* ptr, const char* expr, const char* file, int line) {
 }
 
 void memtrack_list_allocations(void) {
-  struct memblock* mb;
+  struct memblock *mb;
   size_t total = 0;
 
   printf("*** Allocation list start ***\n");
@@ -184,11 +190,13 @@ void memtrack_list_allocations(void) {
       memblock_print_info(mb);
     }
 
-    printf(">>>Total %ld Bytes %ld KB %ld MB<<<\n", (long int)total,
-           (long int)(total / 1024), (long int)(total / 1024 / 1024));
+    printf(
+        ">>>Total %ld Bytes %ld KB %ld MB<<<\n", (long int)total,
+        (long int)(total / 1024), (long int)(total / 1024 / 1024));
   }
-  printf(">>>History %ld Bytes %ld KB %ld MB<<<\n", (long int)memtrack_peak,
-         (long int)(memtrack_peak / 1024),
-         (long int)(memtrack_peak / 1024 / 1024));
+  printf(
+      ">>>History %ld Bytes %ld KB %ld MB<<<\n", (long int)memtrack_peak,
+      (long int)(memtrack_peak / 1024),
+      (long int)(memtrack_peak / 1024 / 1024));
   printf("*** Allocation list end ***\n");
 }

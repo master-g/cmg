@@ -25,8 +25,8 @@ SOFTWARE.
 #include "standard_ai.h"
 #include "game.h"
 
-int StandardAI_GetReady(void* p, void* game) {
-  player_t* player = (player_t*)p;
+int StandardAI_GetReady(void *p, void *game) {
+  player_t *player = (player_t *)p;
 
   CardArray_Sort(&player->cards, NULL);
   CardArray_Copy(&player->record, &player->cards);
@@ -38,11 +38,11 @@ int StandardAI_GetReady(void* p, void* game) {
   return 0;
 }
 
-int StandardAI_Bid(void* p, void* g) {
+int StandardAI_Bid(void *p, void *g) {
   int shouldbid = 0;
   int handlistlen = 0;
-  game_t* game = (game_t*)g;
-  player_t* player = (player_t*)p;
+  game_t *game = (game_t *)g;
+  player_t *player = (player_t *)p;
 
   CardArray_Sort(&player->cards, NULL);
   player->handlist = HandList_StandardAnalyze(&player->cards);
@@ -65,17 +65,17 @@ int StandardAI_Bid(void* p, void* g) {
     return 0;
 }
 
-int StandardAI_Play(void* p, void* game) {
+int StandardAI_Play(void *p, void *game) {
   int countpair = 0;
   int countsolo = 0;
   int need = 0;
   int searchprimal = 0;
   int kicker = 0;
-  player_t* player = (player_t*)p;
-  hand_t* node = NULL;
-  rk_list_node_t* temp = NULL;
+  player_t *player = (player_t *)p;
+  hand_t *node = NULL;
+  rk_list_node_t *temp = NULL;
 
-  hand_t* hand = &((game_t*)game)->lastHand;
+  hand_t *hand = &((game_t *)game)->lastHand;
 
   do {
     /* empty hands */
@@ -86,7 +86,7 @@ int StandardAI_Play(void* p, void* game) {
 
     /* last hand */
     if (rk_list_count(player->handlist) == 1) {
-      Hand_Copy(hand, (hand_t*)player->handlist->first->payload);
+      Hand_Copy(hand, (hand_t *)player->handlist->first->payload);
       HandList_Remove(player->handlist, player->handlist->first->payload);
       break;
     }
@@ -227,24 +227,24 @@ int StandardAI_Play(void* p, void* game) {
   return 0;
 }
 
-int StandardAI_Beat(void* p, void* g) {
+int StandardAI_Beat(void *p, void *g) {
   /*
    * HandList_SearchBeats can search for beat in loop mode
    * but we just simply find a beat here
    */
   int canbeat = 0;
   int i = 0;
-  hand_t* tobeat;
+  hand_t *tobeat;
   hand_t beat;
-  player_t* player = (player_t*)p;
-  player_t* prevplayer = NULL;
-  player_t* teammate = NULL;
-  player_t* landlord = NULL;
-  game_t* game = (game_t*)g;
+  player_t *player = (player_t *)p;
+  player_t *prevplayer = NULL;
+  player_t *teammate = NULL;
+  player_t *landlord = NULL;
+  game_t *game = (game_t *)g;
 
   Hand_Clear(&beat);
 
-  tobeat = &((game_t*)game)->lastHand;
+  tobeat = &((game_t *)game)->lastHand;
 
   canbeat = HandList_BestBeat(&player->cards, tobeat, &beat, NULL);
 

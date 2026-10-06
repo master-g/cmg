@@ -33,28 +33,28 @@ SOFTWARE.
  * ************************************************************/
 
 typedef struct _history_entry_s {
-  void* addr;
-  void* callstack[128];
+  void *addr;
+  void *callstack[128];
   int frames;
-  struct _history_entry_s* next;
+  struct _history_entry_s *next;
 
 } history_entry_t;
 
 typedef struct _history_s {
-  history_entry_t* first;
+  history_entry_t *first;
 } history_t;
 
 static history_t history = {NULL};
 
-void history_mark(void* addr) {
-  history_entry_t* entry = calloc(1, sizeof(history_entry_t));
+void history_mark(void *addr) {
+  history_entry_t *entry = calloc(1, sizeof(history_entry_t));
   entry->addr = addr;
   entry->frames = backtrace(entry->callstack, 128);
   entry->next = history.first;
   history.first = entry;
 }
 
-void history_unmark(void* addr) {
+void history_unmark(void *addr) {
   history_entry_t *prev = NULL, *iter = history.first;
 
   while (iter != NULL && iter->addr != addr) {
@@ -74,11 +74,11 @@ void history_unmark(void* addr) {
 }
 
 void history_purge() {
-  history_entry_t* iter = history.first;
+  history_entry_t *iter = history.first;
 
   while (iter != NULL) {
     int i;
-    char** strs = backtrace_symbols(iter->callstack, iter->frames);
+    char **strs = backtrace_symbols(iter->callstack, iter->frames);
 
     printf("-------------------------------\n");
     for (i = 0; i < iter->frames; i++) {
@@ -90,8 +90,8 @@ void history_purge() {
   }
 }
 #else
-void history_mark(void* addr) {}
-void history_unmark(void* addr) {}
+void history_mark(void *addr) {}
+void history_unmark(void *addr) {}
 void history_purge() {}
 #endif
 
@@ -105,13 +105,13 @@ void history_purge() {}
  * list
  * ************************************************************/
 
-rk_list_t* rk_list_create(void) {
-  rk_list_t* list = calloc(1, sizeof(rk_list_t));
+rk_list_t *rk_list_create(void) {
+  rk_list_t *list = calloc(1, sizeof(rk_list_t));
   history_mark(list);
   return list;
 }
 
-void rk_list_destroy(rk_list_t* list) {
+void rk_list_destroy(rk_list_t *list) {
   history_unmark(list);
 
   {
@@ -126,19 +126,19 @@ void rk_list_destroy(rk_list_t* list) {
   free(list);
 }
 
-void rk_list_clear(rk_list_t* list) {
+void rk_list_clear(rk_list_t *list) {
   rk_list_foreach(list, first, next, cur) { free(cur->payload); }
 }
 
-void rk_list_clear_destroy(rk_list_t* list) {
+void rk_list_clear_destroy(rk_list_t *list) {
   if (list) {
     rk_list_clear(list);
     rk_list_destroy(list);
   }
 }
 
-void rk_list_push(rk_list_t* list, void* payload) {
-  rk_list_node_t* node = calloc(1, sizeof(rk_list_node_t));
+void rk_list_push(rk_list_t *list, void *payload) {
+  rk_list_node_t *node = calloc(1, sizeof(rk_list_node_t));
   rk_check_mem(node);
 
   node->payload = payload;
@@ -158,13 +158,13 @@ error:
   return;
 }
 
-void* rk_list_pop(rk_list_t* list) {
-  rk_list_node_t* node = list->last;
+void *rk_list_pop(rk_list_t *list) {
+  rk_list_node_t *node = list->last;
   return node != NULL ? rk_list_remove(list, node) : NULL;
 }
 
-void rk_list_unshift(rk_list_t* list, void* payload) {
-  rk_list_node_t* node = calloc(1, sizeof(rk_list_node_t));
+void rk_list_unshift(rk_list_t *list, void *payload) {
+  rk_list_node_t *node = calloc(1, sizeof(rk_list_node_t));
   rk_check_mem(node);
 
   node->payload = payload;
@@ -183,12 +183,12 @@ error:
   return;
 }
 
-void* rk_list_shift(rk_list_t* list) {
-  rk_list_node_t* node = list->first;
+void *rk_list_shift(rk_list_t *list) {
+  rk_list_node_t *node = list->first;
   return node != NULL ? rk_list_remove(list, node) : NULL;
 }
 
-void rk_list_concat(rk_list_t* head, rk_list_t* tail) {
+void rk_list_concat(rk_list_t *head, rk_list_t *tail) {
   if (tail->count == 0) {
     return;
   }
@@ -205,8 +205,8 @@ void rk_list_concat(rk_list_t* head, rk_list_t* tail) {
   head->count += tail->count;
 }
 
-void* rk_list_remove(rk_list_t* list, rk_list_node_t* node) {
-  void* result = NULL;
+void *rk_list_remove(rk_list_t *list, rk_list_node_t *node) {
+  void *result = NULL;
 
   rk_check(list->first && list->last); /* remove from an empty list */
   rk_check(node);                      /* remove NULL from list */
@@ -223,8 +223,8 @@ void* rk_list_remove(rk_list_t* list, rk_list_node_t* node) {
     rk_check(list->last != NULL); /* invalid list with non-null last */
     list->last->next = NULL;
   } else {
-    rk_list_node_t* after = node->next;
-    rk_list_node_t* before = node->prev;
+    rk_list_node_t *after = node->next;
+    rk_list_node_t *before = node->prev;
     after->prev = before;
     before->next = after;
   }
@@ -237,7 +237,7 @@ error:
   return result;
 }
 
-void* rk_list_search(rk_list_t* list, void* context, rk_algo_search search) {
+void *rk_list_search(rk_list_t *list, void *context, rk_algo_search search) {
   int found = 0;
 
   rk_check(list->first && list->last); /* search from an empty list */
@@ -259,8 +259,8 @@ void* rk_list_search(rk_list_t* list, void* context, rk_algo_search search) {
  * tree
  * ************************************************************/
 
-rk_tree_t* rk_tree_create(void* payload) {
-  rk_tree_t* tree = (rk_tree_t*)calloc(1, sizeof(rk_tree_t));
+rk_tree_t *rk_tree_create(void *payload) {
+  rk_tree_t *tree = (rk_tree_t *)calloc(1, sizeof(rk_tree_t));
   rk_check_mem(tree);
   tree->payload = payload;
 
@@ -268,20 +268,16 @@ error:
   return tree;
 }
 
-void _rk_tree_free(void* p) {
-  free(p);
-}
+void _rk_tree_free(void *p) { free(p); }
 
-void rk_tree_clear(rk_tree_t* tree) {
-  rk_tree_levelorder(tree, _rk_tree_free);
-}
+void rk_tree_clear(rk_tree_t *tree) { rk_tree_levelorder(tree, _rk_tree_free); }
 
-void rk_tree_destroy(rk_tree_t* tree) {
-  rk_list_t* list = rk_list_create();
+void rk_tree_destroy(rk_tree_t *tree) {
+  rk_list_t *list = rk_list_create();
   rk_tree_dump(tree, list);
   {
     rk_list_foreach(list, first, next, cur) {
-      rk_tree_t* tn = cur->payload;
+      rk_tree_t *tn = cur->payload;
       free(tn);
     }
   }
@@ -289,12 +285,12 @@ void rk_tree_destroy(rk_tree_t* tree) {
   rk_list_destroy(list);
 }
 
-void rk_tree_clear_destroy(rk_tree_t* tree) {
-  rk_list_t* list = rk_list_create();
+void rk_tree_clear_destroy(rk_tree_t *tree) {
+  rk_list_t *list = rk_list_create();
   rk_tree_dump(tree, list);
   {
     rk_list_foreach(list, first, next, cur) {
-      rk_tree_t* tn = cur->payload;
+      rk_tree_t *tn = cur->payload;
       free(tn->payload);
       free(tn);
     }
@@ -303,8 +299,8 @@ void rk_tree_clear_destroy(rk_tree_t* tree) {
   rk_list_destroy(list);
 }
 
-rk_tree_t* rk_tree_add_child(rk_tree_t* node, void* payload) {
-  rk_tree_t* newnode = calloc(1, sizeof(rk_tree_t));
+rk_tree_t *rk_tree_add_child(rk_tree_t *node, void *payload) {
+  rk_tree_t *newnode = calloc(1, sizeof(rk_tree_t));
   rk_check_mem(newnode);
 
   newnode->payload = payload;
@@ -319,8 +315,8 @@ error:
   return newnode;
 }
 
-rk_tree_t* rk_tree_add_sibling(rk_tree_t* node, void* payload) {
-  rk_tree_t* newnode = calloc(1, sizeof(rk_tree_t));
+rk_tree_t *rk_tree_add_sibling(rk_tree_t *node, void *payload) {
+  rk_tree_t *newnode = calloc(1, sizeof(rk_tree_t));
   rk_check_mem(newnode);
 
   newnode->payload = payload;
@@ -332,13 +328,13 @@ error:
   return newnode;
 }
 
-void rk_tree_dump(rk_tree_t* tree, rk_list_t* list) {
-  rk_list_t* q = rk_list_create();
+void rk_tree_dump(rk_tree_t *tree, rk_list_t *list) {
+  rk_list_t *q = rk_list_create();
   rk_list_unshift(q, tree);
 
   while (!rk_list_empty(q)) {
-    rk_tree_t* child = NULL;
-    rk_tree_t* v = rk_list_shift(q);
+    rk_tree_t *child = NULL;
+    rk_tree_t *v = rk_list_shift(q);
 
     rk_list_push(list, v);
 
@@ -352,10 +348,10 @@ void rk_tree_dump(rk_tree_t* tree, rk_list_t* list) {
   rk_list_destroy(q);
 }
 
-void rk_tree_dump_leaves(rk_tree_t* tree, rk_list_t* list) {
-  rk_list_t* stack = NULL;
-  rk_tree_t* node = NULL;
-  rk_tree_t* temp = NULL;
+void rk_tree_dump_leaves(rk_tree_t *tree, rk_list_t *list) {
+  rk_list_t *stack = NULL;
+  rk_tree_t *node = NULL;
+  rk_tree_t *temp = NULL;
 
   stack = rk_list_create();
   rk_check_mem(stack);
@@ -381,15 +377,15 @@ error:
   return;
 }
 
-void rk_tree_levelorder(rk_tree_t* tree, rk_tree_visitor visitor) {
-  rk_list_t* q = NULL;
+void rk_tree_levelorder(rk_tree_t *tree, rk_tree_visitor visitor) {
+  rk_list_t *q = NULL;
 
   q = rk_list_create();
   rk_list_unshift(q, tree);
 
   while (!rk_list_empty(q)) {
-    rk_tree_t* child = NULL;
-    rk_tree_t* v = rk_list_shift(q);
+    rk_tree_t *child = NULL;
+    rk_tree_t *v = rk_list_shift(q);
     visitor(v->payload);
 
     child = v->child;

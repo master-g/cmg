@@ -57,8 +57,8 @@ extern "C" {
 
 #define CARD_SET_LENGTH 54
 
-#define CARD_RANK(x) (uint8_t)((x)&0x0F)
-#define CARD_SUIT(x) ((x)&0xF0)
+#define CARD_RANK(x) (uint8_t)((x) & 0x0F)
+#define CARD_SUIT(x) ((x) & 0xF0)
 
 #define CARD_IS_RED(x)                                                         \
   (CARD_SUIT(x) == CARD_SUIT_DIAMOND || CARD_SUIT(x) == CARD_SUIT_HEART)
@@ -93,7 +93,7 @@ typedef struct _card_arr_s {
 } card_array_t;
 
 /* sort function */
-typedef int (*CardSortFunc)(void*, void*);
+typedef int (*CardSortFunc)(void *, void *);
 
 /**
  * Initialize a card array from string
@@ -102,14 +102,14 @@ typedef int (*CardSortFunc)(void*, void*);
  * @param  str   The source string
  * @return       For method chaining
  */
-void* CardArray_InitFromString(card_array_t* array, const char* str);
+void *CardArray_InitFromString(card_array_t *array, const char *str);
 
 /**
  * Reset a card array with 54 cards
  *
  * @param array The card array to reset with
  */
-void CardArray_Reset(card_array_t* array);
+void CardArray_Reset(card_array_t *array);
 
 /**
  * Concatenates two card arrays
@@ -118,106 +118,106 @@ void CardArray_Reset(card_array_t* array);
  * @param tail card array to be appended, should not overlap head
  * @return length of the card array after concat
  */
-int CardArray_Concat(card_array_t* head, card_array_t* tail);
+int CardArray_Concat(card_array_t *head, card_array_t *tail);
 
 /**
  * remove cards from
  * @param from
  * @param sub
  */
-void CardArray_Subtract(card_array_t* from, card_array_t* sub);
+void CardArray_Subtract(card_array_t *from, card_array_t *sub);
 
 /*
  * check for identity
  */
-int CardArray_IsIdentity(card_array_t* a, card_array_t* b);
+int CardArray_IsIdentity(card_array_t *a, card_array_t *b);
 
 /*
  * check for contain
  */
-int CardArray_IsContain(card_array_t* array, card_array_t* segment);
+int CardArray_IsContain(card_array_t *array, card_array_t *segment);
 
 /*
  * push a card to the rear of the array
  */
-void CardArray_PushBack(card_array_t* array, uint8_t card);
+void CardArray_PushBack(card_array_t *array, uint8_t card);
 
 /*
  * push a card to the front of the array
  */
-uint8_t CardArray_PushFront(card_array_t* array, uint8_t card);
+uint8_t CardArray_PushFront(card_array_t *array, uint8_t card);
 
 /*
  * pop a card from the front of the array
  */
-uint8_t CardArray_PopFront(card_array_t* array);
+uint8_t CardArray_PopFront(card_array_t *array);
 
 /*
  * pop a card from the back of the array
  */
-uint8_t CardArray_PopBack(card_array_t* array);
+uint8_t CardArray_PopBack(card_array_t *array);
 
 /*
  * drop multiple cards from the front of the array
  */
-int CardArray_DropFront(card_array_t* array, int count);
+int CardArray_DropFront(card_array_t *array, int count);
 
 /*
  * drop multiple cards from the back of the array
  */
-int CardArray_DropBack(card_array_t* array, int count);
+int CardArray_DropBack(card_array_t *array, int count);
 
 /*
  * insert a card to the front of index
  */
-void CardArray_Insert(card_array_t* array, int before, uint8_t card);
+void CardArray_Insert(card_array_t *array, int before, uint8_t card);
 
 /*
  * remove a card from the front of index
  */
-uint8_t CardArray_Remove(card_array_t* array, int where);
+uint8_t CardArray_Remove(card_array_t *array, int where);
 
 /*
  * remove a card from array
  */
-uint8_t CardArray_RemoveCard(card_array_t* array, uint8_t card);
+uint8_t CardArray_RemoveCard(card_array_t *array, uint8_t card);
 
 /*
  * push back multiple cards from array
  */
-int CardArray_PushBackCards(card_array_t* array, card_array_t* from, int where,
-                            int count);
+int CardArray_PushBackCards(
+    card_array_t *array, card_array_t *from, int where, int count);
 
 /*
  * transfer specific rank cards from array to array
  */
-void CardArray_CopyRank(card_array_t* dst, card_array_t* src, uint8_t rank);
+void CardArray_CopyRank(card_array_t *dst, card_array_t *src, uint8_t rank);
 
 /*
  * remove specific rank cards from array
  */
-void CardArray_RemoveRank(card_array_t* array, uint8_t rank);
+void CardArray_RemoveRank(card_array_t *array, uint8_t rank);
 
 /*
  * sort cards
  */
-void CardArray_Sort(card_array_t* array,
-                    int (*comparator)(const void*, const void*));
+void CardArray_Sort(
+    card_array_t *array, int (*comparator)(const void *, const void *));
 
 /*
  * reverse cards
  */
-void CardArray_Reverse(card_array_t* array);
+void CardArray_Reverse(card_array_t *array);
 
 /*
  * print every card in the array
  */
-void CardArray_Print(card_array_t* array);
+void CardArray_Print(card_array_t *array);
 
 /*
  * convert a card to string
  */
-int Card_ToString(uint8_t card, char* buf, int len);
+int Card_ToString(uint8_t card, char *buf, int len);
 
 #ifdef __cplusplus
 }

@@ -55,12 +55,12 @@ typedef enum {
 
 } PlayerBidAction;
 
-typedef int (*PlayerEventHandler)(void* player, void* context);
+typedef int (*PlayerEventHandler)(void *player, void *context);
 
 typedef struct player_s {
   card_array_t cards;  /* card array, will change during game play */
   card_array_t record; /* card record */
-  rk_list_t* handlist; /* the analyze result of cards */
+  rk_list_t *handlist; /* the analyze result of cards */
   int identity;        /* 0: peasant, 1: landlord */
   int seatId;          /* 0, 1, 2 */
   int bid;             /* 0, 1, 2, 3 */
@@ -72,27 +72,27 @@ typedef struct player_s {
 /*
  * setup standard AI player
  */
-void Player_SetupStandardAI(player_t* player);
+void Player_SetupStandardAI(player_t *player);
 
 /*
  * setup advanced AI player
  */
-void Player_SetupAdvancedAI(player_t* player);
+void Player_SetupAdvancedAI(player_t *player);
 
 /*
  * destroy a player context
  */
-void Player_Destroy(player_t* player);
+void Player_Destroy(player_t *player);
 
 /*
  * clear a player context
  */
-void Player_Clear(player_t* player);
+void Player_Clear(player_t *player);
 
 /*
  * handle event
  */
-int Player_HandleEvent(void* player, int event, void* ctx);
+int Player_HandleEvent(void *player, int event, void *ctx);
 
 /*
  * sort cards, analyze hands etc.

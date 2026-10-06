@@ -27,7 +27,7 @@ SOFTWARE.
 char szr[] = {'3', '4', '5', '6', '7', '8', '9',
               'T', 'J', 'Q', 'K', 'A', '2', 'R'};
 
-void Count_Print(int* count) {
+void Count_Print(int *count) {
   int i = 0;
 
   for (i = CARD_RANK_BEG; i < CARD_RANK_END; i++) {
@@ -48,9 +48,9 @@ void test_advanced_hand_analyzer() {
      ♣4"; const char* str = "♠K ♠Q ♥J ♠9 ♥9 ♦8 ♠7 ♥6 ♣6 ♠5 ♦5"; const char* str
      = "s9 d8 s7 h6 s5 c4";
    */
-  const char* str = "♣T ♦9 ♠8 ♥8 ♠7 ♣7 ♦6 ♣6 ♠5 ♣5 ♣4";
+  const char *str = "♣T ♦9 ♠8 ♥8 ♠7 ♣7 ♦6 ♣6 ♠5 ♣5 ♣4";
   card_array_t cards;
-  rk_list_t* hl;
+  rk_list_t *hl;
 
   CardArray_InitFromString(&cards, str);
 
@@ -85,7 +85,7 @@ struct work_ctx {
 
 static struct work_ctx works[4];
 
-void cleanup(void* arg) {
+void cleanup(void *arg) {
   int i = 0;
   int pwon, lwon;
   for (i = 0; i < 4; i++) {
@@ -107,10 +107,10 @@ void cleanup(void* arg) {
   printf("ended at %ld\n", time(NULL));
 }
 
-void work_func(void* arg) {
+void work_func(void *arg) {
   int i = 0;
-  struct work_ctx* ctx = (struct work_ctx*)arg;
-  game_t* game = &ctx->game;
+  struct work_ctx *ctx = (struct work_ctx *)arg;
+  game_t *game = &ctx->game;
 
   printf("%lx starts at %d\n", pthread_self(), time(0));
 
@@ -191,7 +191,7 @@ void test_game() {
 
 /* "♣3 ♣4 ♠5 ♠6 ♥7 ♦8" */
 
-const char* hand_strings[] = {
+const char *hand_strings[] = {
     "♣3",                                           /* solo */
     "♣3 ♠3",                                        /* pair */
     "♠r ♠R",                                        /* nuke */
@@ -240,8 +240,8 @@ int test_adv() {
   int diff = 0;
   deck_t deck;
   card_array_t cards;
-  rk_list_t* hladv = NULL;
-  rk_list_t* hlstd = NULL;
+  rk_list_t *hladv = NULL;
+  rk_list_t *hlstd = NULL;
   mt19937_t mt;
 
   Random_Init(&mt, (uint32_t)get_current_time_with_ns());
@@ -269,17 +269,17 @@ int test_adv() {
 }
 
 void do_the_test() {
-  const char* str_card = "♣T ♦9 ♠8 ♥8 ♠7 ♣7 ♦6 ♣6 ♠5 ♣5 ♣4";
+  const char *str_card = "♣T ♦9 ♠8 ♥8 ♠7 ♣7 ♦6 ♣6 ♠5 ♣5 ♣4";
   card_array_t cards;
-  rk_list_t* hl = NULL;
+  rk_list_t *hl = NULL;
   CardArray_InitFromString(&cards, str_card);
   hl = HandList_AdvancedAnalyze(&cards);
   rk_list_clear_destroy(hl);
 }
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char *argv[]) {
   /*  test_hands(); */
-  char* pool = (char*)malloc(512 * 1024);
+  char *pool = (char *)malloc(512 * 1024);
   memset(pool, 0, 512 * 1024);
   free(pool);
   test_game();

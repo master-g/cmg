@@ -31,9 +31,9 @@ const uint8_t _card_set[] = {
     0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x41, 0x42, 0x43, 0x44, 0x45,
     0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x1E, 0x2F};
 
-void* CardArray_InitFromString(card_array_t* array, const char* str) {
+void *CardArray_InitFromString(card_array_t *array, const char *str) {
   uint8_t card = 0;
-  const char* p = str;
+  const char *p = str;
 
   CardArray_Clear(array);
 
@@ -124,12 +124,12 @@ void* CardArray_InitFromString(card_array_t* array, const char* str) {
   return array;
 }
 
-void CardArray_Reset(card_array_t* array) {
+void CardArray_Reset(card_array_t *array) {
   memcpy(array->cards, _card_set, sizeof(uint8_t) * CARD_SET_LENGTH);
   array->length = CARD_SET_LENGTH;
 }
 
-int CardArray_Concat(card_array_t* head, card_array_t* tail) {
+int CardArray_Concat(card_array_t *head, card_array_t *tail) {
   int length = 0;
   int slot = 0;
 
@@ -146,7 +146,7 @@ int CardArray_Concat(card_array_t* head, card_array_t* tail) {
   return length;
 }
 
-void CardArray_Subtract(card_array_t* from, card_array_t* sub) {
+void CardArray_Subtract(card_array_t *from, card_array_t *sub) {
   int i = 0;
   int j = 0;
   uint8_t card = 0;
@@ -171,7 +171,7 @@ void CardArray_Subtract(card_array_t* from, card_array_t* sub) {
   CardArray_Copy(from, &temp);
 }
 
-int CardArray_IsIdentity(card_array_t* a, card_array_t* b) {
+int CardArray_IsIdentity(card_array_t *a, card_array_t *b) {
   int i = 0;
   int identity = 1;
   card_array_t ta, tb;
@@ -198,7 +198,7 @@ int CardArray_IsIdentity(card_array_t* a, card_array_t* b) {
   return identity;
 }
 
-int CardArray_IsContain(card_array_t* array, card_array_t* segment) {
+int CardArray_IsContain(card_array_t *array, card_array_t *segment) {
   int contain = 0;
   int i = 0;
   int j = 0;
@@ -225,12 +225,12 @@ int CardArray_IsContain(card_array_t* array, card_array_t* segment) {
   return contain;
 }
 
-void CardArray_PushBack(card_array_t* array, uint8_t card) {
+void CardArray_PushBack(card_array_t *array, uint8_t card) {
   if (!CardArray_IsFull(array))
     array->cards[array->length++] = card;
 }
 
-uint8_t CardArray_PushFront(card_array_t* array, uint8_t card) {
+uint8_t CardArray_PushFront(card_array_t *array, uint8_t card) {
   uint8_t ret = 0;
 
   if (!CardArray_IsFull(array)) {
@@ -245,7 +245,7 @@ uint8_t CardArray_PushFront(card_array_t* array, uint8_t card) {
   return ret;
 }
 
-uint8_t CardArray_PopFront(card_array_t* array) {
+uint8_t CardArray_PopFront(card_array_t *array) {
   uint8_t card = 0;
 
   if (!CardArray_IsEmpty(array)) {
@@ -257,7 +257,7 @@ uint8_t CardArray_PopFront(card_array_t* array) {
   return card;
 }
 
-uint8_t CardArray_PopBack(card_array_t* array) {
+uint8_t CardArray_PopBack(card_array_t *array) {
   uint8_t card = 0;
 
   if (!CardArray_IsEmpty(array)) {
@@ -269,7 +269,7 @@ uint8_t CardArray_PopBack(card_array_t* array) {
   return card;
 }
 
-int CardArray_DropFront(card_array_t* array, int count) {
+int CardArray_DropFront(card_array_t *array, int count) {
   int drop = 0;
 
   drop = (array->length >= count) ? count : array->length;
@@ -280,7 +280,7 @@ int CardArray_DropFront(card_array_t* array, int count) {
   return drop;
 }
 
-int CardArray_DropBack(card_array_t* array, int count) {
+int CardArray_DropBack(card_array_t *array, int count) {
   int drop = 0;
 
   drop = (array->length >= count) ? count : array->length;
@@ -290,22 +290,23 @@ int CardArray_DropBack(card_array_t* array, int count) {
   return drop;
 }
 
-void CardArray_Insert(card_array_t* array, int before, uint8_t card) {
+void CardArray_Insert(card_array_t *array, int before, uint8_t card) {
   if (!CardArray_IsFull(array)) {
     if (before == 0) {
       CardArray_PushFront(array, card);
     } else if (before == array->length) {
       CardArray_PushBack(array, card);
     } else if ((before > 0) && (before < array->length)) {
-      memmove(array->cards + before + 1, array->cards + before,
-              array->length - before);
+      memmove(
+          array->cards + before + 1, array->cards + before,
+          array->length - before);
       array->cards[before] = card;
       array->length++;
     }
   }
 }
 
-uint8_t CardArray_Remove(card_array_t* array, int where) {
+uint8_t CardArray_Remove(card_array_t *array, int where) {
   uint8_t ret = 0;
 
   if (!CardArray_IsEmpty(array)) {
@@ -316,8 +317,9 @@ uint8_t CardArray_Remove(card_array_t* array, int where) {
     } else if ((where > 0) && (where < array->length - 1)) {
       ret = array->cards[where];
       array->length--;
-      memmove(array->cards + where, array->cards + where + 1,
-              array->length - where);
+      memmove(
+          array->cards + where, array->cards + where + 1,
+          array->length - where);
       array->cards[array->length] = 0;
     }
   }
@@ -325,7 +327,7 @@ uint8_t CardArray_Remove(card_array_t* array, int where) {
   return ret;
 }
 
-uint8_t CardArray_RemoveCard(card_array_t* array, uint8_t card) {
+uint8_t CardArray_RemoveCard(card_array_t *array, uint8_t card) {
   uint8_t ret = 0;
   int i = 0;
 
@@ -340,8 +342,8 @@ uint8_t CardArray_RemoveCard(card_array_t* array, uint8_t card) {
   return ret;
 }
 
-int CardArray_PushBackCards(card_array_t* array, card_array_t* from, int where,
-                            int count) {
+int CardArray_PushBackCards(
+    card_array_t *array, card_array_t *from, int where, int count) {
   int cards = 0;
   int i = 0;
 
@@ -353,7 +355,7 @@ int CardArray_PushBackCards(card_array_t* array, card_array_t* from, int where,
   return cards;
 }
 
-void CardArray_CopyRank(card_array_t* dst, card_array_t* src, uint8_t rank) {
+void CardArray_CopyRank(card_array_t *dst, card_array_t *src, uint8_t rank) {
   int i = 0;
 
   for (i = 0; i < src->length; i++) {
@@ -362,7 +364,7 @@ void CardArray_CopyRank(card_array_t* dst, card_array_t* src, uint8_t rank) {
   }
 }
 
-void CardArray_RemoveRank(card_array_t* array, uint8_t rank) {
+void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
   int i = 0;
 
   card_array_t temp;
@@ -377,26 +379,26 @@ void CardArray_RemoveRank(card_array_t* array, uint8_t rank) {
   CardArray_Copy(array, &temp);
 }
 
-int CardArray_StandardSort(const void* a, const void* b) {
+int CardArray_StandardSort(const void *a, const void *b) {
   uint8_t ra = 0;
   uint8_t rb = 0;
 
   /* rotation */
-  ra = ((*(uint8_t*)a & 0xF0) >> 4) | ((*(uint8_t*)a & 0x0F) << 4);
-  rb = ((*(uint8_t*)b & 0xF0) >> 4) | ((*(uint8_t*)b & 0x0F) << 4);
+  ra = ((*(uint8_t *)a & 0xF0) >> 4) | ((*(uint8_t *)a & 0x0F) << 4);
+  rb = ((*(uint8_t *)b & 0xF0) >> 4) | ((*(uint8_t *)b & 0x0F) << 4);
 
   return rb - ra;
 }
 
-void CardArray_Sort(card_array_t* array,
-                    int (*comparator)(const void*, const void*)) {
+void CardArray_Sort(
+    card_array_t *array, int (*comparator)(const void *, const void *)) {
   if (comparator == NULL)
     qsort(array->cards, array->length, sizeof(uint8_t), CardArray_StandardSort);
   else
     qsort(array->cards, array->length, sizeof(uint8_t), comparator);
 }
 
-void CardArray_Reverse(card_array_t* array) {
+void CardArray_Reverse(card_array_t *array) {
   int i, j;
   uint8_t tmp;
   for (i = 0, j = array->length - 1; i < array->length / 2; i++, j--) {
@@ -425,27 +427,27 @@ unsigned char szSPADE[] = {'s', 0, 0, 0};
 char szRank[] = {'3', '4', '5', '6', '7', '8', '9', 'T',
                  'J', 'Q', 'K', 'A', '2', 'r', 'R'};
 
-int Card_ToString(uint8_t card, char* buf, int len) {
+int Card_ToString(uint8_t card, char *buf, int len) {
   if ((buf != NULL) && (len >= CARD_STRING_LENGTH)) {
-    char* szSuit = NULL;
+    char *szSuit = NULL;
     int rank = CARD_RANK(card);
     int suit = CARD_SUIT(card);
 
     switch (suit) {
     case CARD_SUIT_DIAMOND:
-      szSuit = (char*)szDIAMOND;
+      szSuit = (char *)szDIAMOND;
       break;
 
     case CARD_SUIT_CLUB:
-      szSuit = (char*)szCLUB;
+      szSuit = (char *)szCLUB;
       break;
 
     case CARD_SUIT_HEART:
-      szSuit = (char*)szHEART;
+      szSuit = (char *)szHEART;
       break;
 
     case CARD_SUIT_SPADE:
-      szSuit = (char*)szSPADE;
+      szSuit = (char *)szSPADE;
       break;
 
     default:
@@ -459,7 +461,7 @@ int Card_ToString(uint8_t card, char* buf, int len) {
   return CARD_STRING_LENGTH;
 }
 
-void CardArray_Print(card_array_t* array) {
+void CardArray_Print(card_array_t *array) {
   int i = 0;
   char str[10];
 

@@ -36,7 +36,7 @@ SOFTWARE.
 #define FULL_MASK 0xFFFFFFFF
 #define DEF_SEED 0x012BD6AA
 
-void Random_Init(mt19937_t* context, uint32_t seed) {
+void Random_Init(mt19937_t *context, uint32_t seed) {
   context->mt[0] = seed & FULL_MASK;
 
   for (context->mti = 1; context->mti < MT_N; context->mti++) {
@@ -49,7 +49,7 @@ void Random_Init(mt19937_t* context, uint32_t seed) {
   }
 }
 
-void Random_InitWithArray(mt19937_t* context, uint32_t initarr[], int length) {
+void Random_InitWithArray(mt19937_t *context, uint32_t initarr[], int length) {
   int i, j, k;
 
   Random_Init(context, DEF_SEED);
@@ -92,7 +92,7 @@ void Random_InitWithArray(mt19937_t* context, uint32_t initarr[], int length) {
   context->mt[0] = UPPER_MASK;
 }
 
-uint32_t Random_uint32(mt19937_t* context) {
+uint32_t Random_uint32(mt19937_t *context) {
   uint32_t y;
   int kk;
   static uint32_t mag01[2] = {0x0, MATRIX_A};
@@ -130,11 +130,11 @@ uint32_t Random_uint32(mt19937_t* context) {
   return y;
 }
 
-int32_t Random_Int32(mt19937_t* context) {
+int32_t Random_Int32(mt19937_t *context) {
   return (int32_t)(Random_uint32(context) >> 1);
 }
 
-double Random_real_0_1(mt19937_t* context) {
+double Random_real_0_1(mt19937_t *context) {
   return (double)(Random_uint32(context) * (1.0 / 4294967296.0));
 }
 
@@ -175,7 +175,7 @@ int LMath_NextComb(int comb[], int k, int n) {
   return 1;
 }
 
-void LMath_Shuffle(uint8_t* a, size_t n, mt19937_t* mt) {
+void LMath_Shuffle(uint8_t *a, size_t n, mt19937_t *mt) {
   size_t i = n, j;
   uint8_t tmp = 0;
 

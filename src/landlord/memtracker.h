@@ -44,13 +44,15 @@ extern "C" {
 
 #endif /* KITSUNE_DEBUG */
 
-void* memtrack_malloc(size_t size, const char* expr, const char* file,
-                      int line);
-void* memtrack_calloc(size_t count, size_t elem_size, const char* expr,
-                      const char* file, int line);
-void* memtrack_realloc(void* ptr, const char* eptr, size_t size,
-                       const char* expr, const char* file, int line);
-void memtrack_free(void* ptr, const char* expr, const char* file, int line);
+void *
+memtrack_malloc(size_t size, const char *expr, const char *file, int line);
+void *memtrack_calloc(
+    size_t count, size_t elem_size, const char *expr, const char *file,
+    int line);
+void *memtrack_realloc(
+    void *ptr, const char *eptr, size_t size, const char *expr,
+    const char *file, int line);
+void memtrack_free(void *ptr, const char *expr, const char *file, int line);
 void memtrack_list_allocations(void);
 
 #ifdef __cplusplus
