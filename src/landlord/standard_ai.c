@@ -113,7 +113,7 @@ int StandardAI_Play(void *p, void *game) {
       countpair = 0;
       countsolo = 0;
 
-      while (temp->next != NULL) {
+      while (temp != NULL) {
         if (HandList_GetHand(temp)->type == HAND_PRIMAL_PAIR)
           countpair++;
         else if (HandList_GetHand(temp)->type == HAND_PRIMAL_SOLO)
@@ -192,8 +192,11 @@ int StandardAI_Play(void *p, void *game) {
             player->handlist,
             Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS));
 
+        /* 2 and jokers are too good to be thrown in as a kicker */
         if ((node != NULL) && (CARD_RANK(node->cards.cards[0]) < CARD_RANK_2))
           kicker = HAND_KICKER_SOLO;
+        else
+          node = NULL;
       }
 
       if (node != NULL) {

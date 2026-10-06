@@ -359,6 +359,61 @@ static void test_determinism(void) {
   Game_Clear(&game);
 }
 
+/* played cards plus the cards still held are exactly one deck */
+static int is_whole_deck(const game_t *game) {
+  card_array_t all;
+  card_array_t deck;
+  int i;
+
+  CardArray_Copy(&all, &game->cardRecord);
+  for (i = 0; i < GAME_PLAYERS; i++) {
+    card_array_t held;
+
+    /* a full array silently ignores what does not fit, count first */
+    if (all.length + game->players[i].cards.length > CARD_SET_LENGTH)
+      return 0;
+
+    CardArray_Copy(&held, &game->players[i].cards);
+    CardArray_Concat(&all, &held);
+  }
+
+  CardArray_Reset(&deck);
+  CardArray_Sort(&deck, NULL);
+  CardArray_Sort(&all, NULL);
+
+  return same_sequence(&all, &deck);
+}
+
+/* a player that leads two unrelated cards, which is not a hand */
+static int cheat_play(void *p, void *g) {
+  player_t *player = (player_t *)p;
+  game_t *game = (game_t *)g;
+
+  Hand_Clear(&game->lastHand);
+  CardArray_PushBack(&game->lastHand.cards, CardArray_PopBack(&player->cards));
+  CardArray_PushBack(&game->lastHand.cards, CardArray_PopFront(&player->cards));
+  return 0;
+}
+
+static void test_game_rejects_illegal_hands(void) {
+  game_t game;
+  int i;
+
+  printf("testing that an illegal hand stops the game...\n");
+  printf("  (one rejection message is expected below)\n");
+  fflush(stdout);
+
+  Game_Init(&game);
+  for (i = 0; i < GAME_PLAYERS; i++)
+    game.players[i].eventHandlers[Player_Event_Play] = cheat_play;
+
+  Game_Play(&game, TEST_SEED_BEGIN);
+  assert(game.status == GameStatus_Illegal);
+  assert(game.cardRecord.length == 0);
+
+  Game_Clear(&game);
+}
+
 static void test_games(void) {
   game_t game;
   uint32_t seed;
@@ -367,10 +422,19 @@ static void test_games(void) {
   Game_Init(&game);
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_END; seed++) {
     Game_Play(&game, seed);
+
+    /*
+     * the game itself refuses any hand that is not legal, does not beat the
+     * last one or is not made of the player's own cards, and stops there
+     */
     if (game.status != GameStatus_Over || game.winner < 0 ||
         game.winner >= GAME_PLAYERS ||
         game.players[game.winner].cards.length != 0) {
       printf("  seed %u did not finish with a winner\n", (unsigned)seed);
+      assert(0);
+    }
+    if (!is_whole_deck(&game)) {
+      printf("  seed %u lost or duplicated cards\n", (unsigned)seed);
       assert(0);
     }
     Game_Reset(&game);
@@ -390,6 +454,7 @@ int main(int argc, char **argv) {
   test_compare();
   test_card_array();
   test_games();
+  test_game_rejects_illegal_hands();
   test_determinism();
   test_baseline();
   printf("landlord: all tests passed\n");

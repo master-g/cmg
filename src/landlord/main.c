@@ -31,6 +31,7 @@ SOFTWARE.
 int main(void) {
   int peasantwon = 0;
   int landlordwon = 0;
+  int illegal = 0; /* games stopped by a hand the rules reject */
   uint32_t seed;
   game_t game;
 
@@ -41,7 +42,9 @@ int main(void) {
   for (seed = BENCH_SEED_BEGIN; seed < BENCH_SEED_END; seed++) {
     Game_Play(&game, seed);
 
-    if (game.winner == game.landlord)
+    if (game.status != GameStatus_Over)
+      illegal++;
+    else if (game.winner == game.landlord)
       landlordwon++;
     else
       peasantwon++;
@@ -51,6 +54,7 @@ int main(void) {
 
   printf("peasants : %d\n", peasantwon);
   printf("landlord : %d\n", landlordwon);
+  printf("illegal  : %d\n", illegal);
 
   Game_Clear(&game);
 

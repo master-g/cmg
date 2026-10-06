@@ -67,12 +67,63 @@ void Game_Reset(game_t *game) {
   CardArray_Clear(&game->cardRecord);
 }
 
+/*
+ * Every hand enters the game here. The cards the current player handed in
+ * (left in game->lastHand) must be a hand by the rules, must be greater than
+ * `tobeat` when there is one, and must come out of `held`, the cards the
+ * player had before the move. The hand type is the one the rules give it,
+ * whatever the player labelled it.
+ */
+static int Game_AcceptHand(game_t *game, card_array_t *held, hand_t *tobeat) {
+  player_t *player = Game_GetCurrentPlayer(game);
+  const char *reason = NULL;
+  hand_t hand;
+
+  if (Hand_Parse(&hand, &game->lastHand.cards) == HAND_NONE)
+    reason = "not a hand";
+  else if (
+      (tobeat != NULL) && (Hand_Compare(&hand, tobeat) != HAND_CMP_GREATER))
+    reason = "does not beat the last hand";
+  else if (
+      !CardArray_IsContain(held, &hand.cards) ||
+      (player->cards.length != held->length - hand.cards.length))
+    reason = "not the player's cards";
+
+  if (reason != NULL) {
+    int i = 0;
+    char str[8];
+
+    fprintf(
+        stderr, "seed %u: player %d, %s:", (unsigned)game->seed,
+        game->playerIndex, reason);
+    for (i = 0; i < game->lastHand.cards.length; i++) {
+      memset(str, 0, sizeof(str));
+      Card_ToString(game->lastHand.cards.cards[i], str, sizeof(str));
+      fprintf(stderr, " %s", str);
+    }
+    fprintf(stderr, "\n");
+
+    game->status = GameStatus_Illegal;
+    return 0;
+  }
+
+  Hand_Copy(&game->lastHand, &hand);
+  game->lastplay = game->playerIndex;
+  game->phase = Phase_Query;
+  CardArray_Concat(&game->cardRecord, &game->lastHand.cards);
+
+  return 1;
+}
+
 void Game_Play(game_t *game, uint32_t seed) {
   int i = 0;
   int beat = 0;
   int bid = 0;
+  card_array_t held;
+  hand_t tobeat;
 
   /* the seed alone decides the game: seed, then shuffle a fresh deck */
+  game->seed = seed;
   Random_Init(&game->mt, seed);
   Deck_Reset(&game->deck);
   Deck_Shuffle(&game->deck, &game->mt);
@@ -122,17 +173,19 @@ void Game_Play(game_t *game, uint32_t seed) {
     Player_HandleEvent(&game->players[i], Player_Event_GetReady, game);
 
   /* game play */
-  while (game->status != GameStatus_Over) {
+  while (game->status == GameStatus_Ready) {
+    CardArray_Copy(&held, &Game_GetCurrentPlayer(game)->cards);
+
     if (game->phase == Phase_Play) {
       Player_HandleEvent(Game_GetCurrentPlayer(game), Player_Event_Play, game);
-      game->lastplay = game->playerIndex;
-      game->phase = Phase_Query;
 
-      CardArray_Concat(&game->cardRecord, &game->lastHand.cards);
+      if (!Game_AcceptHand(game, &held, NULL))
+        break;
 
       DBGLog("\nPlayer ---- %d ---- played\n", game->playerIndex);
       Hand_Print(&game->lastHand);
     } else if ((game->phase == Phase_Query) || (game->phase == Phase_Pass)) {
+      Hand_Copy(&tobeat, &game->lastHand);
       beat = Player_HandleEvent(
           Game_GetCurrentPlayer(game), Player_Event_Beat, game);
 
@@ -146,9 +199,8 @@ void Game_Play(game_t *game, uint32_t seed) {
 
         DBGLog("\nPlayer ---- %d ---- passed\n", game->playerIndex);
       } else {
-        game->lastplay = game->playerIndex;
-        game->phase = Phase_Query;
-        CardArray_Concat(&game->cardRecord, &game->lastHand.cards);
+        if (!Game_AcceptHand(game, &held, &tobeat))
+          break;
 
         DBGLog("\nPlayer ---- %d ---- beat\n", game->playerIndex);
         Hand_Print(&game->lastHand);

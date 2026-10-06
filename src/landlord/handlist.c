@@ -397,6 +397,19 @@ static int SearchBeat_TrioKickerChain(
     for (i = 0; i < hkick.cards.length; i += kc)
       comb[j++] = rankcombmap[CARD_RANK(hkick.cards.cards[i])];
 
+    /*
+     * LMath_NextComb needs it ascending, the kickers come in whatever order
+     * the previous search left them
+     */
+    for (i = 1; i < chainlength; i++) {
+      int key = comb[i];
+
+      for (j = i; j > 0 && comb[j - 1] > key; j--)
+        comb[j] = comb[j - 1];
+
+      comb[j] = key;
+    }
+
     /* find next combination */
     if (LMath_NextComb(comb, chainlength, n)) {
       /* next combination found, copy kickers */
