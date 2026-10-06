@@ -40,7 +40,8 @@ static void HandList_ExtractConsecutive(
   int runtop = 0; /* highest rank of the run being collected */
   int runlen = 0; /* ranks in that run */
   hand_t hand;
-  int primal[] = {0, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
+  hand_primal_t primal[] = {
+      HAND_PRIMAL_NONE, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
   int chainlen[] = {
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
       HAND_TRIO_CHAIN_MIN_LENGTH};
@@ -63,19 +64,18 @@ static void HandList_ExtractConsecutive(
     if (runlen * duplicate >= chainlen[duplicate]) {
       /* chain */
       Hand_Clear(&hand);
-      hand.type = Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAIN);
+      hand.type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, true);
 
       for (r = runtop; r > runtop - runlen; r--)
-        CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
+        CardArray_CopyRank(&hand.cards, cards, r);
 
       HandList_Push(hl, &hand);
     } else {
       /* not a chain */
       for (r = runtop; r > runtop - runlen; r--) {
         Hand_Clear(&hand);
-        hand.type =
-            Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAINLESS);
-        CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
+        hand.type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, false);
+        CardArray_CopyRank(&hand.cards, cards, r);
         HandList_Push(hl, &hand);
       }
     }
@@ -93,7 +93,7 @@ HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
   /* nuke */
   if (count[CARD_RANK_r] && count[CARD_RANK_R]) {
     Hand_Clear(&hand);
-    hand.type = Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS);
+    hand.type = Hand_Type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
     CardArray_CopyRank(&hand.cards, array, CARD_RANK_R);
     CardArray_CopyRank(&hand.cards, array, CARD_RANK_r);
 
@@ -110,14 +110,13 @@ HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
   for (i = CARD_RANK_2; i >= CARD_RANK_3; i--) {
     if (count[i] == 4) {
       Hand_Clear(&hand);
-      hand.type =
-          Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS);
-      CardArray_CopyRank(&hand.cards, array, (uint8_t)i);
+      hand.type = Hand_Type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
+      CardArray_CopyRank(&hand.cards, array, i);
 
       HandList_Push(hl, &hand);
 
       count[i] = 0;
-      CardArray_RemoveRank(array, (uint8_t)i);
+      CardArray_RemoveRank(array, i);
     }
   }
 
@@ -127,7 +126,7 @@ HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
     CardArray_CopyRank(
         &hand.cards, array,
         count[CARD_RANK_r] != 0 ? CARD_RANK_r : CARD_RANK_R);
-    hand.type = Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS);
+    hand.type = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
 
     HandList_Push(hl, &hand);
     count[CARD_RANK_r] = 0;
@@ -143,18 +142,15 @@ HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
 
     switch (count[CARD_RANK_2]) {
     case 1:
-      hand.type =
-          Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS);
+      hand.type = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
       break;
 
     case 2:
-      hand.type =
-          Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS);
+      hand.type = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
       break;
 
     case 3:
-      hand.type =
-          Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAINLESS);
+      hand.type = Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
       break;
 
     default:
@@ -214,16 +210,17 @@ typedef struct hand_ctx_s {
 
 /* the longest chain of ranks held at least `duplicate` times, lowest wins */
 static void HandList_SearchLongestConsecutive(
-    hand_ctx_t *ctx, hand_t *hand, int duplicate) {
+    const hand_ctx_t *ctx, hand_t *hand, int duplicate) {
   int i = 0;
   int rankstart = 0;
   int beststart = 0;
   int bestlen = 0;
-  int primal[] = {0, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
+  hand_primal_t primal[] = {
+      HAND_PRIMAL_NONE, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
   int chainlen[] = {
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
       HAND_TRIO_CHAIN_MIN_LENGTH};
-  int *count = ctx->count;
+  const int *count = ctx->count;
 
   if ((duplicate < 1) || (duplicate > 3))
     return;
@@ -263,13 +260,13 @@ static void HandList_SearchLongestConsecutive(
   if (bestlen > 0) {
     /* from the top of the chain down */
     for (i = beststart + bestlen - 1; i >= beststart; i--)
-      CardArray_TakeRank(&hand->cards, &ctx->rcards, (uint8_t)i, duplicate);
+      CardArray_TakeRank(&hand->cards, &ctx->rcards, i, duplicate);
 
-    hand->type = Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAIN);
+    hand->type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, true);
   }
 }
 
-typedef void (*HandList_SearchPrimalFunc)(hand_ctx_t *, hand_t *, int);
+typedef void (*HandList_SearchPrimalFunc)(const hand_ctx_t *, hand_t *, int);
 
 #define HAND_SEARCH_TYPES 3
 
@@ -278,7 +275,8 @@ typedef void (*HandList_SearchPrimalFunc)(hand_ctx_t *, hand_t *, int);
  * result stores in hand
  * return 0 when stop
  */
-static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
+static int
+HLAA_TraverseChains(const hand_ctx_t *ctx, int *begin, hand_t *hand) {
   int found = 0;
   int i = *begin;
   int primals[] = {1, 2, 3};
@@ -297,11 +295,11 @@ static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
     return 0;
 
   /* init search */
-  if (hand->type == 0) {
-    while (i < HAND_SEARCH_TYPES && hand->type == 0) {
+  if (Hand_IsNone(hand)) {
+    while (i < HAND_SEARCH_TYPES && Hand_IsNone(hand)) {
       searchers[i](ctx, hand, primals[i]);
 
-      if (hand->type != 0) {
+      if (!Hand_IsNone(hand)) {
         found = 1;
         break;
       } else {
@@ -322,7 +320,7 @@ static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
 /*
  * extract all chains or primal hands in hand_ctx
  */
-static void HLAA_ExtractAllChains(hand_ctx_t *ctx, hand_list_t *hands) {
+static void HLAA_ExtractAllChains(const hand_ctx_t *ctx, hand_list_t *hands) {
   int found = 0;
   int lastsearch = 0;
   hand_t workinghand;
@@ -343,32 +341,29 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, hand_list_t *hands) {
       HandList_Push(hands, &workinghand);
 
     /* can't find any more hands, try to reduce chain length */
-    if (lasthand.type != 0) {
-      if (lasthand.type ==
-          Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)) {
+    if (!Hand_IsNone(&lasthand)) {
+      if (Hand_IsType(&lasthand, HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true)) {
         if (CardArray_Length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 1);
           found = 1;
         } else {
-          lasthand.type = 0;
+          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
-          lasthand.type ==
-          Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN)) {
+          Hand_IsType(&lasthand, HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true)) {
         if (CardArray_Length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 2);
           found = 1;
         } else {
-          lasthand.type = 0;
+          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
-          lasthand.type ==
-          Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN)) {
+          Hand_IsType(&lasthand, HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true)) {
         if (CardArray_Length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 3);
           found = 1;
         } else {
-          lasthand.type = 0;
+          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       }
 
@@ -402,8 +397,8 @@ typedef struct analysis_best_s {
 
 } analysis_best_t;
 
-static void
-HLAA_Search(hand_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
+static void HLAA_Search(
+    const hand_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
   hand_list_t chains;
   int i = 0;
 

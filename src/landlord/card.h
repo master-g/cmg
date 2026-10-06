@@ -32,34 +32,43 @@ SOFTWARE.
 extern "C" {
 #endif
 
-#define CARD_RANK_3 (uint8_t)0x01
-#define CARD_RANK_4 (uint8_t)0x02
-#define CARD_RANK_5 (uint8_t)0x03
-#define CARD_RANK_6 (uint8_t)0x04
-#define CARD_RANK_7 (uint8_t)0x05
-#define CARD_RANK_8 (uint8_t)0x06
-#define CARD_RANK_9 (uint8_t)0x07
-#define CARD_RANK_T (uint8_t)0x08
-#define CARD_RANK_J (uint8_t)0x09
-#define CARD_RANK_Q (uint8_t)0x0A
-#define CARD_RANK_K (uint8_t)0x0B
-#define CARD_RANK_A (uint8_t)0x0C
-#define CARD_RANK_2 (uint8_t)0x0D
-#define CARD_RANK_r (uint8_t)0x0E
-#define CARD_RANK_R (uint8_t)0x0F
+/* a card is one byte: suit in the high half, rank in the low half */
 
-#define CARD_RANK_BEG CARD_RANK_3
-#define CARD_RANK_END (CARD_RANK_R + 1)
+typedef enum {
+  CARD_RANK_NONE = 0,
+  CARD_RANK_3,
+  CARD_RANK_4,
+  CARD_RANK_5,
+  CARD_RANK_6,
+  CARD_RANK_7,
+  CARD_RANK_8,
+  CARD_RANK_9,
+  CARD_RANK_T,
+  CARD_RANK_J,
+  CARD_RANK_Q,
+  CARD_RANK_K,
+  CARD_RANK_A,
+  CARD_RANK_2,
+  CARD_RANK_r, /* black joker */
+  CARD_RANK_R, /* red joker */
 
-#define CARD_SUIT_CLUB 0x10
-#define CARD_SUIT_DIAMOND 0x20
-#define CARD_SUIT_HEART 0x30
-#define CARD_SUIT_SPADE 0x40
+  CARD_RANK_END,
+  CARD_RANK_BEG = CARD_RANK_3
+} card_rank_t;
+
+typedef enum {
+  CARD_SUIT_NONE = 0x00,
+  CARD_SUIT_CLUB = 0x10,
+  CARD_SUIT_DIAMOND = 0x20,
+  CARD_SUIT_HEART = 0x30,
+  CARD_SUIT_SPADE = 0x40
+} card_suit_t;
 
 #define CARD_SET_LENGTH 54
 
-#define CARD_RANK(x) (uint8_t)((x) & 0x0F)
-#define CARD_SUIT(x) ((x) & 0xF0)
+/* a card_rank_t, as an int since ranks are counted and compared */
+#define CARD_RANK(x) ((int)((x) & 0x0F))
+#define CARD_SUIT(x) ((card_suit_t)((x) & 0xF0))
 
 /*
  * ************************************************************
@@ -155,18 +164,17 @@ void CardArray_CountRanks(const card_array_t *array, int *count);
  * holds them; returns how many were appended
  */
 int CardArray_TakeRank(
-    card_array_t *dst, const card_array_t *src, uint8_t rank, int count);
+    card_array_t *dst, const card_array_t *src, int rank, int count);
 
 /*
  * append every card of a rank in src to dst
  */
-void CardArray_CopyRank(
-    card_array_t *dst, const card_array_t *src, uint8_t rank);
+void CardArray_CopyRank(card_array_t *dst, const card_array_t *src, int rank);
 
 /*
  * remove specific rank cards from array
  */
-void CardArray_RemoveRank(card_array_t *array, uint8_t rank);
+void CardArray_RemoveRank(card_array_t *array, int rank);
 
 /*
  * sort cards from high to low, by rank then by suit

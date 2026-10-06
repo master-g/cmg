@@ -60,6 +60,7 @@ int Card_ToString(uint8_t card, char *buf, int len) {
   if ((buf == NULL) || (len < CARD_STRING_SIZE))
     return 0;
 
+  /* the byte may hold a suit no card has, hence the default */
   switch (CARD_SUIT(card)) {
   case CARD_SUIT_DIAMOND:
     szSuit = szDIAMOND;
@@ -77,6 +78,7 @@ int Card_ToString(uint8_t card, char *buf, int len) {
     szSuit = szSPADE;
     break;
 
+  case CARD_SUIT_NONE:
   default:
     szSuit = NULL;
     break;
@@ -97,10 +99,10 @@ int Card_ToString(uint8_t card, char *buf, int len) {
 }
 
 /* the suit str starts with, 0 when it does not start with one */
-static uint8_t Card_ParseSuit(const char *str, int *consumed) {
+static card_suit_t Card_ParseSuit(const char *str, int *consumed) {
   static const struct {
     const char *text;
-    uint8_t suit;
+    card_suit_t suit;
   } suits[] = {
       {szDIAMOND, CARD_SUIT_DIAMOND},
       {szCLUB, CARD_SUIT_CLUB},
@@ -116,36 +118,36 @@ static uint8_t Card_ParseSuit(const char *str, int *consumed) {
   }
 
   *consumed = 1;
-  return 0;
+  return CARD_SUIT_NONE;
 }
 
 /* the rank a character stands for, 0 when it is not a rank */
-static uint8_t Card_ParseRank(char c) {
+static int Card_ParseRank(char c) {
   const char *found = (c != '\0' && c != '?') ? strchr(szRank, c) : NULL;
 
-  return found != NULL ? (uint8_t)(found - szRank) : 0;
+  return found != NULL ? (int)(found - szRank) : CARD_RANK_NONE;
 }
 
 void CardArray_InitFromString(card_array_t *array, const char *str) {
-  uint8_t suit = 0;
-  uint8_t rank = 0;
+  card_suit_t suit = CARD_SUIT_NONE;
+  int rank = CARD_RANK_NONE;
   const char *p = str;
 
   CardArray_Clear(array);
 
   while (*p != '\0') {
     int consumed = 1;
-    uint8_t s = Card_ParseSuit(p, &consumed);
+    card_suit_t s = Card_ParseSuit(p, &consumed);
 
-    if (s != 0)
+    if (s != CARD_SUIT_NONE)
       suit = s;
-    else if (Card_ParseRank(*p) != 0)
+    else if (Card_ParseRank(*p) != CARD_RANK_NONE)
       rank = Card_ParseRank(*p);
 
-    if ((suit != 0) && (rank != 0)) {
-      CardArray_PushBack(array, (uint8_t)(suit | rank));
-      suit = 0;
-      rank = 0;
+    if ((suit != CARD_SUIT_NONE) && (rank != CARD_RANK_NONE)) {
+      CardArray_PushBack(array, (uint8_t)((int)suit | rank));
+      suit = CARD_SUIT_NONE;
+      rank = CARD_RANK_NONE;
     }
 
     p += consumed;
@@ -311,7 +313,7 @@ void CardArray_CountRanks(const card_array_t *array, int *count) {
 }
 
 int CardArray_TakeRank(
-    card_array_t *dst, const card_array_t *src, uint8_t rank, int count) {
+    card_array_t *dst, const card_array_t *src, int rank, int count) {
   int i = 0;
   int taken = 0;
 
@@ -325,12 +327,11 @@ int CardArray_TakeRank(
   return taken;
 }
 
-void CardArray_CopyRank(
-    card_array_t *dst, const card_array_t *src, uint8_t rank) {
+void CardArray_CopyRank(card_array_t *dst, const card_array_t *src, int rank) {
   CardArray_TakeRank(dst, src, rank, src->length);
 }
 
-void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
+void CardArray_RemoveRank(card_array_t *array, int rank) {
   int i = 0;
   card_array_t temp;
 
@@ -346,14 +347,14 @@ void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
 
 /* high rank first, then high suit first */
 static int CardArray_StandardSort(const void *a, const void *b) {
-  uint8_t ra = 0;
-  uint8_t rb = 0;
+  int ra = 0;
+  int rb = 0;
 
   /* rotation */
-  ra = (uint8_t)(CARD_SUIT(*(const uint8_t *)a) >> 4 |
-                 CARD_RANK(*(const uint8_t *)a) << 4);
-  rb = (uint8_t)(CARD_SUIT(*(const uint8_t *)b) >> 4 |
-                 CARD_RANK(*(const uint8_t *)b) << 4);
+  ra = (int)CARD_SUIT(*(const uint8_t *)a) >> 4 | CARD_RANK(*(const uint8_t *)a)
+                                                      << 4;
+  rb = (int)CARD_SUIT(*(const uint8_t *)b) >> 4 | CARD_RANK(*(const uint8_t *)b)
+                                                      << 4;
 
   return rb - ra;
 }

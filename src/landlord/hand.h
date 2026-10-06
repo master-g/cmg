@@ -27,6 +27,8 @@ SOFTWARE.
 
 #include "card.h"
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -38,43 +40,40 @@ extern "C" {
 #define HAND_TRIO_CHAIN_MIN_LENGTH 6
 #define HAND_FOUR_CHAIN_MIN_LENGTH 8
 
-/* primal hands */
-#define HAND_PRIMAL_NONE 0x00
-#define HAND_PRIMAL_NUKE 0x06
-#define HAND_PRIMAL_BOMB 0x05
-#define HAND_PRIMAL_FOUR 0x04
-#define HAND_PRIMAL_TRIO 0x03
-#define HAND_PRIMAL_PAIR 0x02
-#define HAND_PRIMAL_SOLO 0x01
+/*
+ * What gives a hand its rank. SOLO to FOUR are also the number of cards of
+ * each rank the part is made of, and the order is the order bombs beat by.
+ */
+typedef enum {
+  HAND_PRIMAL_NONE = 0, /* not a hand */
+  HAND_PRIMAL_SOLO = 1,
+  HAND_PRIMAL_PAIR = 2,
+  HAND_PRIMAL_TRIO = 3,
+  HAND_PRIMAL_FOUR = 4, /* four of a kind carrying kickers, not a bomb */
+  HAND_PRIMAL_BOMB,
+  HAND_PRIMAL_NUKE
+} hand_primal_t;
 
-/* kicker hands */
-#define HAND_KICKER_NONE 0x00
-#define HAND_KICKER_SOLO 0x10
-#define HAND_KICKER_PAIR 0x20
-#define HAND_KICKER_DUAL_SOLO 0x30
-#define HAND_KICKER_DUAL_PAIR 0x40
+/* what every primal rank carries along */
+typedef enum {
+  HAND_KICKER_NONE = 0,
+  HAND_KICKER_SOLO,
+  HAND_KICKER_PAIR,
+  HAND_KICKER_DUAL_SOLO,
+  HAND_KICKER_DUAL_PAIR
+} hand_kicker_t;
 
-/* chain */
-#define HAND_CHAINLESS 0x00
-#define HAND_CHAIN 0x80
-
-#define HAND_NONE 0x00
-
-#define Hand_GetPrimal(h) ((h) & 0x0F)
-#define Hand_GetKicker(h) ((h) & 0x70)
-#define Hand_GetChain(h) ((h) & 0x80)
-
-#define Hand_SetPrimal(h, p) ((h) |= (p))
-#define Hand_SetKicker(h, k) Hand_SetPrimal(h, k)
-
-#define Hand_Format(p, k, c) (uint8_t)((p) | (k) | (c))
+typedef struct hand_type_s {
+  hand_primal_t primal;
+  hand_kicker_t kicker;
+  bool chain; /* the primal part spans consecutive ranks */
+} hand_type_t;
 
 typedef enum {
   HAND_CMP_ILLEGAL = -3,
   HAND_CMP_LESS = -1,
   HAND_CMP_EQUAL = 0,
   HAND_CMP_GREATER = 1
-
 } HandCompareResult;
 
 /*
@@ -82,10 +81,30 @@ typedef enum {
  * cards format must be like 12345/112233/111222/1112223344/11122234 etc
  */
 typedef struct hand_s {
-  uint8_t type;
+  hand_type_t type;
   card_array_t cards;
-
 } hand_t;
+
+/*
+ * a hand type from its three parts
+ */
+hand_type_t Hand_Type(hand_primal_t primal, hand_kicker_t kicker, bool chain);
+
+/*
+ * are two hand types the same
+ */
+bool Hand_TypeEquals(hand_type_t a, hand_type_t b);
+
+/*
+ * is the hand of exactly this type
+ */
+bool Hand_IsType(
+    const hand_t *hand, hand_primal_t primal, hand_kicker_t kicker, bool chain);
+
+/*
+ * has the hand no type, that is, it is not a hand
+ */
+bool Hand_IsNone(const hand_t *hand);
 
 /*
  * clear a hand
@@ -99,19 +118,19 @@ void Hand_Copy(hand_t *dst, const hand_t *src);
 
 /*
  * parse a card array to hand, the card array is left as it is
- * returns the hand type, HAND_NONE if the cards are not a hand
+ * returns false and leaves hand empty when the cards are not a hand
  */
-int Hand_Parse(hand_t *hand, const card_array_t *array);
+bool Hand_Parse(hand_t *hand, const card_array_t *array);
 
 /*
  * compare two hands, this is the only place that knows which hand is greater
  */
-int Hand_Compare(const hand_t *a, const hand_t *b);
+HandCompareResult Hand_Compare(const hand_t *a, const hand_t *b);
 
 /*
  * the rank a hand is compared by: its highest primal rank
  */
-uint8_t Hand_Rank(const hand_t *hand);
+int Hand_Rank(const hand_t *hand);
 
 /*
  * the two parts of a hand: the cards that give it its rank (the trios of a
@@ -123,12 +142,12 @@ void Hand_Split(
 /*
  * four of a kind, beats everything but a higher bomb and the nuke
  */
-int Hand_IsBomb(const hand_t *hand);
+bool Hand_IsBomb(const hand_t *hand);
 
 /*
  * both jokers, beats everything
  */
-int Hand_IsNuke(const hand_t *hand);
+bool Hand_IsNuke(const hand_t *hand);
 
 /*
  * hand print

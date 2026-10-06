@@ -48,7 +48,6 @@ typedef enum {
   GameStatus_Halt = 0,
   GameStatus_Bid,
   GameStatus_Ready,
-  GameStatus_Pause,
   GameStatus_Over,
   GameStatus_Illegal /* a player handed in cards the rules reject */
 
@@ -74,8 +73,8 @@ typedef struct game_s {
   int landlord;                   /* landlord index */
   int lastplay;                   /* who played the last hand */
   int winner;                     /* who win the last game */
-  int status;                     /* game status */
-  int phase;                      /* game phase */
+  GameStatus status;              /* game status */
+  StagePhase phase;               /* game phase */
   uint32_t seed;                  /* seed of the game being played */
 
 } game_t;

@@ -39,7 +39,7 @@ SOFTWARE.
  *
  * returns 0 when there is none
  */
-int Beat_Search(const card_array_t *cards, hand_t *tobeat, hand_t *beat);
+int Beat_Search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat);
 
 /*
  * every hand in cards that beats tobeat, as judged by the rules, in the order

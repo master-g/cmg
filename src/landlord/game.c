@@ -52,8 +52,8 @@ static void Game_Reset(game_t *game) {
   game->landlord = 0;
   game->lastplay = 0;
   game->winner = 0;
-  game->status = 0;
-  game->phase = 0;
+  game->status = GameStatus_Halt;
+  game->phase = Phase_Play;
 
   Hand_Clear(&game->lastHand);
   CardArray_Reset(&game->deck);
@@ -62,8 +62,9 @@ static void Game_Reset(game_t *game) {
 }
 
 /* what the current player is allowed to know */
-static void Game_MakeView(game_t *game, ai_view_t *view, hand_t *tobeat) {
-  player_t *player = Game_GetCurrentPlayer(game);
+static void
+Game_MakeView(const game_t *game, ai_view_t *view, const hand_t *tobeat) {
+  const player_t *player = Game_GetCurrentPlayer(game);
   int i = 0;
 
   view->ai = player->ai;
@@ -80,7 +81,7 @@ static void Game_MakeView(game_t *game, ai_view_t *view, hand_t *tobeat) {
     view->cardsLeft[i] = CardArray_Length(&game->players[i].cards);
 }
 
-static void Game_Reject(game_t *game, hand_t *hand, const char *reason) {
+static void Game_Reject(game_t *game, const hand_t *hand, const char *reason) {
   int i = 0;
   char str[CARD_STRING_SIZE];
 
@@ -105,11 +106,12 @@ static void Game_Reject(game_t *game, hand_t *hand, const char *reason) {
  * An accepted hand is taken out of the player's cards, becomes the last hand
  * and goes on record.
  */
-static int Game_AcceptHand(game_t *game, hand_t *played, hand_t *tobeat) {
+static int
+Game_AcceptHand(game_t *game, const hand_t *played, const hand_t *tobeat) {
   player_t *player = Game_GetCurrentPlayer(game);
   hand_t hand;
 
-  if (Hand_Parse(&hand, &played->cards) == HAND_NONE) {
+  if (!Hand_Parse(&hand, &played->cards)) {
     Game_Reject(game, played, "not a hand");
     return 0;
   }

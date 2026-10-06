@@ -52,23 +52,23 @@ int AI_Bid(const ai_view_t *view) {
 }
 
 /* first hand of that type the seat holds */
-static const hand_t *AI_FindHand(const hand_list_t *hands, int type) {
+static const hand_t *AI_FindHand(const hand_list_t *hands, hand_type_t type) {
   int i = 0;
 
   for (i = 0; i < HandList_Count(hands); i++) {
-    if (HandList_At(hands, i)->type == type)
+    if (Hand_TypeEquals(HandList_At(hands, i)->type, type))
       return HandList_At(hands, i);
   }
 
   return NULL;
 }
 
-static int AI_CountHands(const hand_list_t *hands, int type) {
+static int AI_CountHands(const hand_list_t *hands, hand_type_t type) {
   int i = 0;
   int count = 0;
 
   for (i = 0; i < HandList_Count(hands); i++) {
-    if (HandList_At(hands, i)->type == type)
+    if (Hand_TypeEquals(HandList_At(hands, i)->type, type))
       count++;
   }
 
@@ -84,7 +84,10 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   int i = 0;
   const hand_t *node = NULL;
   int need = 0;
-  int kickertype = 0;
+  const hand_type_t solo = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
+  const hand_type_t pair = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
+  const hand_type_t trio = Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
+  hand_type_t kickertype = solo;
 
   Hand_Clear(hand);
 
@@ -99,8 +102,8 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   }
 
   /* try to find longest hand combination */
-  node = AI_FindHand(
-      hands, Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN));
+  node =
+      AI_FindHand(hands, Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true));
 
   if (node != NULL) {
     AI_AppendHand(hand, node);
@@ -109,15 +112,15 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
     need = CardArray_Length(&node->cards) / 3;
 
     /* trio-pair-chain then trio-solo-chain */
-    if (AI_CountHands(hands, HAND_PRIMAL_PAIR) >= need)
-      kickertype = HAND_PRIMAL_PAIR;
-    else if (AI_CountHands(hands, HAND_PRIMAL_SOLO) >= need)
-      kickertype = HAND_PRIMAL_SOLO;
+    if (AI_CountHands(hands, pair) >= need)
+      kickertype = pair;
+    else if (AI_CountHands(hands, solo) >= need)
+      kickertype = solo;
     else
       return;
 
     for (i = 0; (need > 0) && (i < HandList_Count(hands)); i++) {
-      if (HandList_At(hands, i)->type == kickertype) {
+      if (Hand_TypeEquals(HandList_At(hands, i)->type, kickertype)) {
         AI_AppendHand(hand, HandList_At(hands, i));
         need--;
       }
@@ -127,13 +130,13 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   }
 
   /* pair chain */
-  node = AI_FindHand(
-      hands, Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN));
+  node =
+      AI_FindHand(hands, Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true));
 
   /* solo chain */
   if (node == NULL)
-    node = AI_FindHand(
-        hands, Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN));
+    node =
+        AI_FindHand(hands, Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true));
 
   if (node != NULL) {
     AI_AppendHand(hand, node);
@@ -141,17 +144,17 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   }
 
   /* trio */
-  node = AI_FindHand(hands, HAND_PRIMAL_TRIO);
+  node = AI_FindHand(hands, trio);
 
   if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
     AI_AppendHand(hand, node);
 
     /* pair */
-    node = AI_FindHand(hands, HAND_PRIMAL_PAIR);
+    node = AI_FindHand(hands, pair);
 
     if ((node == NULL) || (Hand_Rank(node) == CARD_RANK_2)) {
       /* solo, 2 and jokers are too good to be thrown in as a kicker */
-      node = AI_FindHand(hands, HAND_PRIMAL_SOLO);
+      node = AI_FindHand(hands, solo);
 
       if ((node != NULL) && (Hand_Rank(node) >= CARD_RANK_2))
         node = NULL;
@@ -165,7 +168,7 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   }
 
   /* pair */
-  node = AI_FindHand(hands, HAND_PRIMAL_PAIR);
+  node = AI_FindHand(hands, pair);
 
   if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
     AI_AppendHand(hand, node);

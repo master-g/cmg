@@ -39,11 +39,11 @@ typedef enum {
 
 /* a seat at the table, owned and kept up to date by the game */
 typedef struct player_s {
-  card_array_t cards;   /* card array, will change during game play */
-  hand_list_t handlist; /* cards taken apart by the seat's AI */
-  int identity;         /* 0: peasant, 1: landlord */
-  int seatId;           /* 0, 1, 2 */
-  const ai_t *ai;       /* who decides for this seat */
+  card_array_t cards;      /* card array, will change during game play */
+  hand_list_t handlist;    /* cards taken apart by the seat's AI */
+  PlayerIdentity identity; /* peasant or landlord */
+  int seatId;              /* 0, 1, 2 */
+  const ai_t *ai;          /* who decides for this seat */
 
 } player_t;
 

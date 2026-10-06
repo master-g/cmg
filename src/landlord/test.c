@@ -16,80 +16,68 @@
 
 typedef struct {
   const char *cards;
-  int type;
+  hand_type_t type;
 } parse_case_t;
 
+#define NOT_A_HAND {HAND_PRIMAL_NONE, HAND_KICKER_NONE, false}
+
 static const parse_case_t parse_cases[] = {
-    {"♣3", Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS)},
-    {"♣3 ♠3", Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS)},
-    {"♠r ♠R", Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS)},
-    {"♠6 ♥6 ♦6",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAINLESS)},
-    {"♣3 ♠3 ♥3 ♥7",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAINLESS)},
-    {"♣3 ♣5 ♠5 ♠3 ♥5",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAINLESS)},
-    {"♣7 ♠7 ♥7 ♦7",
-     Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS)},
-    {"♣3 ♣4 ♠5 ♠6 ♥7",
-     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♣3 ♠4 ♦6 ♥8 ♠7 ♦5 ♦9 ♦T ♦J",
-     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♣4 ♠4 ♠5 ♥6 ♥5 ♦6",
-     Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♣4 ♠4 ♦4 ♥5 ♠5 ♦5",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♦9",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+    {"♣3", {HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false}},
+    {"♣3 ♠3", {HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false}},
+    {"♠r ♠R", {HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false}},
+    {"♠6 ♥6 ♦6", {HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false}},
+    {"♣3 ♠3 ♥3 ♥7", {HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, false}},
+    {"♣3 ♣5 ♠5 ♠3 ♥5", {HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, false}},
+    {"♣7 ♠7 ♥7 ♦7", {HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false}},
+    {"♣3 ♣4 ♠5 ♠6 ♥7", {HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true}},
+    {"♣3 ♠4 ♦6 ♥8 ♠7 ♦5 ♦9 ♦T ♦J", {HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true}},
+    {"♣4 ♠4 ♠5 ♥6 ♥5 ♦6", {HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true}},
+    {"♣4 ♠4 ♦4 ♥5 ♠5 ♦5", {HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true}},
+    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♦9", {HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, true}},
     {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♠6 ♦9 ♠9",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN)},
-    {"♣4 ♠4 ♦4 ♥4 ♠5 ♦6",
-     Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, HAND_CHAINLESS)},
+     {HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, true}},
+    {"♣4 ♠4 ♦4 ♥4 ♠5 ♦6", {HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, false}},
     {"♣3 ♠3 ♦3 ♥3 ♠6 ♦6 ♦9 ♠9",
-     Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_PAIR, HAND_CHAINLESS)},
+     {HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_PAIR, false}},
     /* chains may end at the ace */
-    {"♠T ♠J ♠Q ♠K ♠A",
-     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
+    {"♠T ♠J ♠Q ♠K ♠A", {HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true}},
     {"♠3 ♠4 ♠5 ♠6 ♠7 ♠8 ♠9 ♠T ♠J ♠Q ♠K ♠A",
-     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♠Q ♥Q ♠K ♥K ♠A ♥A",
-     Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♠K ♥K ♦K ♠A ♥A ♦A",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN)},
-    {"♠K ♥K ♦K ♠A ♥A ♦A ♠3 ♠2",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+     {HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true}},
+    {"♠Q ♥Q ♠K ♥K ♠A ♥A", {HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true}},
+    {"♠K ♥K ♦K ♠A ♥A ♦A", {HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true}},
+    {"♠K ♥K ♦K ♠A ♥A ♦A ♠3 ♠2", {HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, true}},
     /* any number of trios, each with a solo or each with a pair */
     {"♣J ♦J ♥J ♣T ♦T ♥T ♣9 ♦9 ♥9 ♠K ♦K ♦8 ♣8 ♥6 ♣6",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN)},
+     {HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, true}},
     {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♣6 ♦6 ♥6 ♠8 ♦8 ♠9 ♦9 ♠J ♦J ♠K ♦K",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN)},
+     {HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, true}},
     {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♠8 ♠9 ♠r",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+     {HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, true}},
     {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♣6 ♦6 ♥6 ♣7 ♦7 ♥7 ♠9 ♠T ♠J ♠K ♠2",
-     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+     {HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, true}},
     /* the same card twice */
-    {"♣K ♣K", HAND_NONE},
-    {"♠9 ♥9 ♣9 ♠8 ♥8 ♣8 ♣K ♣K", HAND_NONE},
-    {"♣3 ♣4 ♠5 ♠6 ♥7 ♥7", HAND_NONE},
+    {"♣K ♣K", NOT_A_HAND},
+    {"♠9 ♥9 ♣9 ♠8 ♥8 ♣8 ♣K ♣K", NOT_A_HAND},
+    {"♣3 ♣4 ♠5 ♠6 ♥7 ♥7", NOT_A_HAND},
     /* 2 and jokers never chain */
-    {"♠J ♠Q ♠K ♠A ♠2", HAND_NONE},
-    {"♠K ♥K ♠A ♥A ♠2 ♥2", HAND_NONE},
-    {"♠A ♥A ♦A ♠2 ♥2 ♦2", HAND_NONE},
-    {"♠Q ♠K ♠A ♠2 ♠r ♠R", HAND_NONE},
+    {"♠J ♠Q ♠K ♠A ♠2", NOT_A_HAND},
+    {"♠K ♥K ♠A ♥A ♠2 ♥2", NOT_A_HAND},
+    {"♠A ♥A ♦A ♠2 ♥2 ♦2", NOT_A_HAND},
+    {"♠Q ♠K ♠A ♠2 ♠r ♠R", NOT_A_HAND},
     /* chains that are too short or broken */
-    {"♣3 ♣4 ♠5 ♠6", HAND_NONE},
-    {"♣3 ♣4 ♠5 ♠6 ♥8", HAND_NONE},
-    {"♣3 ♠3 ♦5 ♥5 ♠6 ♦6", HAND_NONE},
-    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5", HAND_NONE},
-    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5 ♠8 ♠9", HAND_NONE},
+    {"♣3 ♣4 ♠5 ♠6", NOT_A_HAND},
+    {"♣3 ♣4 ♠5 ♠6 ♥8", NOT_A_HAND},
+    {"♣3 ♠3 ♦5 ♥5 ♠6 ♦6", NOT_A_HAND},
+    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5", NOT_A_HAND},
+    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5 ♠8 ♠9", NOT_A_HAND},
     /* kickers that do not match the trios */
-    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6", HAND_NONE},
-    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♠6 ♦9", HAND_NONE},
+    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6", NOT_A_HAND},
+    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♠6 ♦9", NOT_A_HAND},
     /* not a hand */
-    {"♣3 ♠4", HAND_NONE},
-    {"♣3 ♠4 ♦5 ♥6", HAND_NONE},
-    {"♣3 ♠3 ♦4 ♥4", HAND_NONE},
-    {"♣3 ♠4 ♦5 ♥6 ♠7 ♦8 ♦9 ♦T ♦J ♦Q ♦K ♦A ♦2 ♦r ♦R", HAND_NONE},
+    {"♣3 ♠4", NOT_A_HAND},
+    {"♣3 ♠4 ♦5 ♥6", NOT_A_HAND},
+    {"♣3 ♠3 ♦4 ♥4", NOT_A_HAND},
+    {"♣3 ♠4 ♦5 ♥6 ♠7 ♦8 ♦9 ♦T ♦J ♦Q ♦K ♦A ♦2 ♦r ♦R", NOT_A_HAND},
 };
 
 static void test_rules(void) {
@@ -97,16 +85,23 @@ static void test_rules(void) {
 
   printf("testing rules...\n");
   for (i = 0; i < sizeof(parse_cases) / sizeof(parse_cases[0]); i++) {
+    const hand_type_t want = parse_cases[i].type;
     card_array_t cards;
     hand_t hand;
-    int type;
+    bool ishand;
 
     CardArray_InitFromString(&cards, parse_cases[i].cards);
-    type = Hand_Parse(&hand, &cards);
-    if (type != parse_cases[i].type) {
+    ishand = Hand_Parse(&hand, &cards);
+
+    /* not a hand: no type; a hand: exactly the expected type */
+    if ((ishand != (want.primal != HAND_PRIMAL_NONE)) ||
+        !Hand_TypeEquals(hand.type, want)) {
       printf(
-          "  [%s] parsed as 0x%02x, expected 0x%02x\n", parse_cases[i].cards,
-          (unsigned)type, (unsigned)parse_cases[i].type);
+          "  [%s] parsed as primal %d kicker %d chain %d, expected primal %d "
+          "kicker %d chain %d\n",
+          parse_cases[i].cards, (int)hand.type.primal, (int)hand.type.kicker,
+          (int)hand.type.chain, (int)want.primal, (int)want.kicker,
+          (int)want.chain);
       assert(0);
     }
   }
@@ -144,7 +139,7 @@ static void test_parse_keeps_input(void) {
 
   CardArray_InitFromString(&cards, "♥7 ♣3 ♠3 ♥3");
   CardArray_Copy(&before, &cards);
-  assert(Hand_Parse(&hand, &cards) != HAND_NONE);
+  assert(Hand_Parse(&hand, &cards));
   assert(memcmp(&cards, &before, sizeof(card_array_t)) == 0);
 
   /* the trio leads the parsed hand */
@@ -156,7 +151,7 @@ static void test_parse_keeps_input(void) {
 typedef struct {
   const char *a;
   const char *b;
-  int result; /* Hand_Compare(a, b) */
+  HandCompareResult result; /* Hand_Compare(a, b) */
 } compare_case_t;
 
 static const compare_case_t compare_cases[] = {
@@ -194,14 +189,14 @@ static void test_compare(void) {
   for (i = 0; i < sizeof(compare_cases) / sizeof(compare_cases[0]); i++) {
     hand_t a = parse(compare_cases[i].a);
     hand_t b = parse(compare_cases[i].b);
-    int result;
+    HandCompareResult result;
 
-    assert(a.type != HAND_NONE && b.type != HAND_NONE);
+    assert(!Hand_IsNone(&a) && !Hand_IsNone(&b));
     result = Hand_Compare(&a, &b);
     if (result != compare_cases[i].result) {
       printf(
           "  [%s] against [%s] is %d, expected %d\n", compare_cases[i].a,
-          compare_cases[i].b, result, compare_cases[i].result);
+          compare_cases[i].b, (int)result, (int)compare_cases[i].result);
       assert(0);
     }
   }
@@ -335,7 +330,8 @@ static void test_hand_list(void) {
   assert(HandList_Push(&list, &pair) == 0);
   assert(HandList_Count(&list) == HAND_LIST_CAPACITY);
   assert(HandList_At(&list, HAND_LIST_CAPACITY) == NULL);
-  assert(HandList_At(&list, HAND_LIST_CAPACITY - 1)->type == pair.type);
+  assert(Hand_TypeEquals(
+      HandList_At(&list, HAND_LIST_CAPACITY - 1)->type, pair.type));
 
   /* hands made of played cards go, the others keep their order */
   HandList_Clear(&list);
@@ -345,7 +341,7 @@ static void test_hand_list(void) {
   CardArray_InitFromString(&played, "♣3 ♦K");
   HandList_RemoveContained(&list, &played);
   assert(HandList_Count(&list) == 1);
-  assert(HandList_At(&list, 0)->type == pair.type);
+  assert(Hand_TypeEquals(HandList_At(&list, 0)->type, pair.type));
 }
 
 /* ************************************************************
@@ -367,8 +363,8 @@ static int check_analysis(Analysis_Func analyze, const card_array_t *cards) {
     hand_t judged;
 
     /* legal, and of the type the analysis says it is */
-    assert(Hand_Parse(&judged, &hand->cards) != HAND_NONE);
-    assert(judged.type == hand->type);
+    assert(Hand_Parse(&judged, &hand->cards));
+    assert(Hand_TypeEquals(judged.type, hand->type));
     CardArray_Concat(&covered, &hand->cards);
   }
 
@@ -438,13 +434,13 @@ static void test_beat_search(void) {
       hand_list_t beats;
       int j;
 
-      assert(Hand_Parse(&tobeat, &HandList_At(&lead, i)->cards) != HAND_NONE);
+      assert(Hand_Parse(&tobeat, &HandList_At(&lead, i)->cards));
       Beat_SearchAll(&mine, &tobeat, &beats);
 
       for (j = 0; j < HandList_Count(&beats); j++) {
         hand_t beat;
 
-        assert(Hand_Parse(&beat, &HandList_At(&beats, j)->cards) != HAND_NONE);
+        assert(Hand_Parse(&beat, &HandList_At(&beats, j)->cards));
         assert(Hand_Compare(&beat, &tobeat) == HAND_CMP_GREATER);
         assert(CardArray_IsContain(&mine, &beat.cards));
         offered++;
@@ -603,7 +599,7 @@ static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
   hand_t hand;
 
   Hand_Clear(&hand);
-  hand.type = Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS);
+  hand.type = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
   CardArray_PushBack(&hand.cards, CardArray_At(cards, 0));
   CardArray_PushBack(
       &hand.cards, CardArray_At(cards, CardArray_Length(cards) - 1));
