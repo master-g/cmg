@@ -7,7 +7,7 @@ Migrated from <https://github.com/master-g/Landlord> (branch `bleeding`, commit 
 
 Build and run from the repo root: `make build TARGET=landlord && ./bin/landlord` plays 10000 AI-vs-AI games and prints the win counts.
 
-`binding/` holds the Lua and JavaScript bindings. They are not part of the build: `lualandlord.c` needs Lua headers and an `mt19937.h` that was never checked in.
+The Lua and JavaScript bindings (`binding/`) were not migrated; they remain in the original repository.
 
 
 **TODO:**  

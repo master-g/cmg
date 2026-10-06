@@ -11,7 +11,7 @@
 - [2026-09-20] 根 CMakeLists 不设 CMAKE_BUILD_TYPE，默认构建是 -O0，优化档位才暴露的 bug 不会出现在日常构建里（texas_generate 的栈越界就这样藏了下来）；排查内存问题要显式 -DCMAKE_BUILD_TYPE=Release 或加 -fsanitize
 - [2026-09-20] src/texas 的 5/7 张评估内核已穷举验证：全部 2598960 手牌型分布与理论值吻合、7462 个 value 无空洞、7hand 对拍 20 万样本 0 误；改表或改哈希后用 texas_test 复验
 - [2026-09-20] texas 7 张评估有两条路径: texas_eval_7hand 是 21 次 5 张取最小的参考实现(29.5 ns), texas_eval_7hand_fast 走完美哈希表(2.5 ns, 11.9x); 两者全量 C(52,7)=133784560 手对拍零差异, 改任一侧都要用 texas_test 复验
-- [2026-10-06] src/landlord 是从 github.com/master-g/Landlord 的 bleeding 分支(b38315e)平铺拷入的，219 条历史留在原仓库未并入；binding/ 不进构建(缺 Lua 头文件和从未提交的 mt19937.h)，memtracker 与 dsaac 的不同且不合并
+- [2026-10-06] src/landlord 是从 github.com/master-g/Landlord 的 bleeding 分支(b38315e)平铺拷入的，219 条历史留在原仓库未并入；binding/(Lua/JS 绑定)按用户决定不迁入，memtracker 与 dsaac 的不同且不合并
 
 ## 失败尝试
 
