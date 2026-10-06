@@ -27,7 +27,7 @@ FMT_DIRS := ./src/dsaac ./src/epoll_examples ./src/landlord ./src/medsr ./src/te
 
 .DEFAULT_GOAL := help
 
-.PHONY: help configure build test landlord-asan fmt clean clean-build ename
+.PHONY: help configure build test landlord-asan landlord-baseline fmt clean clean-build ename
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -52,6 +52,10 @@ landlord-asan: ## 在 ASan/UBSan 下跑 landlord 自检 (独立构建目录, 会
 		-DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
 	$(CMAKE) --build $(BUILD_DIR)-asan --target landlord_test
 	./bin/landlord_test
+
+landlord-baseline: ## 重新生成 src/landlord/baseline.c.inc (仅在有意改变对局行为后)
+	@$(MAKE) build TARGET=landlord_test
+	./bin/landlord_test --baseline > src/landlord/baseline.c.inc
 
 fmt: ## 用 clang-format 格式化源文件
 	@echo "  >  Formatting..."

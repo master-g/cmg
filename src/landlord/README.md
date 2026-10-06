@@ -10,6 +10,7 @@ Run everything from the repo root:
 - `make build TARGET=landlord && ./bin/landlord` — the benchmark: plays 10000 AI-vs-AI games and prints the win counts.
   All three seats use the same AI: search-tree hand analysis when beating, the standard heuristics for bidding and leading. A seed fully determines a game.
 - `make test` — builds and runs `landlord_test`, the assert-based self-check (rules table + whole games by seed).
+- `make landlord-baseline` — regenerates `baseline.c.inc`, the recorded outcome of every seed the self-check plays. The self-check fails when a game no longer matches it. Regenerate only after a change that is meant to alter how games play out, and say why in the commit.
 - `make landlord-asan` — runs the self-check under ASan/UBSan.
 - `make build TARGET=landlord CMAKE_ARGS=-DLANDLORD_STRICT=ON` — builds with strict warnings.
 

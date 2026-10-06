@@ -26,7 +26,7 @@
 - 测试: 无测试框架。`make test` 构建并运行 `dsaac`（`src/dsaac/test.c` 的 assert 自检）、`texas_test` 与 `landlord_test`；`make landlord-asan` 在 ASan/UBSan 下跑 landlord 自检
 - Lint / 格式化: `make fmt`（对 dsaac / epoll_examples / landlord / medsr / texas / tlpi 跑 `clang-format -i`）
 - 清理: `make clean` 只删 `bin/`，`make clean-build` 连 `build/` 一起删
-- 生成: `make ename` 重新生成 `src/libs/tlpi/ename.c.inc`
+- 生成: `make ename` 重新生成 `src/libs/tlpi/ename.c.inc`；`make landlord-baseline` 重新生成 landlord 的对局基线（只在有意改变对局行为后）
 - 重建 texas 查找表（改了生成器才需要，产物已提交）: 流程见 [src/texas/README.md](./src/texas/README.md)
 
 ## 代码风格
@@ -50,6 +50,7 @@
 - `src/medsr/Utils/` 里的 `LodePng.[ch]`、`jsmn.[ch]`、`Gif.[ch]`：第三方单文件库
 - `src/libs/tlpi/ename.c.inc`：由 `Build_ename.sh` 生成，改脚本不改产物
 - `src/texas/texas_array.c`、`texas_array7.c`、`texas_array7.h`：查找表产物，改生成器不改表；表体有 `clang-format off` 保护，`make fmt` 不会动它们
+- `src/landlord/baseline.c.inc`：对局基线，由 `make landlord-baseline` 生成；自检与它不一致时先判断是不是改坏了，不手改
 - `src/medsr/suzanne.png`、`suzanne.babylon`：渲染器测试资产
 
 ## 审查规则
