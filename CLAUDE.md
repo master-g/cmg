@@ -12,7 +12,7 @@
 - 格式化: clang-format，配置见根目录 `.clang-format`（LLVM 基础 + 2 空格缩进 + 80 列）
 - 产物统一输出到 `bin/`（`EXECUTABLE_OUTPUT_PATH`，已 gitignore）
 - 子项目各自独立、互不依赖，仅 `src/libs/tlpi` 作为静态库被 `epoll_examples` 和 `tlpi` 链接
-- 子项目各有 README，进入前先读：`src/texas`、`src/dsaac`、`src/osmanthus`、`src/mph`、`src/epoll_examples`
+- 子项目各有 README，进入前先读：`src/texas`、`src/dsaac`、`src/osmanthus`、`src/mph`、`src/epoll_examples`、`src/landlord`
 
 ## 命令
 
@@ -24,7 +24,7 @@
 - 构建: `make build`；单个子项目用 `make build TARGET=dsaac`（可选值见 Makefile 顶部注释）
 - 档位: `make build BUILD_TYPE=Release`（默认 Debug）；产物落到 `bin/`，cmake 中间件在 `build/`
 - 测试: 无测试框架。`make test` 构建并运行 `dsaac`（`src/dsaac/test.c` 的 assert 自检）与 `texas_test`
-- Lint / 格式化: `make fmt`（对 dsaac / epoll_examples / medsr / texas / tlpi 跑 `clang-format -i`）
+- Lint / 格式化: `make fmt`（对 dsaac / epoll_examples / landlord / medsr / texas / tlpi 跑 `clang-format -i`）
 - 清理: `make clean` 只删 `bin/`，`make clean-build` 连 `build/` 一起删
 - 生成: `make ename` 重新生成 `src/libs/tlpi/ename.c.inc`
 - 重建 texas 查找表（改了生成器才需要，产物已提交）: 流程见 [src/texas/README.md](./src/texas/README.md)

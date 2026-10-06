@@ -4,6 +4,9 @@ add_subdirectory(libs)
 # Data Structure, Algorithm and Application in C
 add_subdirectory(dsaac)
 
+# Dou Dizhu (landlord) poker game and AI
+add_subdirectory(landlord)
+
 # MED soft renderer
 add_subdirectory(medsr)
 

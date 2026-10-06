@@ -16,12 +16,12 @@ CMD_FORMAT := clang-format -i
 BUILD_DIR ?= build
 # BUILD_TYPE: Debug | Release | RelWithDebInfo | MinSizeRel
 BUILD_TYPE ?= Debug
-# TARGET: all | dsaac | medsr | mph | texas_eval | texas_all | texas_generate |
+# TARGET: all | dsaac | landlord | medsr | mph | texas_eval | texas_all | texas_generate |
 #         texas_test | osm_eval | osm_genarray | copy | epoll_examples
 TARGET ?= all
 
 SRC_TYPES := -iname '*.h' -o -iname '*.hh' -o -iname '*.hpp' -o -iname '*.c' -o -iname '*.cc' -o -iname '*.cpp' -o -iname '*.cxx'
-FMT_DIRS := ./src/dsaac ./src/epoll_examples ./src/medsr ./src/texas ./src/tlpi
+FMT_DIRS := ./src/dsaac ./src/epoll_examples ./src/landlord ./src/medsr ./src/texas ./src/tlpi
 
 .DEFAULT_GOAL := help
 
