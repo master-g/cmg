@@ -26,199 +26,17 @@ SOFTWARE.
  * brief about Hand_Parse function
  * --------------------------------------
  *
- * Landlord has few types of hands,
- * for example, solo-chain as 34567, trio-solo-chain as 333444555A26
- * their patterns are 11111, 333111
- * which can help us to determine the type of a specific hand
+ * A hand is recognised from how many cards of each rank it holds, the suits
+ * never matter:
  *
- * for example, a 6 cards can have 4 types of hands
- * solo-chain, pair-chain, trio-chain and four-dual-solo
- *
- * the parse process can be simply describe as
- * 1. rank count            --  count every rank in the card array
- * 2. rank count sort       --  sort the count result
- * 3. pattern match         --  iterate through possible patterns
+ * 1. count every rank, and how many ranks appear once, twice, three and four
+ *    times
+ * 2. the ranks that appear most are the primal part (solo, pair, trio, four),
+ *    two or more of them must be consecutive and below 2 to form a chain
+ * 3. whatever is left must be exactly the kickers that primal part can carry
  */
 
 #include "hand.h"
-
-#define HAND_VARIATION 2
-#define HAND_SPEC 4
-
-/* ************************************************************
- * pattern
- * ************************************************************/
-
-#define PATTERN_LENGTH 12
-
-#define HAND_PATTERN_NONE 0  /* place holder */
-#define HAND_PATTERN_1 1     /* 1, solo */
-#define HAND_PATTERN_2_1 2   /* 2, pair */
-#define HAND_PATTERN_2_2 3   /* 2, nuke */
-#define HAND_PATTERN_3 4     /* 3, trio */
-#define HAND_PATTERN_4_1 5   /* bomb */
-#define HAND_PATTERN_4_2 6   /* trio solo */
-#define HAND_PATTERN_5_1 7   /* solo chain */
-#define HAND_PATTERN_5_2 8   /* trio pair */
-#define HAND_PATTERN_6_1 9   /* solo chain */
-#define HAND_PATTERN_6_2 10  /* pair chain */
-#define HAND_PATTERN_6_3 11  /* trio chain */
-#define HAND_PATTERN_6_4 12  /* four dual solo */
-#define HAND_PATTERN_7 13    /* solo chain */
-#define HAND_PATTERN_8_1 14  /* solo chain */
-#define HAND_PATTERN_8_2 15  /* pair chain */
-#define HAND_PATTERN_8_3 16  /* trio solo chain */
-#define HAND_PATTERN_8_4 17  /* four dual pair */
-#define HAND_PATTERN_8_5 18  /* four chain */
-#define HAND_PATTERN_9_1 19  /* solo chain */
-#define HAND_PATTERN_9_2 20  /* trio chain */
-#define HAND_PATTERN_10_1 21 /* solo chain */
-#define HAND_PATTERN_10_2 22 /* pair chain */
-#define HAND_PATTERN_10_3 23 /* trio pair chain */
-#define HAND_PATTERN_11 24   /* solo chain */
-#define HAND_PATTERN_12_1 25 /* solo chain */
-#define HAND_PATTERN_12_2 26 /* pair chain */
-#define HAND_PATTERN_12_3 27 /* trio chain */
-#define HAND_PATTERN_12_4 28 /* trio solo chain */
-#define HAND_PATTERN_12_5 29 /* four chain */
-#define HAND_PATTERN_12_6 30 /* four dual solo chain */
-#define HAND_PATTERN_14 31   /* pair chain */
-#define HAND_PATTERN_15 32   /* trio chain */
-#define HAND_PATTERN_16_1 33 /* pair chain */
-#define HAND_PATTERN_16_2 34 /* trio solo chain */
-#define HAND_PATTERN_16_3 35 /* four chain */
-#define HAND_PATTERN_16_4 36 /* four dual pair chain */
-#define HAND_PATTERN_18_1 37 /* pair chain */
-#define HAND_PATTERN_18_2 38 /* trio chain */
-#define HAND_PATTERN_18_3 39 /* four dual solo chain */
-#define HAND_PATTERN_20_1 40 /* pair chain */
-#define HAND_PATTERN_20_2 41 /* trio solo chain */
-#define HAND_PATTERN_20_3 42 /* four chain */
-#define HAND_PATTERN_END HAND_PATTERN_20_3
-
-static const int hand_pattern[][PATTERN_LENGTH] = {
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* place holder */
-    {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 1, solo */
-    {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 2, pair */
-    {1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 2, nuke */
-    {3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 3, trio */
-    {4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 4, bomb */
-    {3, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 4, trio solo */
-    {1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0}, /* 5, solo chain */
-    {3, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 5, trio pair */
-    {1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}, /* 6, solo chain */
-    {2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 6, pair chain */
-    {3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 6, trio chain */
-    {4, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 6, four dual solo */
-    {1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0}, /* 7, solo chain */
-    {1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0}, /* 8, solo chain */
-    {2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0}, /* 8, pair chain */
-    {3, 3, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0}, /* 8, trio solo chain */
-    {4, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 8, four dual pair */
-    {4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 8, four chain */
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0}, /* 9, solo chain */
-    {3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 9, trio chain */
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0}, /* 10, solo chain */
-    {2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0}, /* 10, pair chain */
-    {3, 3, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0}, /* 10, trio pair chain */
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0}, /* 11, solo chain */
-    {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}, /* 12, solo chain */
-    {2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0}, /* 12, pair chain */
-    {3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0}, /* 12, trio chain */
-    {3, 3, 3, 1, 1, 1, 0, 0, 0, 0, 0, 0}, /* 12, trio solo chain */
-    {4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 12, four chain */
-    {4, 4, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0}, /* 12, four dual solo chain */
-    {2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0}, /* 14, pair chain */
-    {3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0, 0}, /* 15, trio chain */
-    {2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0}, /* 16, pair chain */
-    {3, 3, 3, 3, 1, 1, 1, 1, 0, 0, 0, 0}, /* 16, trio solo chain */
-    {4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0, 0}, /* 16, four chain */
-    {4, 4, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0}, /* 16, four dual pair chain */
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0}, /* 18, pair chain */
-    {3, 3, 3, 3, 3, 3, 0, 0, 0, 0, 0, 0}, /* 18, trio chain */
-    {4, 4, 4, 1, 1, 1, 1, 1, 1, 0, 0, 0}, /* 18, four dual solo chain */
-    {2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0}, /* 20, pair chain */
-    {3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 0, 0}, /* 20, trio solo chain */
-    {4, 4, 4, 4, 4, 0, 0, 0, 0, 0, 0, 0}, /* 20, four chain */
-};
-
-/**
- *  hand specification contains 5 elements
- *  --------------------------------------
- *  pattern
- *  length (contains in card_array_t)
- *  primal
- *  kicker
- *  chain
- *
- *  except solo/pair/trio chains
- *  hands that had same length may have 2 variations at most
- */
-
-static const int hand_specs[HAND_MAX_LENGTH + 1][HAND_VARIATION][HAND_SPEC] = {
-    {/* place holder */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 1 */
-     {HAND_PATTERN_1, HAND_PRIMAL_SOLO, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 2 */
-     {HAND_PATTERN_2_1, HAND_PRIMAL_PAIR, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 3 */
-     {HAND_PATTERN_3, HAND_PRIMAL_TRIO, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 4 */
-     {HAND_PATTERN_4_2, HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, 0},
-     {0, 0, 0, 0}},
-    {/* 5 */
-     {HAND_PATTERN_5_2, HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, 0},
-     {0, 0, 0, 0}},
-    {/* 6 */
-     {HAND_PATTERN_6_4, HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, 0},
-     {0, 0, 0, 0}},
-    {/* 7 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 8 */
-     {HAND_PATTERN_8_3, HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN},
-     {HAND_PATTERN_8_4, HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_PAIR, 0}},
-    {/* 9 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 10 */
-     {HAND_PATTERN_10_3, HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN},
-     {0, 0, 0, 0}},
-    {/* 11 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 12 */
-     {HAND_PATTERN_12_4, HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN},
-     {HAND_PATTERN_12_6, HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, HAND_CHAIN}},
-    {/* 13 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 14 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 15 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 16 */
-     {HAND_PATTERN_16_2, HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN},
-     {HAND_PATTERN_16_4, HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_PAIR, HAND_CHAIN}},
-    {/* 17 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 18 */
-     {HAND_PATTERN_18_3, HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, HAND_CHAIN},
-     {0, 0, 0, 0}},
-    {/* 19 */
-     {0, 0, 0, 0},
-     {0, 0, 0, 0}},
-    {/* 20 */
-     {HAND_PATTERN_20_2, HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN},
-     {0, 0, 0, 0}}};
 
 /* ************************************************************
  * hand
@@ -237,206 +55,161 @@ void Hand_Copy(hand_t *dst, hand_t *src) {
  * parser
  * ************************************************************/
 
-/* sort function for rank count array */
-static int Hand_PatternSort(const void *a, const void *b) {
-  return *(const int *)b - *(const int *)a;
-}
-
-/* sort count array by counts */
-static void Hand_SortCount(int *count) {
-  qsort(count, CARD_RANK_END, sizeof(int), Hand_PatternSort);
-}
-
 /*
  * count rank in card array
  * count[rank] = num
  */
-void Hand_CountRank(card_array_t *array, int *count, int *sort) {
+void Hand_CountRank(card_array_t *array, int *count) {
   int i = 0;
 
   memset(count, 0, sizeof(int) * CARD_RANK_END);
 
   for (i = 0; i < array->length; i++)
     count[CARD_RANK(array->cards[i])]++;
-
-  if (sort != NULL) {
-    memcpy(sort, count, sizeof(int) * CARD_RANK_END);
-    Hand_SortCount(sort);
-  }
 }
 
-/* check if a sorted count array matches specific pattern */
-static int Hand_PatternMatch(int *sorted, int pattern) {
-  int ret =
-      memcmp(sorted, hand_pattern[pattern], sizeof(int) * PATTERN_LENGTH) == 0
-          ? 1
-          : 0;
+/* sorted cards, so the same card twice would be next to each other */
+static int Hand_HasDuplicate(const card_array_t *sorted) {
+  int i = 0;
 
-  return ret;
+  for (i = 1; i < sorted->length; i++) {
+    if (sorted->cards[i] == sorted->cards[i - 1])
+      return 1;
+  }
+
+  return 0;
 }
 
 /*
- * check pattern as 334455 666777 etc
- * | 666 | 777 | 888 | 999 |
- * | 123 |                   duplicate: 3
- * |  1     2     3     4  | expectLength: 4
+ * the ranks holding exactly `duplicate` cards can be played as the primal
+ * part: either a single rank, or consecutive ranks below 2
+ * | 666 | 777 | 888 | 999 |    duplicate: 3, ranks: 4
  */
-static int Hand_CheckChain(int *count, int duplicate, int expectLength) {
+static int Hand_IsPrimalRun(const int *count, int duplicate, int ranks) {
   int i = 0;
-  int marker = 0;
-  int length = 0;
+  int first = 0;
+  int last = 0;
+
+  for (i = CARD_RANK_BEG; i < CARD_RANK_END; i++) {
+    if (count[i] == duplicate) {
+      if (first == 0)
+        first = i;
+      last = i;
+    }
+  }
+
+  if (ranks == 1)
+    return 1;
 
   /* joker and 2 can't chain up */
-  for (i = CARD_RANK_3; i < CARD_RANK_2; i++) {
-    /* found first match */
-    if ((count[i] == duplicate) && (marker == 0)) {
-      marker = i;
-      continue;
-    }
-
-    /* matches end */
-    if (((count[i] != duplicate) && (marker != 0))) {
-      length = i - marker;
-      break;
-    }
-  }
-
-  return length == expectLength ? 1 : 0;
+  return (last < CARD_RANK_2) && (last - first + 1 == ranks);
 }
 
 /*
- * distribute cards
- * for example, Hand_Distribute(xxx, 88666644, 422, 4, 2, 8)
- * hand will be 66668844
+ * primal cards first, kickers after them, both from high to low
+ * for example 88666644 becomes 66668844
  */
-static void Hand_Distribute(
-    hand_t *hand, card_array_t *array, int *count, int d1, int d2, int length) {
+static void Hand_Arrange(
+    hand_t *hand, const card_array_t *sorted, const int *count, int primal) {
   int i = 0;
-  int num = 0;
-  uint8_t card = 0;
-  card_array_t temp;
+  card_array_t kickers;
 
-  CardArray_Clear(&temp);
+  CardArray_Clear(&kickers);
 
-  for (i = 0; i < array->length; i++) {
-    card = array->cards[i];
-    num = count[CARD_RANK(card)];
-
-    if (num == d1)
-      CardArray_PushBack(&hand->cards, card);
-    else if (num == d2)
-      CardArray_PushBack(&temp, card);
-
-    if (hand->cards.length + temp.length >= length) {
-      CardArray_Concat(&hand->cards, &temp);
-      break;
-    }
-  }
-}
-
-static int Hand_CheckNuke(hand_t *hand, card_array_t *array) {
-  int ret = 0;
-  if ((CARD_RANK(array->cards[0]) == CARD_RANK_R) &&
-      (CARD_RANK(array->cards[1]) == CARD_RANK_r)) {
-    hand->type =
-        Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS);
-    CardArray_Copy(&hand->cards, array);
-    ret = hand->type;
+  for (i = 0; i < sorted->length; i++) {
+    if (count[CARD_RANK(sorted->cards[i])] == primal)
+      CardArray_PushBack(&hand->cards, sorted->cards[i]);
+    else
+      CardArray_PushBack(&kickers, sorted->cards[i]);
   }
 
-  return ret;
+  CardArray_Concat(&hand->cards, &kickers);
 }
 
-static int Hand_CheckBomb(hand_t *hand, card_array_t *array, int *sorted) {
-  int ret = 0;
-
-  if (Hand_PatternMatch(sorted, HAND_PATTERN_4_1)) {
-    /* bomb, 4 */
-    CardArray_Copy(&hand->cards, array);
-    hand->type =
-        Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS);
-    ret = hand->type;
-  }
-
-  return ret;
-}
-
-int Hand_Parse(hand_t *hand, card_array_t *array) {
+int Hand_Parse(hand_t *hand, const card_array_t *array) {
+  int i = 0;
+  int primal = 0;
+  int ranks = 0;
+  int kicker = HAND_KICKER_NONE;
   int count[CARD_RANK_END];
-  int sorted[CARD_RANK_END];
-  int chainlength[HAND_PRIMAL_FOUR + 1] = {
-      0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
-      HAND_TRIO_CHAIN_MIN_LENGTH, HAND_FOUR_CHAIN_MIN_LENGTH};
+  int times[HAND_PRIMAL_FOUR + 1] = {0}; /* times[n]: ranks appearing n times */
+  int chainranks[HAND_PRIMAL_FOUR + 1] = {
+      0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH / 2,
+      HAND_TRIO_CHAIN_MIN_LENGTH / 3, HAND_FOUR_CHAIN_MIN_LENGTH / 4};
+  card_array_t sorted;
 
-  /* sort cards */
-  CardArray_Sort(array, NULL);
-
-  /* count ranks */
-  Hand_CountRank(array, count, sorted);
-
-  /* clear hand */
   Hand_Clear(hand);
 
-  do {
-    int i = 0;
+  if ((array->length < HAND_MIN_LENGTH) || (array->length > HAND_MAX_LENGTH))
+    return HAND_NONE;
 
-    /* validate length */
-    if ((array->length < HAND_MIN_LENGTH) ||
-        (array->length > HAND_MAX_LENGTH)) {
-      hand->type = HAND_NONE;
-      break;
-    }
+  CardArray_Copy(&sorted, array);
+  CardArray_Sort(&sorted, NULL);
 
-    /* nuke */
-    if ((array->length == 2) && Hand_CheckNuke(hand, array)) {
-      break;
-    }
+  if (Hand_HasDuplicate(&sorted))
+    return HAND_NONE;
 
-    /* bomb */
-    if ((array->length == 4) && Hand_CheckBomb(hand, array, sorted)) {
-      break;
-    }
+  Hand_CountRank(&sorted, count);
 
-    /* chains */
-    for (i = 1; i < HAND_PRIMAL_FOUR + 1; i++) {
-      int chainMinLength = chainlength[i];
-      if ((array->length >= chainMinLength) && (array->length % i == 0) &&
-          Hand_CheckChain(count, i, array->length / i)) {
-        hand->type = Hand_Format(i, HAND_KICKER_NONE, HAND_CHAIN);
-        CardArray_Copy(&hand->cards, array);
-        break;
-      }
-    }
+  for (i = CARD_RANK_BEG; i < CARD_RANK_END; i++) {
+    /* more than four of a rank, these are not cards from one deck */
+    if (count[i] > HAND_PRIMAL_FOUR)
+      return HAND_NONE;
 
-    /* chain or other type */
-    if (hand->type != 0) {
-      break;
-    } else {
-      int pattern, primal, kicker, chain, d1;
-      int d2[] = {0, 1, 2, 1, 2};
+    times[count[i]]++;
+  }
 
-      for (i = 0; i < 2; i++) {
-        pattern = hand_specs[array->length][i][0];
-        primal = hand_specs[array->length][i][1];
-        kicker = hand_specs[array->length][i][2];
-        chain = hand_specs[array->length][i][3];
+  /* nuke */
+  if ((sorted.length == 2) && count[CARD_RANK_r] && count[CARD_RANK_R]) {
+    hand->type =
+        Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS);
+    CardArray_Copy(&hand->cards, &sorted);
+    return hand->type;
+  }
 
-        if (pattern == 0) {
-          hand->type = 0;
-          break;
-        }
+  /* bomb */
+  if ((sorted.length == 4) && (times[4] == 1)) {
+    hand->type =
+        Hand_Format(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, HAND_CHAINLESS);
+    CardArray_Copy(&hand->cards, &sorted);
+    return hand->type;
+  }
 
-        if (Hand_PatternMatch(sorted, pattern)) {
-          d1 = primal;
-          Hand_Distribute(
-              hand, array, count, d1, d2[kicker >> 4], array->length);
-          hand->type = Hand_Format(primal, kicker, chain);
-          break;
-        }
-      }
-    }
+  /* the ranks that appear most are the primal part */
+  for (primal = HAND_PRIMAL_FOUR; times[primal] == 0; primal--)
+    ;
+  ranks = times[primal];
 
-  } while (0);
+  if (!Hand_IsPrimalRun(count, primal, ranks))
+    return HAND_NONE;
+
+  if (sorted.length == primal * ranks) {
+    /* nothing but the primal part: solo, pair, trio or a chain of them */
+    if ((ranks > 1) && (ranks < chainranks[primal]))
+      return HAND_NONE;
+  } else if (primal == HAND_PRIMAL_TRIO) {
+    /* every trio carries one solo, or every trio carries one pair */
+    if ((times[1] == ranks) && (times[2] == 0))
+      kicker = HAND_KICKER_SOLO;
+    else if ((times[2] == ranks) && (times[1] == 0))
+      kicker = HAND_KICKER_PAIR;
+    else
+      return HAND_NONE;
+  } else if (primal == HAND_PRIMAL_FOUR) {
+    /* every four carries two solos, or every four carries two pairs */
+    if ((times[1] == ranks * 2) && (times[2] == 0) && (times[3] == 0))
+      kicker = HAND_KICKER_DUAL_SOLO;
+    else if ((times[2] == ranks * 2) && (times[1] == 0) && (times[3] == 0))
+      kicker = HAND_KICKER_DUAL_PAIR;
+    else
+      return HAND_NONE;
+  } else {
+    return HAND_NONE;
+  }
+
+  hand->type =
+      Hand_Format(primal, kicker, ranks > 1 ? HAND_CHAIN : HAND_CHAINLESS);
+  Hand_Arrange(hand, &sorted, count, primal);
 
   return hand->type;
 }

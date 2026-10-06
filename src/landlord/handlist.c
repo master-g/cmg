@@ -86,7 +86,7 @@ static void HandCtx_Setup(hand_ctx_t *ctx, card_array_t *array) {
   /* setup search context */
   HandCtx_Clear(ctx);
 
-  Hand_CountRank(array, ctx->count, NULL);
+  Hand_CountRank(array, ctx->count);
   CardArray_Copy(&ctx->cards, array);
   CardArray_Copy(&ctx->rcards, array);
   CardArray_Sort(&ctx->cards, NULL);
@@ -760,7 +760,7 @@ rk_list_t *HandList_StandardAnalyze(card_array_t *cards) {
   CardArray_Copy(&array, cards);
 
   CardArray_Sort(&array, NULL);
-  Hand_CountRank(&array, count, NULL);
+  Hand_CountRank(&array, count);
 
   hl = rk_list_create();
 
@@ -883,7 +883,7 @@ int HandList_StandardEvaluator(card_array_t *array) {
   CardArray_Clear(&arrtrio);
 
   CardArray_Sort(array, NULL);
-  Hand_CountRank(array, count, NULL);
+  Hand_CountRank(array, count);
 
   /* nuke */
   if (count[CARD_RANK_r] && count[CARD_RANK_R]) {
@@ -1156,7 +1156,7 @@ static rk_tree_t *HLAA_TreeAddHand(rk_tree_t *tree, rk_list_node_t *handnode) {
       &newpayload->ctx.cards, &HandList_GetHand(handnode)->cards);
   CardArray_Copy(&newpayload->ctx.rcards, &newpayload->ctx.cards);
   CardArray_Reverse(&newpayload->ctx.rcards);
-  Hand_CountRank(&newpayload->ctx.cards, newpayload->ctx.count, NULL);
+  Hand_CountRank(&newpayload->ctx.cards, newpayload->ctx.count);
   newpayload->weight = oldpayload->weight + 1;
 
   /* expand the tree */
@@ -1186,7 +1186,7 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   HandCtx_Clear(&ctx);
 
   /* build beat search context */
-  Hand_CountRank(array, ctx.count, NULL);
+  Hand_CountRank(array, ctx.count);
   CardArray_Copy(&ctx.cards, array);
 
   /* extract bombs and 2 */

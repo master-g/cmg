@@ -100,12 +100,13 @@ void Hand_Copy(hand_t *dst, hand_t *src);
 /*
  * count ranks in a card array
  */
-void Hand_CountRank(card_array_t *array, int *count, int *sort);
+void Hand_CountRank(card_array_t *array, int *count);
 
 /*
- * parse a card array to hand
+ * parse a card array to hand, the card array is left as it is
+ * returns the hand type, HAND_NONE if the cards are not a hand
  */
-int Hand_Parse(hand_t *hand, card_array_t *array);
+int Hand_Parse(hand_t *hand, const card_array_t *array);
 
 /*
  * compare two hands

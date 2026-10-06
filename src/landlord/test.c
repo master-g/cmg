@@ -47,6 +47,44 @@ static const parse_case_t parse_cases[] = {
      Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_SOLO, HAND_CHAINLESS)},
     {"♣3 ♠3 ♦3 ♥3 ♠6 ♦6 ♦9 ♠9",
      Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_DUAL_PAIR, HAND_CHAINLESS)},
+    /* chains may end at the ace */
+    {"♠T ♠J ♠Q ♠K ♠A",
+     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
+    {"♠3 ♠4 ♠5 ♠6 ♠7 ♠8 ♠9 ♠T ♠J ♠Q ♠K ♠A",
+     Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)},
+    {"♠Q ♥Q ♠K ♥K ♠A ♥A",
+     Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN)},
+    {"♠K ♥K ♦K ♠A ♥A ♦A",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN)},
+    {"♠K ♥K ♦K ♠A ♥A ♦A ♠3 ♠2",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+    /* any number of trios, each with a solo or each with a pair */
+    {"♣J ♦J ♥J ♣T ♦T ♥T ♣9 ♦9 ♥9 ♠K ♦K ♦8 ♣8 ♥6 ♣6",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN)},
+    {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♣6 ♦6 ♥6 ♠8 ♦8 ♠9 ♦9 ♠J ♦J ♠K ♦K",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN)},
+    {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♠8 ♠9 ♠r",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+    {"♣3 ♦3 ♥3 ♣4 ♦4 ♥4 ♣5 ♦5 ♥5 ♣6 ♦6 ♥6 ♣7 ♦7 ♥7 ♠9 ♠T ♠J ♠K ♠2",
+     Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN)},
+    /* the same card twice */
+    {"♣K ♣K", HAND_NONE},
+    {"♠9 ♥9 ♣9 ♠8 ♥8 ♣8 ♣K ♣K", HAND_NONE},
+    {"♣3 ♣4 ♠5 ♠6 ♥7 ♥7", HAND_NONE},
+    /* 2 and jokers never chain */
+    {"♠J ♠Q ♠K ♠A ♠2", HAND_NONE},
+    {"♠K ♥K ♠A ♥A ♠2 ♥2", HAND_NONE},
+    {"♠A ♥A ♦A ♠2 ♥2 ♦2", HAND_NONE},
+    {"♠Q ♠K ♠A ♠2 ♠r ♠R", HAND_NONE},
+    /* chains that are too short or broken */
+    {"♣3 ♣4 ♠5 ♠6", HAND_NONE},
+    {"♣3 ♣4 ♠5 ♠6 ♥8", HAND_NONE},
+    {"♣3 ♠3 ♦5 ♥5 ♠6 ♦6", HAND_NONE},
+    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5", HAND_NONE},
+    {"♣3 ♠3 ♦3 ♥5 ♠5 ♦5 ♠8 ♠9", HAND_NONE},
+    /* kickers that do not match the trios */
+    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6", HAND_NONE},
+    {"♣3 ♠3 ♦3 ♥4 ♠4 ♦4 ♦6 ♠6 ♦9", HAND_NONE},
     /* not a hand */
     {"♣3 ♠4", HAND_NONE},
     {"♣3 ♠4 ♦5 ♥6", HAND_NONE},
@@ -69,6 +107,86 @@ static void test_rules(void) {
       printf(
           "  [%s] parsed as 0x%02x, expected 0x%02x\n", parse_cases[i].cards,
           (unsigned)type, (unsigned)parse_cases[i].type);
+      assert(0);
+    }
+  }
+}
+
+static hand_t parse(const char *str) {
+  card_array_t cards;
+  hand_t hand;
+
+  CardArray_InitFromString(&cards, str);
+  Hand_Parse(&hand, &cards);
+  return hand;
+}
+
+/* parsing must not reorder or change the caller's cards */
+static void test_parse_keeps_input(void) {
+  card_array_t cards;
+  card_array_t before;
+  hand_t hand;
+
+  CardArray_InitFromString(&cards, "♥7 ♣3 ♠3 ♥3");
+  CardArray_Copy(&before, &cards);
+  assert(Hand_Parse(&hand, &cards) != HAND_NONE);
+  assert(memcmp(&cards, &before, sizeof(card_array_t)) == 0);
+
+  /* the trio leads the parsed hand */
+  assert(hand.cards.length == 4);
+  assert(CARD_RANK(hand.cards.cards[0]) == CARD_RANK_3);
+  assert(CARD_RANK(hand.cards.cards[3]) == CARD_RANK_7);
+}
+
+typedef struct {
+  const char *a;
+  const char *b;
+  int result; /* Hand_Compare(a, b) */
+} compare_case_t;
+
+static const compare_case_t compare_cases[] = {
+    /* same type, higher rank wins */
+    {"♣4", "♣3", HAND_CMP_GREATER},
+    {"♣3", "♣4", HAND_CMP_LESS},
+    {"♣3", "♠3", HAND_CMP_EQUAL},
+    {"♣2", "♣A", HAND_CMP_GREATER},
+    {"♣R", "♣r", HAND_CMP_GREATER},
+    {"♣r", "♣2", HAND_CMP_GREATER},
+    {"♣5 ♠5", "♣4 ♠4", HAND_CMP_GREATER},
+    {"♣4 ♠4 ♦4 ♥9", "♣5 ♠5 ♦5 ♥3", HAND_CMP_LESS},
+    {"♣4 ♣5 ♠6 ♠7 ♥8", "♣3 ♣4 ♠5 ♠6 ♥7", HAND_CMP_GREATER},
+    {"♠T ♠J ♠Q ♠K ♠A", "♠9 ♠T ♠J ♠Q ♠K", HAND_CMP_GREATER},
+    /* bombs beat everything but bigger bombs, the nuke beats all */
+    {"♣3 ♠3 ♦3 ♥3", "♣2 ♠2", HAND_CMP_GREATER},
+    {"♣2 ♠2", "♣3 ♠3 ♦3 ♥3", HAND_CMP_LESS},
+    {"♣3 ♠3 ♦3 ♥3", "♠T ♠J ♠Q ♠K ♠A", HAND_CMP_GREATER},
+    {"♣4 ♠4 ♦4 ♥4", "♣3 ♠3 ♦3 ♥3", HAND_CMP_GREATER},
+    {"♣3 ♠3 ♦3 ♥3", "♣4 ♠4 ♦4 ♥4", HAND_CMP_LESS},
+    {"♠r ♠R", "♣2 ♠2 ♦2 ♥2", HAND_CMP_GREATER},
+    {"♣2 ♠2 ♦2 ♥2", "♠r ♠R", HAND_CMP_LESS},
+    {"♠r ♠R", "♣3", HAND_CMP_GREATER},
+    /* different types or lengths can not be compared */
+    {"♣5 ♠5", "♣4", HAND_CMP_ILLEGAL},
+    {"♣5 ♠5 ♦5", "♣4 ♠4", HAND_CMP_ILLEGAL},
+    {"♣4 ♣5 ♠6 ♠7 ♥8 ♥9", "♣3 ♣4 ♠5 ♠6 ♥7", HAND_CMP_ILLEGAL},
+    {"♣5 ♠5 ♦5 ♥9", "♣4 ♠4 ♦4", HAND_CMP_ILLEGAL},
+};
+
+static void test_compare(void) {
+  size_t i;
+
+  printf("testing compare...\n");
+  for (i = 0; i < sizeof(compare_cases) / sizeof(compare_cases[0]); i++) {
+    hand_t a = parse(compare_cases[i].a);
+    hand_t b = parse(compare_cases[i].b);
+    int result;
+
+    assert(a.type != HAND_NONE && b.type != HAND_NONE);
+    result = Hand_Compare(&a, &b);
+    if (result != compare_cases[i].result) {
+      printf(
+          "  [%s] against [%s] is %d, expected %d\n", compare_cases[i].a,
+          compare_cases[i].b, result, compare_cases[i].result);
       assert(0);
     }
   }
@@ -268,6 +386,8 @@ int main(int argc, char **argv) {
   }
 
   test_rules();
+  test_parse_keeps_input();
+  test_compare();
   test_card_array();
   test_games();
   test_determinism();
