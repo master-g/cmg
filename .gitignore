@@ -6,6 +6,7 @@ xcuserdata
 /config/
 /bin/
 /build/
+/build-asan/
 Makefile.in
 aclocal.m4
 app.info

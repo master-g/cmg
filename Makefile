@@ -1,6 +1,6 @@
 # cmg Makefile —— 统一功能入口
 #
-# 用法: make <target> [TARGET=dsaac] [BUILD_TYPE=Debug]
+# 用法: make <target> [TARGET=dsaac] [BUILD_TYPE=Debug] [CMAKE_ARGS=-D...]
 #
 # 前置条件:
 #   - cmake >= 3.16、C 编译器 (clang / gcc)
@@ -16,7 +16,9 @@ CMD_FORMAT := clang-format -i
 BUILD_DIR ?= build
 # BUILD_TYPE: Debug | Release | RelWithDebInfo | MinSizeRel
 BUILD_TYPE ?= Debug
-# TARGET: all | dsaac | landlord | medsr | mph | texas_eval | texas_all | texas_generate |
+# CMAKE_ARGS: 透传给 cmake 配置阶段，例如 -DLANDLORD_STRICT=ON
+CMAKE_ARGS ?=
+# TARGET: all | dsaac | landlord | landlord_test | medsr | mph | texas_eval | texas_all | texas_generate |
 #         texas_test | osm_eval | osm_genarray | copy | epoll_examples
 TARGET ?= all
 
@@ -25,23 +27,31 @@ FMT_DIRS := ./src/dsaac ./src/epoll_examples ./src/landlord ./src/medsr ./src/te
 
 .DEFAULT_GOAL := help
 
-.PHONY: help configure build test fmt clean clean-build ename
+.PHONY: help configure build test landlord-asan fmt clean clean-build ename
 
 help: ## 显示本帮助
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}'
 
 configure: ## 生成 cmake 构建系统
-	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE)
+	$(CMAKE) -S . -B $(BUILD_DIR) -DCMAKE_BUILD_TYPE=$(BUILD_TYPE) $(CMAKE_ARGS)
 
 build: configure ## 构建 (TARGET=all 时 macOS 会停在 epoll_examples)
 	$(CMAKE) --build $(BUILD_DIR) --target $(TARGET)
 
-test: ## 跑 assert 自检: dsaac 与 texas_test
+test: ## 跑 assert 自检: dsaac、texas_test 与 landlord_test
 	@$(MAKE) build TARGET=dsaac
 	@$(MAKE) build TARGET=texas_test
+	@$(MAKE) build TARGET=landlord_test
 	./bin/dsaac
 	./bin/texas_test
+	./bin/landlord_test
+
+landlord-asan: ## 在 ASan/UBSan 下跑 landlord 自检 (独立构建目录, 会覆盖 bin/landlord_test)
+	$(CMAKE) -S . -B $(BUILD_DIR)-asan -DCMAKE_BUILD_TYPE=Debug \
+		-DCMAKE_C_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+	$(CMAKE) --build $(BUILD_DIR)-asan --target landlord_test
+	./bin/landlord_test
 
 fmt: ## 用 clang-format 格式化源文件
 	@echo "  >  Formatting..."
@@ -55,4 +65,4 @@ clean: ## 清理可执行产物 bin/
 	@rm -rf ./bin
 
 clean-build: clean ## 清理 bin/ 和 cmake 构建目录
-	@rm -rf $(BUILD_DIR)
+	@rm -rf $(BUILD_DIR) $(BUILD_DIR)-asan

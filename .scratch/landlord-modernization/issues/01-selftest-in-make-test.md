@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `make test` 会运行 landlord 自检，失败时返回非零
-- [ ] 自检含牌型用例表，覆盖单张、对子、三张、三带一、三带二、炸弹、王炸、顺子、连对、飞机、四带二各至少一例
-- [ ] 自检含整局检查：一小段种子范围内每局都能结束并有胜者
-- [ ] 自检在几秒内跑完
-- [ ] 基准程序是单独的构建目标，行为与原入口一致
-- [ ] 有文档化的方式用严格警告选项构建 landlord，以及在 ASan/UBSan 下运行自检
-- [ ] Makefile 顶部的目标列表与 CLAUDE.md 的测试说明同步更新
-- [ ] `make fmt` 后工作区无改动，`make test` 通过
+- [x] `make test` 会运行 landlord 自检，失败时返回非零
+- [x] 自检含牌型用例表，覆盖单张、对子、三张、三带一、三带二、炸弹、王炸、顺子、连对、飞机、四带二各至少一例
+- [x] 自检含整局检查：一小段种子范围内每局都能结束并有胜者
+- [x] 自检在几秒内跑完
+- [x] 基准程序是单独的构建目标，行为与原入口一致
+- [x] 有文档化的方式用严格警告选项构建 landlord，以及在 ASan/UBSan 下运行自检
+- [x] Makefile 顶部的目标列表与 CLAUDE.md 的测试说明同步更新
+- [x] `make fmt` 后工作区无改动，`make test` 通过
