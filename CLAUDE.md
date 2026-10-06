@@ -56,7 +56,7 @@
 
 <!-- PR 审查的标准和流程: 必须通过的检查、谁审、合并条件、提交信息规范 -->
 
-- 个人仓库，直推 `master`，无 CI、无 PR 模板、无 CODEOWNERS
+- 个人仓库，直推 `main`，无 CI、无 PR 模板、无 CODEOWNERS
 - 提交信息用 Conventional Commits 小写祈使句：`feat: ...`、`refactor: ...`（早期 `update` 是历史遗留，不要沿用）
 - 合并前自检：`cmake --build build` 通过（epoll_examples 在 macOS 上必失败，见 PROJECT_MEMORY.md），改过的文件跑过 `make fmt`
 

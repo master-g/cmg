@@ -20,9 +20,9 @@
 
 ## 上次会话
 <!-- 整块改写：分支、验证命令及实际结果、停在何处；任务细节只留一行指向证据目录。 -->
-- [2026-10-06] main(与 origin/master 同一提交)；make build TARGET=landlord 通过(仅既有 -Wunused-value 警告), ./bin/landlord 跑完 10000 局且无泄漏, make test 通过
-  本次: 把 Landlord 迁入 src/landlord 并接入 CMake/Makefile, 再按根 .clang-format 统一格式; 已提交未推送
+- [2026-10-06] main；make build TARGET=landlord 通过(仅既有 -Wunused-value 警告), ./bin/landlord 跑完 10000 局且无泄漏, make test 通过
+  本次: 把 Landlord 迁入 src/landlord 并接入 CMake/Makefile, 再按根 .clang-format 统一格式; 删除远程 master 分支, main 是唯一分支
 
 ## 下次运行
 <!-- 整块改写：接下来的任务和优先级，含仍受阻的项。 -->
-- [2026-10-06] 待用户决定: 推送到哪个分支(本地在 main, 约定写的是 master)、原 Landlord 仓库是否归档; src/landlord 的 TODO 见其 README
+- [2026-10-06] 待用户决定: 原 Landlord 仓库是否归档; src/landlord 的 TODO 见其 README
