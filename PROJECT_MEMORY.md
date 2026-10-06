@@ -12,6 +12,7 @@
 - [2026-09-20] src/texas 的 5/7 张评估内核已穷举验证：全部 2598960 手牌型分布与理论值吻合、7462 个 value 无空洞、7hand 对拍 20 万样本 0 误；改表或改哈希后用 texas_test 复验
 - [2026-09-20] texas 7 张评估有两条路径: texas_eval_7hand 是 21 次 5 张取最小的参考实现(29.5 ns), texas_eval_7hand_fast 走完美哈希表(2.5 ns, 11.9x); 两者全量 C(52,7)=133784560 手对拍零差异, 改任一侧都要用 texas_test 复验
 - [2026-10-06] src/landlord 是从 github.com/master-g/Landlord 的 bleeding 分支(b38315e)平铺拷入的，219 条历史留在原仓库未并入；binding/(Lua/JS 绑定)按用户决定不迁入，memtracker 与 dsaac 的不同且不合并
+- [2026-10-06] landlord 审计(实测): 对局不调用 Hand_Parse/Hand_Compare; 10000 局 131997 手里规则判非法 7991 手(7980 是 Hand_Parse 不认 A 结尾的链, 其余为 AI 出重复牌和飞机带对子缺项), 牌型标注不符 373, 压不过 93; 结果不可复现(Game_Init 用未初始化的 mt, 7652/7650)
 
 ## 失败尝试
 
@@ -20,9 +21,9 @@
 
 ## 上次会话
 <!-- 整块改写：分支、验证命令及实际结果、停在何处；任务细节只留一行指向证据目录。 -->
-- [2026-10-06] main；make build TARGET=landlord 通过(仅既有 -Wunused-value 警告), ./bin/landlord 跑完 10000 局且无泄漏, make test 通过
-  本次: 把 Landlord 迁入 src/landlord 并接入 CMake/Makefile, 再按根 .clang-format 统一格式; 删除远程 master 分支, main 是唯一分支
+- [2026-10-06] main；Landlord 已迁入并推送, 远程 master 已删; 之后只读审计 + 架构审查 + 配置 agent skills(本地 Markdown tracker, 默认 triage 标签, 按子项目的领域文档) + 发布改造 spec, 未改 landlord 代码
+  证据: .scratch/landlord-modernization/spec.md(10 个阶段, 测试 seam 为规则 interface 与 Game 整局 interface)
 
 ## 下次运行
 <!-- 整块改写：接下来的任务和优先级，含仍受阻的项。 -->
-- [2026-10-06] 待用户决定: 原 Landlord 仓库是否归档; src/landlord 的 TODO 见其 README
+- [2026-10-06] 等用户运行 /to-tickets 把 spec 按阶段拆成工单(该技能只能由用户触发); 之后从阶段 0(自检目标接入 make test)开始执行

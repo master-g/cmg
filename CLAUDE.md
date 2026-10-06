@@ -74,3 +74,17 @@
 - 结束前运行 `python3 ~/.claude/skills/bootstrap-claude/scripts/memory.py check PROJECT_MEMORY.md`，不通过不算完成：全文 ≤ 24 KB，单行 ≤ 300 字符，改写节各一块。超限先 `compact` 压改写节，再合并或搬出事实；脚本不自动删追加节条目。
 
 <!-- bootstrap-claude convention v2 -->
+
+## Agent skills
+
+### Issue tracker
+
+spec 与工单是 `.scratch/<feature>/` 下的 Markdown 文件，随仓库提交，不用 GitHub Issues。见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+沿用默认的五个角色名（`needs-triage`、`needs-info`、`ready-for-agent`、`ready-for-human`、`wontfix`），记在工单文件的 `Status:` 行。见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+multi-context：根目录 `GLOSSARY-MAP.md` 指向各子项目自己的 `GLOSSARY.md`，ADR 跟随子项目，文件用到时才创建。见 `docs/agents/domain.md`。
