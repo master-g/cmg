@@ -75,6 +75,43 @@ static void test_rules(void) {
 }
 
 /* ************************************************************
+ * card array: operations on a full 54 card array stay inside it
+ * ************************************************************/
+
+static void test_card_array(void) {
+  /* on the heap so that a sanitizer sees any access past the end */
+  card_array_t *full = malloc(sizeof(card_array_t));
+  card_array_t reference;
+  int i;
+
+  printf("testing card array...\n");
+  CardArray_Reset(&reference);
+
+  CardArray_Reset(full);
+  for (i = 0; i < CARD_SET_LENGTH; i++) {
+    assert(CardArray_PopFront(full) == reference.cards[i]);
+    assert(full->length == CARD_SET_LENGTH - 1 - i);
+  }
+  assert(CardArray_PopFront(full) == 0);
+
+  CardArray_Reset(full);
+  assert(CardArray_DropFront(full, 4) == 4);
+  assert(full->length == CARD_SET_LENGTH - 4);
+  assert(full->cards[0] == reference.cards[4]);
+  assert(full->cards[full->length - 1] == reference.cards[CARD_SET_LENGTH - 1]);
+  assert(CardArray_DropFront(full, CARD_SET_LENGTH) == CARD_SET_LENGTH - 4);
+  assert(full->length == 0);
+
+  CardArray_Reset(full);
+  CardArray_PushBack(full, reference.cards[0]); /* full, must be ignored */
+  assert(full->length == CARD_SET_LENGTH);
+  assert(CardArray_PushFront(full, reference.cards[0]) == 0);
+  assert(CardArray_PopBack(full) == reference.cards[CARD_SET_LENGTH - 1]);
+
+  free(full);
+}
+
+/* ************************************************************
  * whole game: seed -> one finished game
  * ************************************************************/
 
@@ -231,6 +268,7 @@ int main(int argc, char **argv) {
   }
 
   test_rules();
+  test_card_array();
   test_games();
   test_determinism();
   test_baseline();

@@ -45,16 +45,11 @@ typedef struct _mt19937_s {
 } mt19937_t;
 
 void Random_Init(mt19937_t *context, uint32_t seed);
-void Random_InitWithArray(mt19937_t *context, uint32_t array[], int length);
 uint32_t Random_uint32(mt19937_t *context);
 int32_t Random_Int32(mt19937_t *context);
-double Random_real_0_1(mt19937_t *context);
-
 /* ************************************************************
  * math
  * ************************************************************/
-
-void LMath_Shuffle(uint8_t *a, size_t n, mt19937_t *mt);
 
 int LMath_NextComb(int comb[], int k, int n);
 

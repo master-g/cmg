@@ -33,7 +33,6 @@ extern "C" {
 
 typedef struct deck_s {
   card_array_t cards;
-  card_array_t used;
 
 } deck_t;
 
@@ -48,24 +47,9 @@ void Deck_Shuffle(deck_t *deck, void *mtctx);
 void Deck_Reset(deck_t *deck);
 
 /*
- * deal single card
- */
-uint8_t Deck_DealSingle(deck_t *deck);
-
-/*
- * recyle single card
- */
-void Deck_RecycleSingle(deck_t *deck, uint8_t card);
-
-/*
  * deal cards
  */
 int Deck_Deal(deck_t *deck, card_array_t *array, int count);
-
-/*
- * recyle cards
- */
-int Deck_Recycle(deck_t *deck, card_array_t *array);
 
 #ifdef __cplusplus
 }

@@ -79,12 +79,12 @@ void *memtrack_calloc(
   struct memblock *mb =
       (struct memblock *)malloc(count * elem_size + sizeof(*mb));
 
-  memset(mb, 0, count * elem_size + sizeof(*mb));
-
   if (!mb) {
     printf("Unable to calloc memory!\n");
     return NULL;
   }
+
+  memset(mb, 0, count * elem_size + sizeof(*mb));
 
   memtrack_livebytes += count * elem_size;
 
@@ -127,11 +127,11 @@ void *memtrack_realloc(
     copysize = size > mb->size ? mb->size : size;
 
     newPtr = memtrack_malloc(size, expr, file, line);
+    if (!newPtr)
+      return NULL;
+
     memcpy(newPtr, ptr, copysize);
     memtrack_free(ptr, eptr, file, line);
-
-    memtrack_livebytes -= mb->size;
-    memtrack_livebytes += size;
 
     return newPtr;
   }

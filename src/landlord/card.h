@@ -60,13 +60,6 @@ extern "C" {
 #define CARD_RANK(x) (uint8_t)((x) & 0x0F)
 #define CARD_SUIT(x) ((x) & 0xF0)
 
-#define CARD_IS_RED(x)                                                         \
-  (CARD_SUIT(x) == CARD_SUIT_DIAMOND || CARD_SUIT(x) == CARD_SUIT_HEART)
-#define CARD_IS_BLACK(x)                                                       \
-  (CARD_SUIT(x) == CARD_SUIT_CLUB || CARD_SUIT(x) == CARD_SUIT_SPADE)
-
-#define Card_Make(suit, rank) ((suit) | (rank))
-
 /*
  * ************************************************************
  * card array
@@ -75,25 +68,16 @@ extern "C" {
 
 #define CARD_ARRAY_PRESET_LENGTH CARD_SET_LENGTH
 
-#define CardArray_GetFront(a) ((a)->cards[0])
-#define CardArray_GetBack(a) ((a)->cards[(a)->lenth])
-#define CardArray_Peek(a, i) ((a)->cards[(i)])
 #define CardArray_Clear(a) (memset((a), 0, sizeof(card_array_t)))
 #define CardArray_Copy(d, s) (memcpy((d), (s), sizeof(card_array_t)))
 #define CardArray_IsFull(a) ((a)->length >= CARD_SET_LENGTH)
 #define CardArray_IsEmpty(a) ((a)->length == 0)
-#define CardArray_Capacity(a) (CARD_ARRAY_PRESET_LENGTH - (a)->length)
-#define CardArray_Set(array, where, what, count)                               \
-  (memset((array->cards + where), (what), (count) * sizeof(uint8_t)))
 
 typedef struct _card_arr_s {
   int length;
   uint8_t cards[CARD_ARRAY_PRESET_LENGTH];
 
 } card_array_t;
-
-/* sort function */
-typedef int (*CardSortFunc)(void *, void *);
 
 /**
  * Initialize a card array from string
@@ -128,11 +112,6 @@ int CardArray_Concat(card_array_t *head, card_array_t *tail);
 void CardArray_Subtract(card_array_t *from, card_array_t *sub);
 
 /*
- * check for identity
- */
-int CardArray_IsIdentity(card_array_t *a, card_array_t *b);
-
-/*
  * check for contain
  */
 int CardArray_IsContain(card_array_t *array, card_array_t *segment);
@@ -161,16 +140,6 @@ uint8_t CardArray_PopBack(card_array_t *array);
  * drop multiple cards from the front of the array
  */
 int CardArray_DropFront(card_array_t *array, int count);
-
-/*
- * drop multiple cards from the back of the array
- */
-int CardArray_DropBack(card_array_t *array, int count);
-
-/*
- * insert a card to the front of index
- */
-void CardArray_Insert(card_array_t *array, int before, uint8_t card);
 
 /*
  * remove a card from the front of index

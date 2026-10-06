@@ -34,7 +34,6 @@ SOFTWARE.
 #define LOWER_MASK 0x7FFFFFFF /* least significant w-r bits */
 
 #define FULL_MASK 0xFFFFFFFF
-#define DEF_SEED 0x012BD6AA
 
 void Random_Init(mt19937_t *context, uint32_t seed) {
   context->mt[0] = seed & FULL_MASK;
@@ -47,49 +46,6 @@ void Random_Init(mt19937_t *context, uint32_t seed) {
          context->mti);
     context->mt[context->mti] &= FULL_MASK;
   }
-}
-
-void Random_InitWithArray(mt19937_t *context, uint32_t initarr[], int length) {
-  int i, j, k;
-
-  Random_Init(context, DEF_SEED);
-  i = 1, j = 0;
-  k = (MT_N > length ? MT_N : length);
-
-  for (; k; k--) {
-    context->mt[i] =
-        (context->mt[i] ^
-         ((context->mt[i - 1] ^ (context->mt[i - 1] >> 30)) * 1664525)) +
-        initarr[j] + j;
-    context->mt[i] &= FULL_MASK;
-    i++;
-    j++;
-
-    if (j >= MT_N) {
-      context->mt[0] = context->mt[MT_N - 1];
-      i = 1;
-    }
-
-    if (j >= length) {
-      j = 0;
-    }
-  }
-
-  for (k = MT_N - 1; k; k--) {
-    context->mt[i] =
-        (context->mt[i] ^
-         ((context->mt[i - 1] ^ (context->mt[i - 1] >> 30)) * 1566083941)) -
-        i;
-    context->mt[i] &= FULL_MASK;
-    i++;
-
-    if (i >= MT_N) {
-      context->mt[0] = context->mt[MT_N - 1];
-      i = 1;
-    }
-  }
-
-  context->mt[0] = UPPER_MASK;
 }
 
 uint32_t Random_uint32(mt19937_t *context) {
@@ -134,10 +90,6 @@ int32_t Random_Int32(mt19937_t *context) {
   return (int32_t)(Random_uint32(context) >> 1);
 }
 
-double Random_real_0_1(mt19937_t *context) {
-  return (double)(Random_uint32(context) * (1.0 / 4294967296.0));
-}
-
 /* ************************************************************
  * utils
  * ************************************************************/
@@ -173,20 +125,4 @@ int LMath_NextComb(int comb[], int k, int n) {
     comb[i] = comb[i - 1] + 1;
 
   return 1;
-}
-
-void LMath_Shuffle(uint8_t *a, size_t n, mt19937_t *mt) {
-  size_t i = n, j;
-  uint8_t tmp = 0;
-
-  while (--i > 0) {
-    if (mt != NULL)
-      j = Random_Int32(mt) % (i + 1);
-    else
-      j = rand() % (i + 1);
-
-    tmp = a[j];
-    a[j] = a[i];
-    a[i] = tmp;
-  }
 }

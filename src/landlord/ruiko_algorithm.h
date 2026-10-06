@@ -39,9 +39,6 @@ typedef void (*rk_algo_free)(void *payload);
 /* search function */
 typedef int (*rk_algo_search)(void *payload, void *context);
 
-/* visit function */
-typedef void (*rk_tree_visitor)(void *payload);
-
 /* ************************************************************
  * list
  * ************************************************************/
@@ -63,8 +60,6 @@ typedef struct _rk_list_s {
 /* functions */
 
 #define rk_list_count(l) ((l)->count)
-#define rk_list_first(l) ((l)->first != NULL ? (l)->first->payload : NULL)
-#define rk_list_last(l) ((l)->last != NULL ? (l)->last->payload : NULL)
 #define rk_list_empty(l) ((l)->count == 0)
 
 #define rk_list_foreach(L, S, M, V)                                            \
@@ -108,21 +103,13 @@ typedef struct _rk_tree_node_s {
 
 rk_tree_t *rk_tree_create(void *payload);
 
-void rk_tree_clear(rk_tree_t *tree);
-
-void rk_tree_destroy(rk_tree_t *tree);
-
 void rk_tree_clear_destroy(rk_tree_t *tree);
 
 rk_tree_t *rk_tree_add_child(rk_tree_t *node, void *payload);
 
-rk_tree_t *rk_tree_add_sibling(rk_tree_t *node, void *payload);
-
 void rk_tree_dump(rk_tree_t *tree, rk_list_t *list);
 
 void rk_tree_dump_leaves(rk_tree_t *tree, rk_list_t *list);
-
-void rk_tree_levelorder(rk_tree_t *tree, rk_tree_visitor visitor);
 
 void history_purge();
 

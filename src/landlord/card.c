@@ -171,33 +171,6 @@ void CardArray_Subtract(card_array_t *from, card_array_t *sub) {
   CardArray_Copy(from, &temp);
 }
 
-int CardArray_IsIdentity(card_array_t *a, card_array_t *b) {
-  int i = 0;
-  int identity = 1;
-  card_array_t ta, tb;
-
-  if (a == b)
-    return 1;
-
-  identity = a->length - b->length;
-
-  if (identity == 0) {
-    CardArray_Copy(&ta, a);
-    CardArray_Copy(&tb, b);
-    CardArray_Sort(&ta, NULL);
-    CardArray_Sort(&tb, NULL);
-
-    for (i = 0; i < a->length; i++) {
-      if (ta.cards[i] != tb.cards[i]) {
-        identity = 0;
-        break;
-      }
-    }
-  }
-
-  return identity;
-}
-
 int CardArray_IsContain(card_array_t *array, card_array_t *segment) {
   int contain = 0;
   int i = 0;
@@ -250,8 +223,9 @@ uint8_t CardArray_PopFront(card_array_t *array) {
 
   if (!CardArray_IsEmpty(array)) {
     card = array->cards[0];
+    array->length--;
     memmove(array->cards, array->cards + 1, array->length);
-    array->cards[array->length--] = 0;
+    array->cards[array->length] = 0;
   }
 
   return card;
@@ -273,37 +247,11 @@ int CardArray_DropFront(card_array_t *array, int count) {
   int drop = 0;
 
   drop = (array->length >= count) ? count : array->length;
-  memmove(array->cards, array->cards + drop, array->length);
   array->length -= drop;
+  memmove(array->cards, array->cards + drop, array->length);
   memset(array->cards + array->length, 0, drop);
 
   return drop;
-}
-
-int CardArray_DropBack(card_array_t *array, int count) {
-  int drop = 0;
-
-  drop = (array->length >= count) ? count : array->length;
-  memset(array->cards + array->length - drop, 0, drop);
-  array->length -= drop;
-
-  return drop;
-}
-
-void CardArray_Insert(card_array_t *array, int before, uint8_t card) {
-  if (!CardArray_IsFull(array)) {
-    if (before == 0) {
-      CardArray_PushFront(array, card);
-    } else if (before == array->length) {
-      CardArray_PushBack(array, card);
-    } else if ((before > 0) && (before < array->length)) {
-      memmove(
-          array->cards + before + 1, array->cards + before,
-          array->length - before);
-      array->cards[before] = card;
-      array->length++;
-    }
-  }
 }
 
 uint8_t CardArray_Remove(card_array_t *array, int where) {

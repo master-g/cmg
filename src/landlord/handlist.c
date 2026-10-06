@@ -302,9 +302,9 @@ int _HandList_SearchBeat_Chain(
       footer = i;    /* beat footer rank */
       k = duplicate; /* how many cards needed for each rank */
 
-      for (i = cards->length; i >= 0 && chainlength > 0; i--) {
-        if (CARD_RANK(cards->cards[i]) == footer) {
-          CardArray_PushFront(&temp, cards->cards[i]);
+      for (j = cards->length - 1; j >= 0 && chainlength > 0; j--) {
+        if (CARD_RANK(cards->cards[j]) == footer) {
+          CardArray_PushFront(&temp, cards->cards[j]);
           k--;
 
           if (k == 0) {

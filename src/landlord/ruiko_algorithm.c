@@ -268,23 +268,6 @@ error:
   return tree;
 }
 
-void _rk_tree_free(void *p) { free(p); }
-
-void rk_tree_clear(rk_tree_t *tree) { rk_tree_levelorder(tree, _rk_tree_free); }
-
-void rk_tree_destroy(rk_tree_t *tree) {
-  rk_list_t *list = rk_list_create();
-  rk_tree_dump(tree, list);
-  {
-    rk_list_foreach(list, first, next, cur) {
-      rk_tree_t *tn = cur->payload;
-      free(tn);
-    }
-  }
-
-  rk_list_destroy(list);
-}
-
 void rk_tree_clear_destroy(rk_tree_t *tree) {
   rk_list_t *list = rk_list_create();
   rk_tree_dump(tree, list);
@@ -310,19 +293,6 @@ rk_tree_t *rk_tree_add_child(rk_tree_t *node, void *payload) {
 
   node->child = newnode;
   newnode->parent = node;
-
-error:
-  return newnode;
-}
-
-rk_tree_t *rk_tree_add_sibling(rk_tree_t *node, void *payload) {
-  rk_tree_t *newnode = calloc(1, sizeof(rk_tree_t));
-  rk_check_mem(newnode);
-
-  newnode->payload = payload;
-  newnode->sibling = node->sibling;
-  node->sibling = newnode;
-  newnode->parent = node->parent;
 
 error:
   return newnode;
@@ -375,25 +345,4 @@ void rk_tree_dump_leaves(rk_tree_t *tree, rk_list_t *list) {
 
 error:
   return;
-}
-
-void rk_tree_levelorder(rk_tree_t *tree, rk_tree_visitor visitor) {
-  rk_list_t *q = NULL;
-
-  q = rk_list_create();
-  rk_list_unshift(q, tree);
-
-  while (!rk_list_empty(q)) {
-    rk_tree_t *child = NULL;
-    rk_tree_t *v = rk_list_shift(q);
-    visitor(v->payload);
-
-    child = v->child;
-    while (child) {
-      rk_list_unshift(q, child);
-      child = child->sibling;
-    }
-  }
-
-  rk_list_destroy(q);
 }

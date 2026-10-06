@@ -59,7 +59,6 @@ extern "C" {
 #define HAND_CHAIN 0x80
 
 #define HAND_NONE 0x00
-#define HAND_SEARCHER_MASK 0xFF
 
 #define Hand_GetPrimal(h) ((h) & 0x0F)
 #define Hand_GetKicker(h) ((h) & 0x70)
@@ -67,12 +66,8 @@ extern "C" {
 
 #define Hand_SetPrimal(h, p) ((h) |= (p))
 #define Hand_SetKicker(h, k) Hand_SetPrimal(h, k)
-#define Hand_SetChain(h, c) Hand_SetPrimal(h, c)
 
 #define Hand_Format(p, k, c) (uint8_t)((p) | (k) | (c))
-#define Hand_ClearPrimal(h) ((h) & 0xF0)
-#define Hand_ClearKicker(h) ((h) & 0x8F)
-#define Hand_ClearChain(h) ((h) & 0x7F)
 
 typedef enum {
   HAND_CMP_ILLEGAL = -3,

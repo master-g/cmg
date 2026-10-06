@@ -35,16 +35,6 @@ extern "C" {
 int AdvancedAI_GetReady(void *player, void *game);
 
 /*
- * decide whether to bid for landlord
- */
-int AdvancedAI_Bid(void *player, void *game);
-
-/*
- * free play, result will return by hand_t *
- */
-int AdvancedAI_Play(void *player, void *game);
-
-/*
  * player must play a hand that can beat last player
  * if there is no hand can beat last player, tobeat->type will be 0
  */

@@ -35,7 +35,6 @@ extern "C" {
 typedef enum {
   Player_Event_GetReady = 0,
   Player_Event_Bid,
-  Player_Event_Start,
   Player_Event_Play,
   Player_Event_Beat,
 
@@ -80,11 +79,6 @@ void Player_SetupStandardAI(player_t *player);
 void Player_SetupAdvancedAI(player_t *player);
 
 /*
- * destroy a player context
- */
-void Player_Destroy(player_t *player);
-
-/*
  * clear a player context
  */
 void Player_Clear(player_t *player);
@@ -93,36 +87,6 @@ void Player_Clear(player_t *player);
  * handle event
  */
 int Player_HandleEvent(void *player, int event, void *ctx);
-
-/*
- * sort cards, analyze hands etc.
- *
- * int Player_GetReady(void *player, void *game);
- */
-
-/*
- * decide whether to bid for landlord
- *
- * int Player_Bid(void *player, void *game);
- */
-
-/*
- * the game will start, process landlord and kitty cards
- *
- * int Player_Start(void *player, void *game);
- */
-
-/*
- * free play, result will return by hand_t *
- * int Player_Play(void *player, void *game);
- */
-
-/*
- * player must play a hand that can beat last player
- * if there is no hand can beat last player, tobeat->type will be 0
- *
- * int Player_Beat(void *player, void *game);
- */
 
 #ifdef __cplusplus
 }

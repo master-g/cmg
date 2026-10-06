@@ -38,9 +38,6 @@ extern "C" {
 #define GAME_PLAYERS 3
 #define GAME_HAND_CARDS 17
 #define GAME_REST_CARDS 3
-#define GAME_BID_1 1
-#define GAME_BID_2 2
-#define GAME_BID_3 3
 
 #define IncPlayerIdx(x) (((x) + 1) % GAME_PLAYERS)
 #define Game_GetCurrentPlayer(g) (&(g)->players[(g)->playerIndex])
@@ -84,8 +81,6 @@ typedef struct game_s {
 void Game_Init(game_t *game);
 
 void Game_Clear(game_t *game);
-
-void Game_Destroy(game_t *game);
 
 void Game_Reset(game_t *game);
 

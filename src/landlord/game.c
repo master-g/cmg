@@ -47,15 +47,6 @@ void Game_Clear(game_t *game) {
     Player_Clear(&game->players[i]);
 }
 
-void Game_Destroy(game_t *game) {
-  int i = 0;
-
-  for (i = 0; i < GAME_PLAYERS; i++)
-    Player_Clear(&game->players[i]);
-
-  free(game);
-}
-
 void Game_Reset(game_t *game) {
   int i = 0;
 
@@ -124,24 +115,8 @@ void Game_Play(game_t *game, uint32_t seed) {
       Deck_Deal(&game->deck, &game->kittyCards, GAME_REST_CARDS);
       CardArray_Concat(&game->players[game->landlord].cards, &game->kittyCards);
       game->status = GameStatus_Ready;
-
-      /* Player_SetupAdvancedAI(&game->players[game->landlord]); */
     }
   }
-
-  /*
-     game->landlord = Random_Int32(&game->mt) % 3;
-     game->players[game->landlord].identity = PlayerIdentity_Landlord;
-     Player_SetupAdvancedAI(&game->players[game->landlord]);
-
-     Deck_Shuffle(&game->deck, &game->mt);
-
-
-
-     game->status = GameStatus_Ready;
-     game->playerIndex = game->landlord;
-     game->phase = Phase_Play;
-   */
 
   for (i = 0; i < GAME_PLAYERS; i++)
     Player_HandleEvent(&game->players[i], Player_Event_GetReady, game);

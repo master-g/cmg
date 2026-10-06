@@ -41,11 +41,6 @@ void Player_SetupAdvancedAI(player_t *player) {
   player->eventHandlers[Player_Event_Beat] = AdvancedAI_Beat;
 }
 
-void Player_Destroy(player_t *player) {
-  rk_list_clear_destroy(player->handlist);
-  free(player);
-}
-
 void Player_Clear(player_t *player) {
   rk_list_clear_destroy(player->handlist);
   player->handlist = NULL;

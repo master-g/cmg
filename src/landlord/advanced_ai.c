@@ -42,20 +42,6 @@ int AdvancedAI_GetReady(void *p, void *game) {
 }
 
 /*
- * decide whether to bid for landlord
- */
-int AdvancedAI_Bid(void *p, void *g) { return 0; }
-
-/*
- * free play, result will return by hand_t *
- */
-int AdvancedAI_Play(void *p, void *game) {
-  /* TODO */
-
-  return 0;
-}
-
-/*
  * player must play a hand that can beat last player
  * if there is no hand can beat last player, tobeat->type will be 0
  */
