@@ -29,63 +29,74 @@ SOFTWARE.
 typedef struct hand_ctx_s {
   /* rank count */
   int count[CARD_RANK_END];
-  /* original cards */
+  /* the cards, sorted from high to low */
   card_array_t cards;
-  /* reverse sorted cards */
+  /* the cards, sorted from low to high */
   card_array_t rcards;
 
 } hand_ctx_t;
 
-#define HandCtx_Clear(ctx) memset((ctx), 0, sizeof(hand_ctx_t))
+static void HandCtx_Setup(hand_ctx_t *ctx, const card_array_t *array) {
+  memset(ctx, 0, sizeof(hand_ctx_t));
 
-static void HandCtx_Setup(hand_ctx_t *ctx, card_array_t *array) {
-  /* setup search context */
-  HandCtx_Clear(ctx);
-
-  Hand_CountRank(array, ctx->count);
+  CardArray_CountRanks(array, ctx->count);
   CardArray_Copy(&ctx->cards, array);
-  CardArray_Copy(&ctx->rcards, array);
-  CardArray_Sort(&ctx->cards, NULL);
+  CardArray_Sort(&ctx->cards);
+  CardArray_Copy(&ctx->rcards, &ctx->cards);
   CardArray_Reverse(&ctx->rcards);
 }
 
-static int
-SearchBeat_Primal(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int primal) {
-  int i = 0;
-  int canbeat = 0;
-  int *count = NULL;
+/* how many ranks the primal part of a hand spans */
+static int Hand_PrimalRanks(const card_array_t *primal) {
+  int count[CARD_RANK_END];
   int rank = 0;
-  card_array_t *temp = NULL;
-  int tobeattype = tobeat->type;
+  int ranks = 0;
 
-  count = ctx->count;
-  temp = &ctx->rcards;
-
-  rank = CARD_RANK(tobeat->cards.cards[0]);
-
-  /* search for primal */
-  for (i = 0; i < temp->length;) {
-    int c = count[CARD_RANK(temp->cards[i])];
-    if ((CARD_RANK(temp->cards[i]) > rank) && c >= primal) {
-      Hand_Clear(beat);
-      beat->type = (uint8_t)tobeattype;
-      CardArray_PushBackCards(&beat->cards, temp, i, primal);
-      canbeat = 1;
-      break;
-    }
-    i += c;
+  CardArray_CountRanks(primal, count);
+  for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
+    if (count[rank] != 0)
+      ranks++;
   }
 
-  return canbeat;
+  return ranks;
+}
+
+/* the lowest rank in some cards, CARD_RANK_END when there is none */
+static int CardArray_LowestRank(const card_array_t *array) {
+  int count[CARD_RANK_END];
+  int rank = 0;
+
+  CardArray_CountRanks(array, count);
+  for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
+    if (count[rank] != 0)
+      break;
+  }
+
+  return rank;
+}
+
+/* the lowest rank above `above` held at least `primal` times */
+static int SearchBeat_Primal(
+    hand_ctx_t *ctx, const card_array_t *tobeat, int tobeattype, hand_t *beat,
+    int primal) {
+  int rank = 0;
+  int above = CARD_RANK(CardArray_At(tobeat, 0));
+
+  for (rank = above + 1; rank < CARD_RANK_END; rank++) {
+    if (ctx->count[rank] >= primal) {
+      Hand_Clear(beat);
+      beat->type = (uint8_t)tobeattype;
+      CardArray_TakeRank(&beat->cards, &ctx->rcards, (uint8_t)rank, primal);
+      return 1;
+    }
+  }
+
+  return 0;
 }
 
 static int SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
   int canbeat = 0;
-  int *count = NULL;
-  int i = 0;
-  card_array_t *cards = &ctx->cards;
-
-  count = ctx->count;
+  int rank = 0;
 
   /*
    * This only decides where to look, Beat_SearchAll asks the rules
@@ -96,30 +107,28 @@ static int SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
 
   /* search for a higher rank bomb */
   if (Hand_IsBomb(tobeat)) {
-    canbeat = SearchBeat_Primal(ctx, tobeat, beat, 4);
+    canbeat = SearchBeat_Primal(ctx, &tobeat->cards, tobeat->type, beat, 4);
   } else {
     /* tobeat is not a nuke or bomb, search a bomb to beat it */
-    for (i = 0; i < ctx->cards.length;) {
-      int c = count[CARD_RANK(ctx->cards.cards[i])];
-      if (c == 4) {
+    for (rank = CARD_RANK_END - 1; rank >= CARD_RANK_BEG; rank--) {
+      if (ctx->count[rank] == 4) {
         canbeat = 1;
         Hand_Clear(beat);
-        CardArray_CopyRank(&beat->cards, cards, CARD_RANK(ctx->cards.cards[i]));
+        CardArray_CopyRank(&beat->cards, &ctx->cards, (uint8_t)rank);
         break;
       }
-      i += c;
     }
   }
 
   /* search for nuke */
   if (canbeat == 0) {
-    if (count[CARD_RANK_r] && count[CARD_RANK_R]) {
+    if (ctx->count[CARD_RANK_r] && ctx->count[CARD_RANK_R]) {
       canbeat = 1;
       Hand_Clear(beat);
       beat->type =
           Hand_Format(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, HAND_CHAINLESS);
-      CardArray_CopyRank(&beat->cards, cards, CARD_RANK_R);
-      CardArray_CopyRank(&beat->cards, cards, CARD_RANK_r);
+      CardArray_CopyRank(&beat->cards, &ctx->cards, CARD_RANK_R);
+      CardArray_CopyRank(&beat->cards, &ctx->cards, CARD_RANK_r);
     }
   } else {
     beat->type =
@@ -142,50 +151,28 @@ static int SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
  */
 static int
 SearchBeat_TrioKicker(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kick) {
-  int i = 0;
+  int rank = 0;
   int canbeat = 0;
-  int cantriobeat = 0;
-  int tobeattype = tobeat->type;
-  int *count = NULL;
-  card_array_t temp;
-  hand_t htrio, hkick, htriobeat, hkickbeat;
+  int triorank = 0;
+  int kickrank = 0;
+  card_array_t trio, kicker;
+  hand_t htriobeat, hkickbeat;
 
-  Hand_Clear(&htrio);
-  Hand_Clear(&hkick);
   Hand_Clear(&htriobeat);
   Hand_Clear(&hkickbeat);
+  Hand_Split(tobeat, &trio, &kicker);
+  triorank = CARD_RANK(CardArray_At(&trio, 0));
+  kickrank = CARD_RANK(CardArray_At(&kicker, 0));
 
-  count = ctx->count;
-  CardArray_Copy(&temp, &ctx->rcards);
-
-  /* copy hands */
-  CardArray_PushBackCards(&htrio.cards, &tobeat->cards, 0, 3);
-  CardArray_PushBackCards(&hkick.cards, &tobeat->cards, 3, kick);
-
-  /* same rank trio , case b */
-  if (CardArray_IsContain(&temp, &htrio.cards)) {
-    /* keep trio beat */
-    CardArray_Copy(&htriobeat.cards, &htrio.cards);
-    CardArray_RemoveRank(&temp, CARD_RANK(htriobeat.cards.cards[0]));
-
-    /* search for a higher kicker */
-    /* round 1: only search those count[rank] == kick */
-    for (i = 0; i < temp.length;) {
-      int c = count[CARD_RANK(temp.cards[i])];
-      if (c >= kick &&
-          CARD_RANK(temp.cards[i]) > CARD_RANK(hkick.cards.cards[0])) {
-        CardArray_Clear(&hkickbeat.cards);
-        CardArray_PushBackCards(&hkickbeat.cards, &temp, i, kick);
+  /* same rank trio , case b: keep the trio and search for a higher kicker */
+  if (CardArray_IsContain(&ctx->rcards, &trio)) {
+    for (rank = kickrank + 1; rank < CARD_RANK_END; rank++) {
+      if ((rank != triorank) && (ctx->count[rank] >= kick)) {
+        CardArray_Copy(&htriobeat.cards, &trio);
+        CardArray_TakeRank(&hkickbeat.cards, &ctx->rcards, (uint8_t)rank, kick);
         canbeat = 1;
         break;
       }
-      i += c;
-    }
-
-    /* if kicker can't beat, restore trio */
-    if (canbeat == 0) {
-      CardArray_Clear(&htriobeat.cards);
-      CardArray_Copy(&temp, &ctx->rcards);
     }
   }
 
@@ -195,22 +182,17 @@ SearchBeat_TrioKicker(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kick) {
    * same rank trio found, but kicker can't beat
    */
   if (canbeat == 0) {
-    cantriobeat = SearchBeat_Primal(ctx, &htrio, &htriobeat, HAND_PRIMAL_TRIO);
+    /* trio beat found, search for the lowest kicker */
+    if (SearchBeat_Primal(ctx, &trio, 0, &htriobeat, HAND_PRIMAL_TRIO)) {
+      triorank = Hand_Rank(&htriobeat);
 
-    /* trio beat found, search for kicker beat */
-    if (cantriobeat == 1) {
-      /* remove trio from temp */
-      CardArray_RemoveRank(&temp, CARD_RANK(htriobeat.cards.cards[0]));
-
-      /* search for a kicker */
-      for (i = 0; i < temp.length;) {
-        int c = count[CARD_RANK(temp.cards[i])];
-        if (c >= kick) {
-          CardArray_PushBackCards(&hkickbeat.cards, &temp, i, kick);
+      for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
+        if ((rank != triorank) && (ctx->count[rank] >= kick)) {
+          CardArray_TakeRank(
+              &hkickbeat.cards, &ctx->rcards, (uint8_t)rank, kick);
           canbeat = 1;
           break;
         }
-        i += c;
       }
     }
   }
@@ -220,202 +202,132 @@ SearchBeat_TrioKicker(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kick) {
     Hand_Clear(beat);
     CardArray_Concat(&beat->cards, &htriobeat.cards);
     CardArray_Concat(&beat->cards, &hkickbeat.cards);
-    beat->type = (uint8_t)tobeattype;
+    beat->type = tobeat->type;
   }
 
   return canbeat;
 }
 
-static int
-SearchBeat_Chain(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int duplicate) {
-  int canbeat = 0;
-  int found = 0;
-  int i, j, k, chainlength;
-  int tobeattype = tobeat->type;
-  uint8_t footer = 0;
-  int *count = NULL;
-  card_array_t *cards = &ctx->cards;
-  card_array_t temp;
-
-  count = ctx->count;
-  CardArray_Clear(&temp);
-
-  chainlength = tobeat->cards.length / duplicate;
-  footer = CARD_RANK(tobeat->cards.cards[tobeat->cards.length - 1]);
+/*
+ * the lowest chain of the same length that starts above the chain in
+ * `tobeat`, every rank held at least `duplicate` times
+ */
+static int SearchBeat_Chain(
+    hand_ctx_t *ctx, const card_array_t *tobeat, int tobeattype, hand_t *beat,
+    int duplicate) {
+  int i, j;
+  int chainlength = CardArray_Length(tobeat) / duplicate;
+  int footer = CardArray_LowestRank(tobeat);
 
   /* search for beat chain in rank counts */
   for (i = footer + 1; i <= CARD_RANK_2 - chainlength; i++) {
-    found = 1;
+    int found = 1;
 
     for (j = 0; j < chainlength; j++) {
       /* check if chain breaks */
-      if (count[i + j] < duplicate) {
+      if (ctx->count[i + j] < duplicate) {
         found = 0;
         break;
       }
     }
 
     if (found) {
-      footer = (uint8_t)i; /* beat footer rank */
-      k = duplicate;       /* how many cards needed for each rank */
+      Hand_Clear(beat);
+      beat->type = (uint8_t)tobeattype;
 
-      for (j = cards->length - 1; j >= 0 && chainlength > 0; j--) {
-        if (CARD_RANK(cards->cards[j]) == footer) {
-          CardArray_PushFront(&temp, cards->cards[j]);
-          k--;
+      /* from the top of the chain down, the low suits of every rank */
+      for (j = chainlength - 1; j >= 0; j--) {
+        card_array_t rank;
 
-          if (k == 0) {
-            k = duplicate;
-            chainlength--;
-            footer++;
-          }
-        }
+        CardArray_Clear(&rank);
+        CardArray_TakeRank(&rank, &ctx->rcards, (uint8_t)(i + j), duplicate);
+        CardArray_Reverse(&rank);
+        CardArray_Concat(&beat->cards, &rank);
       }
 
-      break;
+      return 1;
     }
   }
 
-  if (found) {
-    beat->type = (uint8_t)tobeattype;
-    CardArray_Copy(&beat->cards, &temp);
-    canbeat = 1;
-  }
-
-  return canbeat;
+  return 0;
 }
 
 static int SearchBeat_TrioKickerChain(
     hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kc) {
   int canbeat = 0;
-  int cantriobeat = 0;
-  int i, j, chainlength;
-  int tobeattype = tobeat->type;
-  int count[CARD_RANK_END];
+  int i, j, rank, chainlength;
+  int triocount[CARD_RANK_END];
   int kickcount[CARD_RANK_END];
   int combrankmap[CARD_RANK_END];
   int rankcombmap[CARD_RANK_END];
   int comb[CARD_RANK_END];
-  card_array_t temp;
-  hand_t htrio, hkick, htriobeat, hkickbeat;
+  card_array_t trio, kicker;
+  hand_t htriobeat, hkickbeat;
 
-  /* setup variables */
-  memcpy(count, ctx->count, sizeof(int) * CARD_RANK_END);
-
-  Hand_Clear(&htrio);
-  Hand_Clear(&hkick);
   Hand_Clear(&htriobeat);
   Hand_Clear(&hkickbeat);
-
-  CardArray_Copy(&temp, &ctx->rcards);
-  chainlength = tobeat->cards.length / (HAND_PRIMAL_TRIO + kc);
-
-  /* copy tobeat cards */
-  CardArray_PushBackCards(&htrio.cards, &tobeat->cards, 0, 3 * chainlength);
-  CardArray_PushBackCards(
-      &hkick.cards, &tobeat->cards, 3 * chainlength, chainlength * kc);
-
-  htrio.type = Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN);
+  Hand_Split(tobeat, &trio, &kicker);
+  chainlength = Hand_PrimalRanks(&trio);
 
   /* self beat, see SearchBeat_TrioKicker */
-  if (CardArray_IsContain(&temp, &htrio.cards)) {
+  if (CardArray_IsContain(&ctx->rcards, &trio)) {
     int n = 0; /* combination total */
 
-    /* remove trio from kickcount */
-    memcpy(kickcount, count, sizeof(int) * CARD_RANK_END);
-
-    for (i = 0; i < htrio.cards.length; i += 3)
-      kickcount[CARD_RANK(htrio.cards.cards[i])] = 0;
-
-    /* remove count < kc and calculate n */
-    for (i = CARD_RANK_3; i < CARD_RANK_END; i++) {
-      if (kickcount[i] < kc)
-        kickcount[i] = 0;
-      else
-        n++;
-    }
-
-    /* setup comb-rank and rank-comb map */
-    j = 0;
+    /* the ranks that can be kickers: not a trio of the chain, enough cards */
+    CardArray_CountRanks(&trio, triocount);
     memset(combrankmap, -1, sizeof(int) * CARD_RANK_END);
     memset(rankcombmap, -1, sizeof(int) * CARD_RANK_END);
 
-    for (i = CARD_RANK_3; i < CARD_RANK_END; i++) {
-      if (kickcount[i] != 0) {
-        combrankmap[j] = i;
-        rankcombmap[i] = j;
-        j++;
+    for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
+      if ((triocount[rank] == 0) && (ctx->count[rank] >= kc)) {
+        combrankmap[n] = rank;
+        rankcombmap[rank] = n;
+        n++;
       }
     }
 
-    /* setup combination */
+    /* the kickers of tobeat as a combination of those ranks, ascending */
     j = 0;
     memset(comb, -1, sizeof(int) * CARD_RANK_END);
+    CardArray_CountRanks(&kicker, kickcount);
 
-    for (i = 0; i < hkick.cards.length; i += kc)
-      comb[j++] = rankcombmap[CARD_RANK(hkick.cards.cards[i])];
-
-    /*
-     * LMath_NextComb needs it ascending, the kickers come in whatever order
-     * the previous search left them
-     */
-    for (i = 1; i < chainlength; i++) {
-      int key = comb[i];
-
-      for (j = i; j > 0 && comb[j - 1] > key; j--)
-        comb[j] = comb[j - 1];
-
-      comb[j] = key;
+    for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
+      if (kickcount[rank] != 0)
+        comb[j++] = rankcombmap[rank];
     }
 
     /* find next combination */
     if (LMath_NextComb(comb, chainlength, n)) {
       /* next combination found, copy kickers */
-      for (i = 0; i < chainlength; i++) {
-        int rank = combrankmap[comb[i]];
-
-        for (j = 0; j < temp.length; j++) {
-          if (CARD_RANK(temp.cards[j]) == rank) {
-            CardArray_PushBackCards(&hkickbeat.cards, &temp, j, kc);
-            break;
-          }
-        }
-      }
+      for (i = 0; i < chainlength; i++)
+        CardArray_TakeRank(
+            &hkickbeat.cards, &ctx->rcards, (uint8_t)combrankmap[comb[i]], kc);
 
       canbeat = 1;
 
       /* copy trio to beat */
-      CardArray_Concat(&htriobeat.cards, &htrio.cards);
-      CardArray_Sort(&hkickbeat.cards, NULL);
+      CardArray_Concat(&htriobeat.cards, &trio);
+      CardArray_Sort(&hkickbeat.cards);
     }
   }
 
   /* can't find same rank trio chain, search for higher rank trio */
   if (canbeat == 0) {
-    /* restore rank count */
-    memcpy(count, ctx->count, sizeof(int) * CARD_RANK_END);
+    /* higher rank trio chain found, search for the lowest kickers */
+    if (SearchBeat_Chain(ctx, &trio, 0, &htriobeat, HAND_PRIMAL_TRIO)) {
+      int kickers = 0;
 
-    cantriobeat = SearchBeat_Chain(ctx, &htrio, &htriobeat, 3);
+      CardArray_CountRanks(&htriobeat.cards, triocount);
 
-    /* higher rank trio chain found, search for kickers */
-    if (cantriobeat) {
-      /* remove trio from temp */
-      for (i = 0; i < htriobeat.cards.length; i += 3) {
-        CardArray_RemoveRank(&temp, CARD_RANK(htriobeat.cards.cards[i]));
-        count[CARD_RANK(htriobeat.cards.cards[0])] = 0;
-      }
-
-      for (j = 0; j < chainlength; j++) {
-        for (i = 0; i < temp.length; i++) {
-          if (count[CARD_RANK(temp.cards[i])] >= kc) {
-            CardArray_PushBackCards(&hkickbeat.cards, &temp, i, kc);
-            CardArray_RemoveRank(&temp, CARD_RANK(temp.cards[i]));
-            break;
-          }
+      for (rank = CARD_RANK_BEG;
+           (rank < CARD_RANK_END) && (kickers < chainlength); rank++) {
+        if ((triocount[rank] == 0) && (ctx->count[rank] >= kc)) {
+          CardArray_TakeRank(&hkickbeat.cards, &ctx->rcards, (uint8_t)rank, kc);
+          kickers++;
         }
       }
 
-      if (hkickbeat.cards.length == kc * chainlength)
+      if (kickers == chainlength)
         canbeat = 1;
     }
   }
@@ -425,7 +337,7 @@ static int SearchBeat_TrioKickerChain(
     Hand_Clear(beat);
     CardArray_Concat(&beat->cards, &htriobeat.cards);
     CardArray_Concat(&beat->cards, &hkickbeat.cards);
-    beat->type = (uint8_t)tobeattype;
+    beat->type = tobeat->type;
   }
 
   return canbeat;
@@ -441,15 +353,18 @@ static int SearchBeat_Any(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   /* start search */
   switch (tobeat->type) {
   case Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_Primal(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_SOLO);
     break;
 
   case Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_Primal(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
+    canbeat = SearchBeat_Primal(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_TRIO);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAINLESS):
@@ -461,19 +376,23 @@ static int SearchBeat_Any(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
     break;
 
   case Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_Chain(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_SOLO);
     break;
 
   case Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_Chain(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
+    canbeat = SearchBeat_Chain(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_TRIO);
     break;
 
   case Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_FOUR);
+    canbeat = SearchBeat_Chain(
+        &ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_FOUR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN):

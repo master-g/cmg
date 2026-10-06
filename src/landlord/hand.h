@@ -98,11 +98,6 @@ void Hand_Clear(hand_t *hand);
 void Hand_Copy(hand_t *dst, const hand_t *src);
 
 /*
- * count ranks in a card array
- */
-void Hand_CountRank(card_array_t *array, int *count);
-
-/*
  * parse a card array to hand, the card array is left as it is
  * returns the hand type, HAND_NONE if the cards are not a hand
  */
@@ -111,7 +106,19 @@ int Hand_Parse(hand_t *hand, const card_array_t *array);
 /*
  * compare two hands, this is the only place that knows which hand is greater
  */
-int Hand_Compare(hand_t *a, hand_t *b);
+int Hand_Compare(const hand_t *a, const hand_t *b);
+
+/*
+ * the rank a hand is compared by: its highest primal rank
+ */
+uint8_t Hand_Rank(const hand_t *hand);
+
+/*
+ * the two parts of a hand: the cards that give it its rank (the trios of a
+ * trio chain with kickers) and the kickers they carry, both from high to low
+ */
+void Hand_Split(
+    const hand_t *hand, card_array_t *primal, card_array_t *kickers);
 
 /*
  * four of a kind, beats everything but a higher bomb and the nuke
@@ -126,7 +133,7 @@ int Hand_IsNuke(const hand_t *hand);
 /*
  * hand print
  */
-void Hand_Print(hand_t *hand);
+void Hand_Print(const hand_t *hand);
 
 #ifdef __cplusplus
 }

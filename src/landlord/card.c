@@ -31,97 +31,153 @@ static const uint8_t card_set[] = {
     0x38, 0x39, 0x3A, 0x3B, 0x3C, 0x3D, 0x41, 0x42, 0x43, 0x44, 0x45,
     0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x1E, 0x2F};
 
-void *CardArray_InitFromString(card_array_t *array, const char *str) {
-  uint8_t card = 0;
+/* ************************************************************
+ * text
+ * ************************************************************/
+
+#ifdef LL_GRAPHICAL_SUIT
+#define SUIT_STRING_LENGTH 3
+
+static const char szDIAMOND[] = "\xE2\x99\xA6";
+static const char szCLUB[] = "\xE2\x99\xA3";
+static const char szHEART[] = "\xE2\x99\xA5";
+static const char szSPADE[] = "\xE2\x99\xA0";
+#else /* ifdef LL_GRAPHICAL_SUIT */
+#define SUIT_STRING_LENGTH 1
+
+static const char szDIAMOND[] = "d";
+static const char szCLUB[] = "c";
+static const char szHEART[] = "h";
+static const char szSPADE[] = "s";
+#endif /* ifdef LL_GRAPHICAL_SUIT */
+
+/* indexed by rank, rank 0 is no card */
+static const char szRank[] = "?3456789TJQKA2rR";
+
+int Card_ToString(uint8_t card, char *buf, int len) {
+  const char *szSuit = NULL;
+
+  if ((buf == NULL) || (len < CARD_STRING_SIZE))
+    return 0;
+
+  switch (CARD_SUIT(card)) {
+  case CARD_SUIT_DIAMOND:
+    szSuit = szDIAMOND;
+    break;
+
+  case CARD_SUIT_CLUB:
+    szSuit = szCLUB;
+    break;
+
+  case CARD_SUIT_HEART:
+    szSuit = szHEART;
+    break;
+
+  case CARD_SUIT_SPADE:
+    szSuit = szSPADE;
+    break;
+
+  default:
+    szSuit = NULL;
+    break;
+  }
+
+  if (szSuit == NULL) {
+    buf[0] = '?';
+    buf[1] = szRank[CARD_RANK(card)];
+    buf[2] = '\0';
+    return 2;
+  }
+
+  memcpy(buf, szSuit, SUIT_STRING_LENGTH);
+  buf[SUIT_STRING_LENGTH] = szRank[CARD_RANK(card)];
+  buf[SUIT_STRING_LENGTH + 1] = '\0';
+
+  return SUIT_STRING_LENGTH + 1;
+}
+
+/* the suit str starts with, 0 when it does not start with one */
+static uint8_t Card_ParseSuit(const char *str, int *consumed) {
+  static const struct {
+    const char *text;
+    uint8_t suit;
+  } suits[] = {
+      {szDIAMOND, CARD_SUIT_DIAMOND},
+      {szCLUB, CARD_SUIT_CLUB},
+      {szHEART, CARD_SUIT_HEART},
+      {szSPADE, CARD_SUIT_SPADE}};
+  size_t i = 0;
+
+  for (i = 0; i < sizeof(suits) / sizeof(suits[0]); i++) {
+    if (strncmp(str, suits[i].text, SUIT_STRING_LENGTH) == 0) {
+      *consumed = SUIT_STRING_LENGTH;
+      return suits[i].suit;
+    }
+  }
+
+  *consumed = 1;
+  return 0;
+}
+
+/* the rank a character stands for, 0 when it is not a rank */
+static uint8_t Card_ParseRank(char c) {
+  const char *found = (c != '\0' && c != '?') ? strchr(szRank, c) : NULL;
+
+  return found != NULL ? (uint8_t)(found - szRank) : 0;
+}
+
+void CardArray_InitFromString(card_array_t *array, const char *str) {
+  uint8_t suit = 0;
+  uint8_t rank = 0;
   const char *p = str;
 
   CardArray_Clear(array);
 
   while (*p != '\0') {
-    switch ((uint8_t)*p) {
-#ifdef LL_GRAPHICAL_SUIT
-    case 0xA6:
-      card |= CARD_SUIT_DIAMOND;
-      break;
+    int consumed = 1;
+    uint8_t s = Card_ParseSuit(p, &consumed);
 
-    case 0xA3:
-      card |= CARD_SUIT_CLUB;
-      break;
+    if (s != 0)
+      suit = s;
+    else if (Card_ParseRank(*p) != 0)
+      rank = Card_ParseRank(*p);
 
-    case 0xA5:
-      card |= CARD_SUIT_HEART;
-      break;
-
-    case 0xA0:
-      card |= CARD_SUIT_SPADE;
-      break;
-
-#else /* ifdef LL_GRAPHICAL_SUIT */
-    case 'd':
-      card |= CARD_SUIT_DIAMOND;
-      break;
-
-    case 'c':
-      card |= CARD_SUIT_CLUB;
-      break;
-
-    case 'h':
-      card |= CARD_SUIT_HEART;
-      break;
-
-    case 's':
-      card |= CARD_SUIT_SPADE;
-      break;
-
-#endif /* ifdef LL_GRAPHICAL_SUIT */
-    case 'T':
-      card |= CARD_RANK_T;
-      break;
-
-    case 'J':
-      card |= CARD_RANK_J;
-      break;
-
-    case 'Q':
-      card |= CARD_RANK_Q;
-      break;
-
-    case 'K':
-      card |= CARD_RANK_K;
-      break;
-
-    case 'A':
-      card |= CARD_RANK_A;
-      break;
-
-    case '2':
-      card |= CARD_RANK_2;
-      break;
-
-    case 'r':
-      card |= CARD_RANK_r;
-      break;
-
-    case 'R':
-      card |= CARD_RANK_R;
-      break;
-
-    default:
-      break;
+    if ((suit != 0) && (rank != 0)) {
+      CardArray_PushBack(array, (uint8_t)(suit | rank));
+      suit = 0;
+      rank = 0;
     }
 
-    if ((*p <= '9') && (*p >= '3'))
-      card |= CARD_RANK_3 + (uint8_t)(*p) - '3';
+    p += consumed;
+  }
+}
 
-    if ((CARD_RANK(card) != 0) && (CARD_SUIT(card) != 0)) {
-      CardArray_PushBack(array, card);
-      card = 0;
-    }
+void CardArray_Print(const card_array_t *array) {
+#if (PRINT_GAME_LOG == 1)
+  int i = 0;
+  char str[CARD_STRING_SIZE];
 
-    p++;
+  DBGLog("Cards: (%d): ", array->length);
+
+  for (i = 0; i < array->length; i++) {
+    Card_ToString(array->cards[i], str, sizeof(str));
+    DBGLog("%s ", str);
   }
 
-  return array;
+  DBGLog("\n");
+#else
+  (void)array;
+#endif
+}
+
+/* ************************************************************
+ * card array
+ * ************************************************************/
+
+int CardArray_Length(const card_array_t *array) { return array->length; }
+
+uint8_t CardArray_At(const card_array_t *array, int i) {
+  return ((i >= 0) && (i < array->length)) ? array->cards[i] : 0;
 }
 
 void CardArray_Reset(card_array_t *array) {
@@ -129,24 +185,45 @@ void CardArray_Reset(card_array_t *array) {
   array->length = CARD_SET_LENGTH;
 }
 
-int CardArray_Concat(card_array_t *head, card_array_t *tail) {
-  int length = 0;
-  int slot = 0;
+void CardArray_Shuffle(card_array_t *array, mt19937_t *mt) {
+  int i = array->length;
+  int j = 0;
+  uint8_t tmp = 0;
 
-  slot = CARD_SET_LENGTH - head->length;
+  while (--i > 0) {
+    j = Random_Int32(mt) % (i + 1);
 
-  if (!CardArray_IsEmpty(tail) && (slot > 0)) {
-    length = slot >= tail->length ? tail->length : slot;
-    memcpy(&head->cards[head->length], tail->cards, length);
-    head->length += length;
-  } else {
-    length = 0;
+    tmp = array->cards[j];
+    array->cards[j] = array->cards[i];
+    array->cards[i] = tmp;
   }
+}
+
+int CardArray_Deal(card_array_t *deck, card_array_t *array, int count) {
+  int dealt = 0;
+
+  CardArray_Clear(array);
+
+  dealt = deck->length >= count ? count : deck->length;
+
+  deck->length -= dealt;
+  memcpy(array->cards, &deck->cards[deck->length], (size_t)dealt);
+  array->length = dealt;
+
+  return dealt;
+}
+
+int CardArray_Concat(card_array_t *head, const card_array_t *tail) {
+  int slot = CARD_SET_LENGTH - head->length;
+  int length = slot >= tail->length ? tail->length : slot;
+
+  memcpy(&head->cards[head->length], tail->cards, (size_t)length);
+  head->length += length;
 
   return length;
 }
 
-void CardArray_Subtract(card_array_t *from, card_array_t *sub) {
+void CardArray_Subtract(card_array_t *from, const card_array_t *sub) {
   int i = 0;
   int j = 0;
   uint8_t card = 0;
@@ -171,150 +248,90 @@ void CardArray_Subtract(card_array_t *from, card_array_t *sub) {
   CardArray_Copy(from, &temp);
 }
 
-int CardArray_IsContain(card_array_t *array, card_array_t *segment) {
-  int contain = 0;
+int CardArray_IsContain(
+    const card_array_t *array, const card_array_t *segment) {
   int i = 0;
   int j = 0;
   card_array_t temp;
 
-  if ((array->length == 0) || (segment->length == 0))
-    return contain;
+  if ((array->length == 0) || (segment->length == 0) ||
+      (array->length < segment->length))
+    return 0;
 
+  /* cross every card of the segment off as it is found */
   CardArray_Copy(&temp, segment);
 
-  if (array->length >= segment->length) {
-    for (i = 0; i < array->length; i++) {
-      for (j = 0; j < temp.length; j++) {
-        if (array->cards[i] == temp.cards[j]) {
-          CardArray_RemoveCard(&temp, temp.cards[j]);
-          break;
-        }
+  for (i = 0; i < array->length; i++) {
+    for (j = 0; j < temp.length; j++) {
+      if (array->cards[i] == temp.cards[j]) {
+        temp.cards[j] = temp.cards[--temp.length];
+        break;
       }
     }
-
-    contain = temp.length == 0 ? 1 : 0;
   }
 
-  return contain;
+  return temp.length == 0;
 }
 
 void CardArray_PushBack(card_array_t *array, uint8_t card) {
-  if (!CardArray_IsFull(array))
+  if (array->length < CARD_SET_LENGTH)
     array->cards[array->length++] = card;
-}
-
-uint8_t CardArray_PushFront(card_array_t *array, uint8_t card) {
-  uint8_t ret = 0;
-
-  if (!CardArray_IsFull(array)) {
-    memmove(array->cards + 1, array->cards, array->length);
-    array->cards[0] = card;
-
-    array->length++;
-
-    ret = card;
-  }
-
-  return ret;
 }
 
 uint8_t CardArray_PopFront(card_array_t *array) {
   uint8_t card = 0;
 
-  if (!CardArray_IsEmpty(array)) {
+  if (array->length > 0) {
     card = array->cards[0];
     array->length--;
-    memmove(array->cards, array->cards + 1, array->length);
+    memmove(array->cards, array->cards + 1, (size_t)array->length);
     array->cards[array->length] = 0;
   }
 
   return card;
 }
 
-uint8_t CardArray_PopBack(card_array_t *array) {
-  uint8_t card = 0;
-
-  if (!CardArray_IsEmpty(array)) {
-    card = array->cards[array->length - 1];
-    array->cards[array->length - 1] = 0;
-    array->length--;
-  }
-
-  return card;
-}
-
 int CardArray_DropFront(card_array_t *array, int count) {
-  int drop = 0;
+  int drop = (array->length >= count) ? count : array->length;
 
-  drop = (array->length >= count) ? count : array->length;
   array->length -= drop;
-  memmove(array->cards, array->cards + drop, array->length);
-  memset(array->cards + array->length, 0, drop);
+  memmove(array->cards, array->cards + drop, (size_t)array->length);
+  memset(array->cards + array->length, 0, (size_t)drop);
 
   return drop;
 }
 
-uint8_t CardArray_Remove(card_array_t *array, int where) {
-  uint8_t ret = 0;
-
-  if (!CardArray_IsEmpty(array)) {
-    if (where == 0) {
-      ret = CardArray_PopFront(array);
-    } else if (where == array->length - 1) {
-      ret = CardArray_PopBack(array);
-    } else if ((where > 0) && (where < array->length - 1)) {
-      ret = array->cards[where];
-      array->length--;
-      memmove(
-          array->cards + where, array->cards + where + 1,
-          array->length - where);
-      array->cards[array->length] = 0;
-    }
-  }
-
-  return ret;
-}
-
-uint8_t CardArray_RemoveCard(card_array_t *array, uint8_t card) {
-  uint8_t ret = 0;
+void CardArray_CountRanks(const card_array_t *array, int *count) {
   int i = 0;
 
-  for (i = 0; i < array->length; i++) {
-    if (array->cards[i] == card) {
-      ret = card;
-      CardArray_Remove(array, i);
-      break;
-    }
-  }
+  memset(count, 0, sizeof(int) * CARD_RANK_END);
 
-  return ret;
+  for (i = 0; i < array->length; i++)
+    count[CARD_RANK(array->cards[i])]++;
 }
 
-int CardArray_PushBackCards(
-    card_array_t *array, card_array_t *from, int where, int count) {
-  int cards = 0;
+int CardArray_TakeRank(
+    card_array_t *dst, const card_array_t *src, uint8_t rank, int count) {
   int i = 0;
+  int taken = 0;
 
-  for (i = 0; i < count; i++) {
-    CardArray_PushBack(array, from->cards[where + i]);
-    cards++;
-  }
-
-  return cards;
-}
-
-void CardArray_CopyRank(card_array_t *dst, card_array_t *src, uint8_t rank) {
-  int i = 0;
-
-  for (i = 0; i < src->length; i++) {
-    if (CARD_RANK(src->cards[i]) == rank)
+  for (i = 0; (i < src->length) && (taken < count); i++) {
+    if (CARD_RANK(src->cards[i]) == rank) {
       CardArray_PushBack(dst, src->cards[i]);
+      taken++;
+    }
   }
+
+  return taken;
+}
+
+void CardArray_CopyRank(
+    card_array_t *dst, const card_array_t *src, uint8_t rank) {
+  CardArray_TakeRank(dst, src, rank, src->length);
 }
 
 void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
   int i = 0;
-
   card_array_t temp;
 
   CardArray_Clear(&temp);
@@ -327,6 +344,7 @@ void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
   CardArray_Copy(array, &temp);
 }
 
+/* high rank first, then high suit first */
 static int CardArray_StandardSort(const void *a, const void *b) {
   uint8_t ra = 0;
   uint8_t rb = 0;
@@ -340,14 +358,10 @@ static int CardArray_StandardSort(const void *a, const void *b) {
   return rb - ra;
 }
 
-void CardArray_Sort(
-    card_array_t *array, int (*comparator)(const void *, const void *)) {
-  if (comparator == NULL)
-    qsort(
-        array->cards, (size_t)array->length, sizeof(uint8_t),
-        CardArray_StandardSort);
-  else
-    qsort(array->cards, (size_t)array->length, sizeof(uint8_t), comparator);
+void CardArray_Sort(card_array_t *array) {
+  qsort(
+      array->cards, (size_t)array->length, sizeof(uint8_t),
+      CardArray_StandardSort);
 }
 
 void CardArray_Reverse(card_array_t *array) {
@@ -358,72 +372,4 @@ void CardArray_Reverse(card_array_t *array) {
     array->cards[i] = array->cards[j];
     array->cards[j] = tmp;
   }
-}
-
-#ifdef LL_GRAPHICAL_SUIT
-#define CARD_STRING_LENGTH 4
-
-static const char szDIAMOND[] = "\xE2\x99\xA6";
-static const char szCLUB[] = "\xE2\x99\xA3";
-static const char szHEART[] = "\xE2\x99\xA5";
-static const char szSPADE[] = "\xE2\x99\xA0";
-#else /* ifdef LL_GRAPHICAL_SUIT */
-#define CARD_STRING_LENGTH 2
-
-static const char szDIAMOND[] = {'d', 0, 0, 0};
-static const char szCLUB[] = {'c', 0, 0, 0};
-static const char szHEART[] = {'h', 0, 0, 0};
-static const char szSPADE[] = {'s', 0, 0, 0};
-#endif /* ifdef LL_GRAPHICAL_SUIT */
-
-static const char szRank[] = {'3', '4', '5', '6', '7', '8', '9', 'T',
-                              'J', 'Q', 'K', 'A', '2', 'r', 'R'};
-
-int Card_ToString(uint8_t card, char *buf, int len) {
-  if ((buf != NULL) && (len >= CARD_STRING_LENGTH)) {
-    const char *szSuit = NULL;
-    int rank = CARD_RANK(card);
-    int suit = CARD_SUIT(card);
-
-    switch (suit) {
-    case CARD_SUIT_DIAMOND:
-      szSuit = szDIAMOND;
-      break;
-
-    case CARD_SUIT_CLUB:
-      szSuit = szCLUB;
-      break;
-
-    case CARD_SUIT_HEART:
-      szSuit = szHEART;
-      break;
-
-    case CARD_SUIT_SPADE:
-      szSuit = szSPADE;
-      break;
-
-    default:
-      szSuit = "ERR";
-      break;
-    }
-    memcpy(buf, szSuit, CARD_STRING_LENGTH - 1);
-    buf[CARD_STRING_LENGTH - 1] = szRank[rank - CARD_RANK_3];
-  }
-
-  return CARD_STRING_LENGTH;
-}
-
-void CardArray_Print(card_array_t *array) {
-  int i = 0;
-  char str[10];
-
-  memset(str, 0, 10);
-  DBGLog("Cards: (%d): ", array->length);
-
-  for (i = 0; i < array->length; i++) {
-    Card_ToString(array->cards[i], str, 10);
-    DBGLog("%s ", str);
-  }
-
-  DBGLog("\n");
 }

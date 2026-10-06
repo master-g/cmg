@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef LANDLORD_GAME_H_
 #define LANDLORD_GAME_H_
 
-#include "deck.h"
+#include "card.h"
 #include "hand.h"
 #include "handlist.h"
 #include "lmath.h"
@@ -63,7 +63,7 @@ typedef enum {
 
 typedef struct game_s {
   player_t players[GAME_PLAYERS]; /* player array */
-  deck_t deck;                    /* deck */
+  card_array_t deck;              /* deck */
   mt19937_t mt;                   /* random context */
   hand_t lastHand;                /* last played hand */
   card_array_t cardRecord;        /* card record */

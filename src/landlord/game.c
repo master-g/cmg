@@ -37,7 +37,7 @@ void Game_Init(game_t *game) {
   }
 
   Random_Init(&game->mt, 0);
-  Deck_Reset(&game->deck);
+  CardArray_Reset(&game->deck);
 }
 
 void Game_Clear(game_t *game) {
@@ -62,7 +62,7 @@ void Game_Reset(game_t *game) {
   game->phase = 0;
 
   Hand_Clear(&game->lastHand);
-  Deck_Reset(&game->deck);
+  CardArray_Reset(&game->deck);
   CardArray_Clear(&game->kittyCards);
   CardArray_Clear(&game->cardRecord);
 }
@@ -83,19 +83,18 @@ static void Game_MakeView(game_t *game, ai_view_t *view, hand_t *tobeat) {
   view->played = &game->cardRecord;
 
   for (i = 0; i < GAME_PLAYERS; i++)
-    view->cardsLeft[i] = game->players[i].cards.length;
+    view->cardsLeft[i] = CardArray_Length(&game->players[i].cards);
 }
 
 static void Game_Reject(game_t *game, hand_t *hand, const char *reason) {
   int i = 0;
-  char str[8];
+  char str[CARD_STRING_SIZE];
 
   fprintf(
       stderr, "seed %u: player %d, %s:", (unsigned)game->seed,
       game->playerIndex, reason);
-  for (i = 0; i < hand->cards.length; i++) {
-    memset(str, 0, sizeof(str));
-    Card_ToString(hand->cards.cards[i], str, sizeof(str));
+  for (i = 0; i < CardArray_Length(&hand->cards); i++) {
+    Card_ToString(CardArray_At(&hand->cards, i), str, sizeof(str));
     fprintf(stderr, " %s", str);
   }
   fprintf(stderr, "\n");
@@ -170,8 +169,8 @@ void Game_Play(game_t *game, uint32_t seed) {
   /* the seed alone decides the game: seed, then shuffle a fresh deck */
   game->seed = seed;
   Random_Init(&game->mt, seed);
-  Deck_Reset(&game->deck);
-  Deck_Shuffle(&game->deck, &game->mt);
+  CardArray_Reset(&game->deck);
+  CardArray_Shuffle(&game->deck, &game->mt);
 
   /* bid */
   /* TODO log */
@@ -183,7 +182,7 @@ void Game_Play(game_t *game, uint32_t seed) {
     game->playerIndex = Random_Int32(&game->mt) % GAME_PLAYERS;
 
     for (i = 0; i < GAME_PLAYERS; i++) {
-      Deck_Deal(
+      CardArray_Deal(
           &game->deck, &Game_GetCurrentPlayer(game)->cards, GAME_HAND_CARDS);
       Game_MakeView(game, &view, NULL);
       bid = AI_Bid(&view);
@@ -200,15 +199,15 @@ void Game_Play(game_t *game, uint32_t seed) {
     /* check if bid stage is done */
     if (game->bid == 0) {
       /* nobody bid, deal again from a reshuffled deck */
-      Deck_Reset(&game->deck);
-      Deck_Shuffle(&game->deck, &game->mt);
+      CardArray_Reset(&game->deck);
+      CardArray_Shuffle(&game->deck, &game->mt);
     } else {
       /* setup landlord, game start! */
       game->landlord = game->highestBidder;
       game->players[game->landlord].identity = PlayerIdentity_Landlord;
       game->playerIndex = game->landlord;
       game->phase = Phase_Play;
-      Deck_Deal(&game->deck, &game->kittyCards, GAME_REST_CARDS);
+      CardArray_Deal(&game->deck, &game->kittyCards, GAME_REST_CARDS);
       CardArray_Concat(&game->players[game->landlord].cards, &game->kittyCards);
       game->status = GameStatus_Ready;
     }
@@ -218,7 +217,7 @@ void Game_Play(game_t *game, uint32_t seed) {
   for (i = 0; i < GAME_PLAYERS; i++) {
     player_t *player = &game->players[i];
 
-    CardArray_Sort(&player->cards, NULL);
+    CardArray_Sort(&player->cards);
     player->handlist = player->ai->analyze(&player->cards);
   }
 
@@ -260,7 +259,7 @@ void Game_Play(game_t *game, uint32_t seed) {
 
     /* check if there is player win */
     for (i = 0; i < GAME_PLAYERS; i++) {
-      if (game->players[i].cards.length == 0) {
+      if (CardArray_IsEmpty(&game->players[i].cards)) {
         game->status = GameStatus_Over;
         game->winner = i;
 

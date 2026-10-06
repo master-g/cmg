@@ -5,7 +5,6 @@ set(LANDLORD_SOURCES
         analysis.c
         beat.c
         card.c
-        deck.c
         game.c
         hand.c
         handlist.c

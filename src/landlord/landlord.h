@@ -30,7 +30,6 @@ SOFTWARE.
 #include "beat.h"
 #include "card.h"
 #include "common.h"
-#include "deck.h"
 #include "game.h"
 #include "hand.h"
 #include "handlist.h"

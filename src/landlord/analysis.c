@@ -27,92 +27,57 @@ SOFTWARE.
 
 /*
  * extract hands like 34567 / 334455 / 333444555 etc
- * array is a processed card array holds count[rank] == duplicate
+ * from the ranks held exactly `duplicate` times: consecutive ranks become one
+ * chain when there are enough of them, single hands otherwise
+ * cards has to be sorted from high to low
  */
-static void
-HandList_ExtractConsecutive(rk_list_t *hl, card_array_t *array, int duplicate) {
-  int i = 0;
-  int j = 0;
-  int k = 0;
-  int cardnum = 0;
-  uint8_t lastrank = 0;
+static void HandList_ExtractConsecutive(
+    rk_list_t *hl, const card_array_t *cards, const int *count, int duplicate) {
+  int rank = 0;
+  int runtop = 0; /* highest rank of the run being collected */
+  int runlen = 0; /* ranks in that run */
   hand_t hand;
   int primal[] = {0, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
   int chainlen[] = {
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
       HAND_TRIO_CHAIN_MIN_LENGTH};
 
-  if ((duplicate < 1) || (duplicate > 3) || (array->length == 0))
+  if ((duplicate < 1) || (duplicate > 3))
     return;
 
-  Hand_Clear(&hand);
+  /* 2 and jokers never chain, one step below the lowest rank ends the run */
+  for (rank = CARD_RANK_2 - 1; rank >= CARD_RANK_BEG - 1; rank--) {
+    int r = 0;
 
-  cardnum = array->length / duplicate - 1;
-  lastrank = CARD_RANK(array->cards[0]);
-  i = duplicate;
+    if ((rank >= CARD_RANK_BEG) && (count[rank] == duplicate)) {
+      if (runlen == 0)
+        runtop = rank;
 
-  while (cardnum--) {
-    if ((lastrank - 1) != CARD_RANK(array->cards[i])) {
-      /* chain break */
-      if (i >= chainlen[duplicate]) {
-        /* chain */
-        Hand_Clear(&hand);
-        hand.type =
-            Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAIN);
-
-        for (j = 0; j < i; j++)
-          CardArray_PushBack(&hand.cards, CardArray_PopFront(array));
-
-        HandList_PushFront(hl, &hand);
-      } else {
-        /* not a chain */
-        for (j = 0; j < i / duplicate; j++) {
-          Hand_Clear(&hand);
-          hand.type =
-              Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAINLESS);
-
-          for (k = 0; k < duplicate; k++)
-            CardArray_PushBack(&hand.cards, CardArray_PopFront(array));
-
-          HandList_PushFront(hl, &hand);
-        }
-      }
-
-      if (array->length == 0)
-        break;
-
-      lastrank = CARD_RANK(array->cards[0]);
-      i = duplicate;
-    } else {
-      /* chain intact */
-      lastrank = CARD_RANK(array->cards[i]);
-      i += duplicate;
+      runlen++;
+      continue;
     }
-  }
 
-  /* all chained up */
-  if ((i != 0) && (i == array->length)) {
-    /* can chain up */
-    if (i >= chainlen[duplicate]) {
+    if (runlen * duplicate >= chainlen[duplicate]) {
+      /* chain */
       Hand_Clear(&hand);
       hand.type = Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAIN);
 
-      for (j = 0; j < i; j++)
-        CardArray_PushBack(&hand.cards, CardArray_PopFront(array));
+      for (r = runtop; r > runtop - runlen; r--)
+        CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
 
       HandList_PushFront(hl, &hand);
     } else {
-      for (j = 0; j < i / duplicate; j++) {
+      /* not a chain */
+      for (r = runtop; r > runtop - runlen; r--) {
         Hand_Clear(&hand);
         hand.type =
             Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAINLESS);
-
-        for (k = 0; k < duplicate; k++)
-          CardArray_PushBack(&hand.cards, CardArray_PopFront(array));
-
+        CardArray_CopyRank(&hand.cards, cards, (uint8_t)r);
         HandList_PushFront(hl, &hand);
       }
     }
+
+    runlen = 0;
   }
 }
 
@@ -199,50 +164,23 @@ HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
 }
 
 rk_list_t *Analysis_Standard(card_array_t *cards) {
-  int i = 0;
   int count[CARD_RANK_END];
   rk_list_t *hl = NULL;
-
   card_array_t array;
-  card_array_t arrsolo;
-  card_array_t arrpair;
-  card_array_t arrtrio;
-  card_array_t *arrprimals[3];
-
-  CardArray_Clear(&arrsolo);
-  CardArray_Clear(&arrpair);
-  CardArray_Clear(&arrtrio);
-
-  arrprimals[0] = &arrsolo;
-  arrprimals[1] = &arrpair;
-  arrprimals[2] = &arrtrio;
 
   CardArray_Copy(&array, cards);
-
-  CardArray_Sort(&array, NULL);
-  Hand_CountRank(&array, count);
+  CardArray_Sort(&array);
+  CardArray_CountRanks(&array, count);
 
   hl = rk_list_create();
 
   /* nuke, bomb and 2 */
   HandList_ExtractNukeBomb2(hl, &array, count);
 
-  /* chains */
-  for (i = 0; i < array.length;) {
-    int c = count[CARD_RANK(array.cards[i])];
-
-    if (c != 0) {
-      CardArray_PushBackCards(arrprimals[c - 1], &array, i, c);
-      i += c;
-    } else {
-      i++;
-    }
-  }
-
-  /* chain */
-  HandList_ExtractConsecutive(hl, &arrtrio, 3);
-  HandList_ExtractConsecutive(hl, &arrpair, 2);
-  HandList_ExtractConsecutive(hl, &arrsolo, 1);
+  /* trios, pairs and solos, chained up where they can */
+  HandList_ExtractConsecutive(hl, &array, count, 3);
+  HandList_ExtractConsecutive(hl, &array, count, 2);
+  HandList_ExtractConsecutive(hl, &array, count, 1);
 
   return hl;
 }
@@ -268,41 +206,34 @@ typedef struct hand_ctx_s {
   int count[CARD_RANK_END];
   /* original cards */
   card_array_t cards;
-  /* reverse sorted cards */
+  /* the cards, low to high */
   card_array_t rcards;
 
 } hand_ctx_t;
 
 #define HandCtx_Clear(ctx) memset((ctx), 0, sizeof(hand_ctx_t))
 
+/* the longest chain of ranks held at least `duplicate` times, lowest wins */
 static void HandList_SearchLongestConsecutive(
     hand_ctx_t *ctx, hand_t *hand, int duplicate) {
-  /* context */
   int i = 0;
-  int j = 0;
-  int k = 0;
   int rankstart = 0;
-  uint8_t lastrank = 0;
+  int beststart = 0;
+  int bestlen = 0;
   int primal[] = {0, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
   int chainlen[] = {
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
       HAND_TRIO_CHAIN_MIN_LENGTH};
-  card_array_t chain;
   int *count = ctx->count;
-  card_array_t *cards = &ctx->rcards;
 
   if ((duplicate < 1) || (duplicate > 3))
     return;
 
   /* early break */
-  if (cards->length < chainlen[duplicate])
+  if (CardArray_Length(&ctx->rcards) < chainlen[duplicate])
     return;
 
-  /* setup */
-  CardArray_Clear(&chain);
-
   Hand_Clear(hand);
-  rankstart = 0;
 
   /*
    * i <= CARD_RANK_2
@@ -318,38 +249,22 @@ static void HandList_SearchLongestConsecutive(
       continue;
     }
 
-    /* chain break */
+    /* chain break, keep it when it is a chain and the longest so far */
     if (count[i] < duplicate) {
-      /* chain break, extract chain and set new possible start */
       if ((((i - rankstart) * duplicate) >= chainlen[duplicate]) &&
-          ((i - rankstart) > chain.length)) {
-        /* valid chain, store rank in card_array_t */
-        CardArray_Clear(&chain);
-
-        for (j = rankstart; j < i; j++)
-          CardArray_PushBack(&chain, (uint8_t)j);
+          ((i - rankstart) > bestlen)) {
+        beststart = rankstart;
+        bestlen = i - rankstart;
       }
 
       rankstart = 0;
     }
   }
 
-  /* convert rank array to card array */
-  if (chain.length > 0) {
-    for (i = chain.length - 1; i >= 0; i--) {
-      lastrank = chain.cards[i];
-      k = duplicate;
-
-      for (j = 0; j < cards->length; j++) {
-        if (CARD_RANK(cards->cards[j]) == lastrank) {
-          CardArray_PushBack(&hand->cards, cards->cards[j]);
-          k--;
-
-          if (k == 0)
-            break;
-        }
-      }
-    }
+  if (bestlen > 0) {
+    /* from the top of the chain down */
+    for (i = beststart + bestlen - 1; i >= beststart; i--)
+      CardArray_TakeRank(&hand->cards, &ctx->rcards, (uint8_t)i, duplicate);
 
     hand->type = Hand_Format(primal[duplicate], HAND_KICKER_NONE, HAND_CHAIN);
   }
@@ -376,7 +291,7 @@ static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
   searchers[1] = HandList_SearchLongestConsecutive;
   searchers[2] = HandList_SearchLongestConsecutive;
 
-  if (ctx->cards.length == 0)
+  if (CardArray_IsEmpty(&ctx->cards))
     return 0;
 
   if (*begin >= HAND_SEARCH_TYPES)
@@ -432,7 +347,7 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
     if (lasthand.type != 0) {
       if (lasthand.type ==
           Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN)) {
-        if (lasthand.cards.length > HAND_SOLO_CHAIN_MIN_LENGTH) {
+        if (CardArray_Length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 1);
           found = 1;
         } else {
@@ -441,7 +356,7 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
       } else if (
           lasthand.type ==
           Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN)) {
-        if (lasthand.cards.length > HAND_PAIR_CHAIN_MIN_LENGTH) {
+        if (CardArray_Length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 2);
           found = 1;
         } else {
@@ -450,7 +365,7 @@ static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
       } else if (
           lasthand.type ==
           Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN)) {
-        if (lasthand.cards.length > HAND_TRIO_CHAIN_MIN_LENGTH) {
+        if (CardArray_Length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
           CardArray_DropFront(&lasthand.cards, 3);
           found = 1;
         } else {
@@ -493,7 +408,7 @@ static rk_tree_t *HLAA_TreeAddHand(rk_tree_t *tree, rk_list_node_t *handnode) {
       &newpayload->ctx.cards, &HandList_GetHand(handnode)->cards);
   CardArray_Copy(&newpayload->ctx.rcards, &newpayload->ctx.cards);
   CardArray_Reverse(&newpayload->ctx.rcards);
-  Hand_CountRank(&newpayload->ctx.cards, newpayload->ctx.count);
+  CardArray_CountRanks(&newpayload->ctx.cards, newpayload->ctx.count);
   newpayload->weight = oldpayload->weight + 1;
 
   /* expand the tree */
@@ -523,8 +438,9 @@ rk_list_t *Analysis_Advanced(card_array_t *array) {
   HandCtx_Clear(&ctx);
 
   /* build beat search context */
-  Hand_CountRank(array, ctx.count);
+  CardArray_CountRanks(array, ctx.count);
   CardArray_Copy(&ctx.cards, array);
+  CardArray_Sort(&ctx.cards);
 
   /* extract bombs and 2 */
   HandList_ExtractNukeBomb2(handlist, &ctx.cards, ctx.count);

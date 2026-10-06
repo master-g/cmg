@@ -81,10 +81,7 @@ static int AI_CountHands(const rk_list_t *hands, int type) {
 }
 
 static void AI_AppendHand(hand_t *hand, const hand_t *part) {
-  card_array_t cards;
-
-  CardArray_Copy(&cards, &part->cards);
-  CardArray_Concat(&hand->cards, &cards);
+  CardArray_Concat(&hand->cards, &part->cards);
 }
 
 void AI_Lead(const ai_view_t *view, hand_t *hand) {
@@ -114,7 +111,7 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
     AI_AppendHand(hand, node);
 
     /* how many kickers do we need */
-    need = node->cards.length / 3;
+    need = CardArray_Length(&node->cards) / 3;
 
     /* trio-pair-chain then trio-solo-chain */
     if (AI_CountHands(hands, HAND_PRIMAL_PAIR) >= need)
@@ -151,17 +148,17 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   /* trio */
   node = AI_FindHand(hands, HAND_PRIMAL_TRIO);
 
-  if ((node != NULL) && (CARD_RANK(node->cards.cards[0]) != CARD_RANK_2)) {
+  if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
     AI_AppendHand(hand, node);
 
     /* pair */
     node = AI_FindHand(hands, HAND_PRIMAL_PAIR);
 
-    if ((node == NULL) || (CARD_RANK(node->cards.cards[0]) == CARD_RANK_2)) {
+    if ((node == NULL) || (Hand_Rank(node) == CARD_RANK_2)) {
       /* solo, 2 and jokers are too good to be thrown in as a kicker */
       node = AI_FindHand(hands, HAND_PRIMAL_SOLO);
 
-      if ((node != NULL) && (CARD_RANK(node->cards.cards[0]) >= CARD_RANK_2))
+      if ((node != NULL) && (Hand_Rank(node) >= CARD_RANK_2))
         node = NULL;
     }
 
@@ -175,7 +172,7 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
   /* pair */
   node = AI_FindHand(hands, HAND_PRIMAL_PAIR);
 
-  if ((node != NULL) && (CARD_RANK(node->cards.cards[0]) != CARD_RANK_2)) {
+  if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
     AI_AppendHand(hand, node);
     return;
   }
@@ -252,7 +249,7 @@ static int AI_BestBeat(
 
       hnodes[i]->value =
           Analysis_CountHands(analyze, &temp) * BEAT_VALUE_FACTOR +
-          CARD_RANK(leftover->cards.cards[0]);
+          Hand_Rank(leftover);
     }
 
     /* sort primal hands */
