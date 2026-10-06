@@ -1,7 +1,7 @@
 include_directories(.)
 
 set(LANDLORD_SOURCES
-        advanced_ai.c
+        ai.c
         card.c
         deck.c
         game.c
@@ -11,7 +11,6 @@ set(LANDLORD_SOURCES
         memtracker.c
         player.c
         ruiko_algorithm.c
-        standard_ai.c
         )
 
 # 基准: 跑 10000 局 AI 对战并打印胜负数

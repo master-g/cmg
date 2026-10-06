@@ -46,7 +46,7 @@ void Hand_Clear(hand_t *hand) {
   hand->type = 0;
 }
 
-void Hand_Copy(hand_t *dst, hand_t *src) {
+void Hand_Copy(hand_t *dst, const hand_t *src) {
   dst->type = src->type;
   CardArray_Copy(&dst->cards, &src->cards);
 }

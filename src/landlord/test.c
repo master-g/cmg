@@ -437,18 +437,22 @@ static int is_whole_deck(const game_t *game) {
   return same_sequence(&all, &deck);
 }
 
-/* a player that leads two unrelated cards, which is not a hand */
-static int cheat_play(void *p, void *g) {
-  player_t *player = (player_t *)p;
-  game_t *game = (game_t *)g;
+/* an analysis that calls two unrelated cards one hand, the AI will lead it */
+static rk_list_t *cheat_analyze(card_array_t *cards) {
+  rk_list_t *hl = rk_list_create();
+  hand_t hand;
 
-  Hand_Clear(&game->lastHand);
-  CardArray_PushBack(&game->lastHand.cards, CardArray_PopBack(&player->cards));
-  CardArray_PushBack(&game->lastHand.cards, CardArray_PopFront(&player->cards));
-  return 0;
+  Hand_Clear(&hand);
+  hand.type = Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS);
+  CardArray_PushBack(&hand.cards, cards->cards[0]);
+  CardArray_PushBack(&hand.cards, cards->cards[cards->length - 1]);
+  HandList_PushFront(hl, &hand);
+
+  return hl;
 }
 
 static void test_game_rejects_illegal_hands(void) {
+  const ai_t cheat = {cheat_analyze, HandList_StandardEvaluator};
   game_t game;
   int i;
 
@@ -458,13 +462,59 @@ static void test_game_rejects_illegal_hands(void) {
 
   Game_Init(&game);
   for (i = 0; i < GAME_PLAYERS; i++)
-    game.players[i].eventHandlers[Player_Event_Play] = cheat_play;
+    game.players[i].ai = &cheat;
 
   Game_Play(&game, TEST_SEED_BEGIN);
   assert(game.status == GameStatus_Illegal);
   assert(game.cardRecord.length == 0);
 
   Game_Clear(&game);
+}
+
+/* ************************************************************
+ * AI: a position in, a decision out, no game needed
+ * ************************************************************/
+
+static void test_ai_decides_from_a_view(void) {
+  card_array_t cards;
+  card_array_t played;
+  hand_t last = parse("♣3 ♦3");
+  hand_t decision;
+  ai_view_t view;
+
+  printf("testing AI decisions...\n");
+  CardArray_InitFromString(&cards, "♠9 ♠4 ♥4");
+  CardArray_Clear(&played);
+
+  memset(&view, 0, sizeof(view));
+  view.ai = &AI_Standard;
+  view.seat = 1;
+  view.landlord = 0;
+  view.cards = &cards;
+  view.lastHand = &last;
+  view.played = &played;
+  view.cardsLeft[0] = 10;
+  view.cardsLeft[1] = cards.length;
+  view.cardsLeft[2] = 2;
+
+  /* the landlord led a pair of 3, the peasant answers with its pair of 4 */
+  view.lastPlayer = 0;
+  assert(AI_Beat(&view, &decision) == 1);
+  assert(decision.cards.length == 2);
+  assert(CARD_RANK(decision.cards.cards[0]) == CARD_RANK_4);
+  assert(CARD_RANK(decision.cards.cards[1]) == CARD_RANK_4);
+
+  /* the same pair from a teammate who is closer to going out: pass */
+  view.lastPlayer = 2;
+  assert(AI_Beat(&view, &decision) == 0);
+
+  /* deciding changes nothing it was shown */
+  assert(cards.length == 3);
+
+  /* nothing in hand beats a pair of 2 */
+  last = parse("♣2 ♦2");
+  view.lastPlayer = 0;
+  assert(AI_Beat(&view, &decision) == 0);
 }
 
 static void test_games(void) {
@@ -507,6 +557,7 @@ int main(int argc, char **argv) {
   test_compare();
   test_card_array();
   test_beat_search();
+  test_ai_decides_from_a_view();
   test_games();
   test_game_rejects_illegal_hands();
   test_determinism();

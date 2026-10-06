@@ -25,22 +25,11 @@ SOFTWARE.
 #ifndef LANDLORD_PLAYER_H_
 #define LANDLORD_PLAYER_H_
 
-#include "hand.h"
-#include "handlist.h"
+#include "ai.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum {
-  Player_Event_GetReady = 0,
-  Player_Event_Bid,
-  Player_Event_Play,
-  Player_Event_Beat,
-
-  Player_Event_Count
-
-} PlayerEvent;
 
 typedef enum {
   PlayerIdentity_Peasant = 0,
@@ -48,45 +37,20 @@ typedef enum {
 
 } PlayerIdentity;
 
-typedef enum {
-  Player_Bid_Abstain = 0,
-  Player_Bid_Bid
-
-} PlayerBidAction;
-
-typedef int (*PlayerEventHandler)(void *player, void *context);
-
+/* a seat at the table, owned and kept up to date by the game */
 typedef struct player_s {
   card_array_t cards;  /* card array, will change during game play */
-  card_array_t record; /* card record */
-  rk_list_t *handlist; /* the analyze result of cards */
+  rk_list_t *handlist; /* cards taken apart by the seat's AI */
   int identity;        /* 0: peasant, 1: landlord */
   int seatId;          /* 0, 1, 2 */
-  int bid;             /* 0, 1, 2, 3 */
-
-  PlayerEventHandler eventHandlers[Player_Event_Count];
+  const ai_t *ai;      /* who decides for this seat */
 
 } player_t;
-
-/*
- * setup standard AI player
- */
-void Player_SetupStandardAI(player_t *player);
-
-/*
- * setup advanced AI player
- */
-void Player_SetupAdvancedAI(player_t *player);
 
 /*
  * clear a player context
  */
 void Player_Clear(player_t *player);
-
-/*
- * handle event
- */
-int Player_HandleEvent(void *player, int event, void *ctx);
 
 #ifdef __cplusplus
 }

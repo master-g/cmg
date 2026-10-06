@@ -31,7 +31,7 @@ void Game_Init(game_t *game) {
 
   /* every game is played by the same AI setup */
   for (i = 0; i < GAME_PLAYERS; i++) {
-    Player_SetupAdvancedAI(&game->players[i]);
+    game->players[i].ai = &AI_Advanced;
     game->players[i].identity = PlayerIdentity_Peasant;
     game->players[i].seatId = i;
   }
@@ -67,44 +67,88 @@ void Game_Reset(game_t *game) {
   CardArray_Clear(&game->cardRecord);
 }
 
-/*
- * Every hand enters the game here. The cards the current player handed in
- * (left in game->lastHand) must be a hand by the rules, must be greater than
- * `tobeat` when there is one, and must come out of `held`, the cards the
- * player had before the move. The hand type is the one the rules give it,
- * whatever the player labelled it.
- */
-static int Game_AcceptHand(game_t *game, card_array_t *held, hand_t *tobeat) {
+/* what the current player is allowed to know */
+static void Game_MakeView(game_t *game, ai_view_t *view, hand_t *tobeat) {
   player_t *player = Game_GetCurrentPlayer(game);
-  const char *reason = NULL;
+  int i = 0;
+
+  view->ai = player->ai;
+  view->seat = game->playerIndex;
+  view->landlord = game->landlord;
+  view->bid = game->bid;
+  view->cards = &player->cards;
+  view->hands = player->handlist;
+  view->lastHand = tobeat;
+  view->lastPlayer = game->lastplay;
+  view->played = &game->cardRecord;
+
+  for (i = 0; i < GAME_PLAYERS; i++)
+    view->cardsLeft[i] = game->players[i].cards.length;
+}
+
+static void Game_Reject(game_t *game, hand_t *hand, const char *reason) {
+  int i = 0;
+  char str[8];
+
+  fprintf(
+      stderr, "seed %u: player %d, %s:", (unsigned)game->seed,
+      game->playerIndex, reason);
+  for (i = 0; i < hand->cards.length; i++) {
+    memset(str, 0, sizeof(str));
+    Card_ToString(hand->cards.cards[i], str, sizeof(str));
+    fprintf(stderr, " %s", str);
+  }
+  fprintf(stderr, "\n");
+
+  game->status = GameStatus_Illegal;
+}
+
+/*
+ * Every hand enters the game here. The cards the current player decided on
+ * must be a hand by the rules, must be greater than `tobeat` when there is
+ * one, and must be cards the player holds. The hand type is the one the rules
+ * give it, whatever the player labelled it.
+ *
+ * An accepted hand is taken out of the player's cards, becomes the last hand
+ * and goes on record.
+ */
+static int Game_AcceptHand(game_t *game, hand_t *played, hand_t *tobeat) {
+  player_t *player = Game_GetCurrentPlayer(game);
   hand_t hand;
 
-  if (Hand_Parse(&hand, &game->lastHand.cards) == HAND_NONE)
-    reason = "not a hand";
-  else if (
-      (tobeat != NULL) && (Hand_Compare(&hand, tobeat) != HAND_CMP_GREATER))
-    reason = "does not beat the last hand";
-  else if (
-      !CardArray_IsContain(held, &hand.cards) ||
-      (player->cards.length != held->length - hand.cards.length))
-    reason = "not the player's cards";
-
-  if (reason != NULL) {
-    int i = 0;
-    char str[8];
-
-    fprintf(
-        stderr, "seed %u: player %d, %s:", (unsigned)game->seed,
-        game->playerIndex, reason);
-    for (i = 0; i < game->lastHand.cards.length; i++) {
-      memset(str, 0, sizeof(str));
-      Card_ToString(game->lastHand.cards.cards[i], str, sizeof(str));
-      fprintf(stderr, " %s", str);
-    }
-    fprintf(stderr, "\n");
-
-    game->status = GameStatus_Illegal;
+  if (Hand_Parse(&hand, &played->cards) == HAND_NONE) {
+    Game_Reject(game, played, "not a hand");
     return 0;
+  }
+
+  if ((tobeat != NULL) && (Hand_Compare(&hand, tobeat) != HAND_CMP_GREATER)) {
+    Game_Reject(game, played, "does not beat the last hand");
+    return 0;
+  }
+
+  if (!CardArray_IsContain(&player->cards, &hand.cards)) {
+    Game_Reject(game, played, "not the player's cards");
+    return 0;
+  }
+
+  CardArray_Subtract(&player->cards, &hand.cards);
+
+  if (tobeat == NULL) {
+    /* a lead is made of whole hands of the analysis, the rest still holds */
+    rk_list_node_t *node = player->handlist->first;
+
+    while (node != NULL) {
+      rk_list_node_t *next = node->next;
+
+      if (CardArray_IsContain(&hand.cards, &HandList_GetHand(node)->cards))
+        free(rk_list_remove(player->handlist, node));
+
+      node = next;
+    }
+  } else {
+    /* a beat may break hands up, take the cards apart again */
+    rk_list_clear_destroy(player->handlist);
+    player->handlist = player->ai->analyze(&player->cards);
   }
 
   Hand_Copy(&game->lastHand, &hand);
@@ -119,7 +163,8 @@ void Game_Play(game_t *game, uint32_t seed) {
   int i = 0;
   int beat = 0;
   int bid = 0;
-  card_array_t held;
+  ai_view_t view;
+  hand_t played;
   hand_t tobeat;
 
   /* the seed alone decides the game: seed, then shuffle a fresh deck */
@@ -140,8 +185,8 @@ void Game_Play(game_t *game, uint32_t seed) {
     for (i = 0; i < GAME_PLAYERS; i++) {
       Deck_Deal(
           &game->deck, &Game_GetCurrentPlayer(game)->cards, GAME_HAND_CARDS);
-      bid = Player_HandleEvent(
-          Game_GetCurrentPlayer(game), Player_Event_Bid, game);
+      Game_MakeView(game, &view, NULL);
+      bid = AI_Bid(&view);
 
       if (bid > game->bid) {
         DBGLog("\nPlayer ---- %d ---- bid for %d\n", game->playerIndex, bid);
@@ -169,25 +214,29 @@ void Game_Play(game_t *game, uint32_t seed) {
     }
   }
 
-  for (i = 0; i < GAME_PLAYERS; i++)
-    Player_HandleEvent(&game->players[i], Player_Event_GetReady, game);
+  /* everybody sorts their cards and takes them apart */
+  for (i = 0; i < GAME_PLAYERS; i++) {
+    player_t *player = &game->players[i];
+
+    CardArray_Sort(&player->cards, NULL);
+    player->handlist = player->ai->analyze(&player->cards);
+  }
 
   /* game play */
   while (game->status == GameStatus_Ready) {
-    CardArray_Copy(&held, &Game_GetCurrentPlayer(game)->cards);
-
     if (game->phase == Phase_Play) {
-      Player_HandleEvent(Game_GetCurrentPlayer(game), Player_Event_Play, game);
+      Game_MakeView(game, &view, NULL);
+      AI_Lead(&view, &played);
 
-      if (!Game_AcceptHand(game, &held, NULL))
+      if (!Game_AcceptHand(game, &played, NULL))
         break;
 
       DBGLog("\nPlayer ---- %d ---- played\n", game->playerIndex);
       Hand_Print(&game->lastHand);
     } else if ((game->phase == Phase_Query) || (game->phase == Phase_Pass)) {
       Hand_Copy(&tobeat, &game->lastHand);
-      beat = Player_HandleEvent(
-          Game_GetCurrentPlayer(game), Player_Event_Beat, game);
+      Game_MakeView(game, &view, &tobeat);
+      beat = AI_Beat(&view, &played);
 
       /* has beat in this phase */
       if (beat == 0) {
@@ -199,7 +248,7 @@ void Game_Play(game_t *game, uint32_t seed) {
 
         DBGLog("\nPlayer ---- %d ---- passed\n", game->playerIndex);
       } else {
-        if (!Game_AcceptHand(game, &held, &tobeat))
+        if (!Game_AcceptHand(game, &played, &tobeat))
           break;
 
         DBGLog("\nPlayer ---- %d ---- beat\n", game->playerIndex);

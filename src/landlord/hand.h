@@ -95,7 +95,7 @@ void Hand_Clear(hand_t *hand);
 /*
  * copy hands
  */
-void Hand_Copy(hand_t *dst, hand_t *src);
+void Hand_Copy(hand_t *dst, const hand_t *src);
 
 /*
  * count ranks in a card array
