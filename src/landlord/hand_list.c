@@ -23,6 +23,7 @@ SOFTWARE.
 */
 
 #include "hand_list.h"
+#include "log.h"
 
 void hand_list_clear(hand_list_t *hl) { hl->count = 0; }
 

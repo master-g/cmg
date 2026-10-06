@@ -24,6 +24,8 @@ SOFTWARE.
 
 #include "ai.h"
 
+#include <stddef.h>
+
 const ai_t ai_standard = {analysis_standard};
 
 const ai_t ai_advanced = {analysis_advanced};

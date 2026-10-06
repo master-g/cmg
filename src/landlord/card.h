@@ -25,10 +25,10 @@ SOFTWARE.
 #ifndef LANDLORD_CARD_H_
 #define LANDLORD_CARD_H_
 
-#include "common.h"
 #include "lmath.h"
 
 #include <stdbool.h>
+#include <stdint.h>
 
 /* a card is one byte: suit in the high half, rank in the low half */
 
@@ -115,7 +115,7 @@ uint8_t card_array_at(const card_array_t *array, int i);
 
 /*
  * Fill a card array from a string such as "♠A ♥T ♣3 ♦r"
- * (or "sA hT c3 dr" without LANDLORD_GRAPHICAL_SUIT).
+ * (or "sA hT c3 dr" in a build with LANDLORD_ASCII_SUITS).
  * A card is a suit and a rank in either order, anything else is skipped.
  */
 void card_array_init_from_string(card_array_t *array, const char *str);

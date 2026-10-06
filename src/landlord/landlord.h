@@ -29,7 +29,6 @@ SOFTWARE.
 #include "analysis.h"
 #include "beat.h"
 #include "card.h"
-#include "common.h"
 #include "game.h"
 #include "hand.h"
 #include "hand_list.h"

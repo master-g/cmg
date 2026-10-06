@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef LANDLORD_LMATH_H_
 #define LANDLORD_LMATH_H_
 
-#include "common.h"
+#include <stdint.h>
 
 /* ************************************************************
  * MT19937 random number generator

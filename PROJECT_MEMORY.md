@@ -11,8 +11,9 @@
 - [2026-09-20] 根 CMakeLists 不设 CMAKE_BUILD_TYPE，默认构建是 -O0，优化档位才暴露的 bug 不会出现在日常构建里（texas_generate 的栈越界就这样藏了下来）；排查内存问题要显式 -DCMAKE_BUILD_TYPE=Release 或加 -fsanitize
 - [2026-09-20] src/texas 的 5/7 张评估内核已穷举验证：全部 2598960 手牌型分布与理论值吻合、7462 个 value 无空洞、7hand 对拍 20 万样本 0 误；改表或改哈希后用 texas_test 复验
 - [2026-09-20] texas 7 张评估有两条路径: texas_eval_7hand 是 21 次 5 张取最小的参考实现(29.5 ns), texas_eval_7hand_fast 走完美哈希表(2.5 ns, 11.9x); 两者全量 C(52,7)=133784560 手对拍零差异, 改任一侧都要用 texas_test 复验
-- [2026-10-06] src/landlord 是从 github.com/master-g/Landlord 的 bleeding 分支(b38315e)平铺拷入的，219 条历史留在原仓库未并入；binding/(Lua/JS 绑定)按用户决定不迁入，memtracker 与 dsaac 的不同且不合并
-- [2026-10-06] landlord 审计(实测): 对局不调用 Hand_Parse/Hand_Compare; 10000 局 131997 手里规则判非法 7991 手(7980 是 Hand_Parse 不认 A 结尾的链, 其余为 AI 出重复牌和飞机带对子缺项), 牌型标注不符 373, 压不过 93; 结果不可复现(Game_Init 用未初始化的 mt, 7652/7650)
+- [2026-10-06] src/landlord 从 github.com/master-g/Landlord 的 bleeding 分支(b38315e)平铺拷入, 219 条历史留在原仓库; Lua/JS 绑定按用户决定不迁入; 命名统一为 cmg 约定是用户对「子项目不追求统一风格」的明确例外
+- [2026-10-07] landlord 改造后的事实: 种子决定一局; Game 逐手用规则校验; 基准(种子 10000–19999)农民 5991/地主 4009/非法 0; 迁入时的 7652 地主胜是「无人叫分重发未洗的牌」造成的假象(单独恢复该缺陷得 7621)
+- [2026-10-07] landlord 的 ai_best_beat 有炸必炸、否则选剩余手数最多的一手, 是迁入时就有的反向策略; 基线记录的就是它, 改它属于改策略而非重构, 需先问用户
 
 ## 失败尝试
 
@@ -21,9 +22,9 @@
 
 ## 上次会话
 <!-- 整块改写：分支、验证命令及实际结果、停在何处；任务细节只留一行指向证据目录。 -->
-- [2026-10-06] main；Landlord 已迁入并推送, 远程 master 已删; 之后只读审计 + 架构审查 + 配置 agent skills(本地 Markdown tracker, 默认 triage 标签, 按子项目的领域文档) + 发布改造 spec, 未改 landlord 代码
-  证据: .scratch/landlord-modernization/ 下的 spec.md 与 issues/01–15(测试 seam 为规则 interface 与 Game 整局 interface)
+- [2026-10-07] main；landlord 现代化 15 张工单全部完成并各自提交; make test 通过, make landlord-asan 通过, 严格选项零警告, 基线一致, 全量构建仅 epoll_examples 在 macOS 照例失败
+  证据: .scratch/landlord-modernization/(spec 与 issues/01–15, 均 Status: done); 本地提交未推送
 
 ## 下次运行
 <!-- 整块改写：接下来的任务和优先级，含仍受阻的项。 -->
-- [2026-10-06] 按工单执行 landlord 改造: 01 无前置可立即开始; 01 完成后 02 与 06 可并行; 每张工单的依赖和验收条件见其文件, 做完把 Status 改掉
+- [2026-10-07] 待用户决定: 是否推送; 是否修正 ai_best_beat 的反向策略(会改基线); 原 Landlord 仓库是否归档

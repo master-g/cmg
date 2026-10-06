@@ -10,6 +10,55 @@
 
 #include "landlord.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/*
+ * The cases below spell cards with suit symbols. A build with
+ * LANDLORD_ASCII_SUITS reads c d h s instead, so translate on the way in.
+ */
+#ifdef LANDLORD_ASCII_SUITS
+#define CLUB "c"
+#define DIAMOND "d"
+#define HEART "h"
+#define SPADE "s"
+#else
+#define CLUB "♣"
+#define DIAMOND "♦"
+#define HEART "♥"
+#define SPADE "♠"
+#endif
+
+static void cards_from_text(card_array_t *cards, const char *text) {
+  static const char *const symbols[] = {"♣", "♦", "♥", "♠"};
+  static const char *const suits[] = {CLUB, DIAMOND, HEART, SPADE};
+  char translated[256];
+  size_t used = 0;
+
+  while (*text != '\0') {
+    size_t i;
+    size_t n = sizeof(symbols) / sizeof(symbols[0]);
+
+    for (i = 0; i < n; i++) {
+      if (strncmp(text, symbols[i], strlen(symbols[i])) == 0)
+        break;
+    }
+
+    assert(used + 4 < sizeof(translated));
+    if (i < n) {
+      memcpy(translated + used, suits[i], strlen(suits[i]));
+      used += strlen(suits[i]);
+      text += strlen(symbols[i]);
+    } else {
+      translated[used++] = *text++;
+    }
+  }
+
+  translated[used] = '\0';
+  card_array_init_from_string(cards, translated);
+}
+
 /* ************************************************************
  * rules: cards -> hand type
  * ************************************************************/
@@ -90,7 +139,7 @@ static void test_rules(void) {
     hand_t hand;
     bool ishand;
 
-    card_array_init_from_string(&cards, parse_cases[i].cards);
+    cards_from_text(&cards, parse_cases[i].cards);
     ishand = hand_parse(&hand, &cards);
 
     /* not a hand: no type; a hand: exactly the expected type */
@@ -126,7 +175,7 @@ static hand_t parse(const char *str) {
   card_array_t cards;
   hand_t hand;
 
-  card_array_init_from_string(&cards, str);
+  cards_from_text(&cards, str);
   hand_parse(&hand, &cards);
   return hand;
 }
@@ -137,7 +186,7 @@ static void test_parse_keeps_input(void) {
   card_array_t before;
   hand_t hand;
 
-  card_array_init_from_string(&cards, "♥7 ♣3 ♠3 ♥3");
+  cards_from_text(&cards, "♥7 ♣3 ♠3 ♥3");
   card_array_copy(&before, &cards);
   assert(hand_parse(&hand, &cards));
   assert(memcmp(&cards, &before, sizeof(card_array_t)) == 0);
@@ -248,12 +297,18 @@ static void test_card_text(void) {
   printf("testing card text...\n");
 
   /* always terminated, and it reads back as the same card */
-  card_array_init_from_string(&cards, "♠A ♥T ♣3 ♦r ♠R ♦2");
+  card_array_init_from_string(
+      &cards,
+      SPADE "A " HEART "T " CLUB "3 " DIAMOND "r " SPADE "R " DIAMOND "2");
   assert(card_array_length(&cards) == 6);
-  assert(card_to_string(card_array_at(&cards, 0), str, sizeof(str)) == 4);
-  assert(strcmp(str, "♠A") == 0);
-  assert(card_to_string(card_array_at(&cards, 3), str, sizeof(str)) == 4);
-  assert(strcmp(str, "♦r") == 0);
+  assert(
+      card_to_string(card_array_at(&cards, 0), str, sizeof(str)) ==
+      (int)strlen(SPADE) + 1);
+  assert(strcmp(str, SPADE "A") == 0);
+  assert(
+      card_to_string(card_array_at(&cards, 3), str, sizeof(str)) ==
+      (int)strlen(SPADE) + 1);
+  assert(strcmp(str, DIAMOND "r") == 0);
 
   /* no room: nothing is written */
   assert(card_to_string(card_array_at(&cards, 0), small, sizeof(small)) == 0);
@@ -270,7 +325,8 @@ static void test_card_text(void) {
   assert(card_array_length(&cards) == 0);
   card_array_init_from_string(&cards, "xyz, 1 0 ?");
   assert(card_array_length(&cards) == 0);
-  card_array_init_from_string(&cards, "♣3, junk ♠ and 7♦ ♥");
+  card_array_init_from_string(
+      &cards, CLUB "3, junk " SPADE " and 7" DIAMOND " " HEART);
   assert(card_array_length(&cards) == 2);
   assert(CARD_RANK(card_array_at(&cards, 0)) == CARD_RANK_3);
   assert(CARD_RANK(card_array_at(&cards, 1)) == CARD_RANK_7);
@@ -287,7 +343,7 @@ static void test_cards_by_rank(void) {
   int count[CARD_RANK_END];
 
   printf("testing cards by rank...\n");
-  card_array_init_from_string(&cards, "♠5 ♣K ♥5 ♦9 ♣5 ♠K");
+  cards_from_text(&cards, "♠5 ♣K ♥5 ♦9 ♣5 ♠K");
 
   card_array_count_ranks(&cards, count);
   assert(count[CARD_RANK_5] == 3 && count[CARD_RANK_K] == 2);
@@ -338,7 +394,7 @@ static void test_hand_list(void) {
   hand_list_push(&list, &solo);
   hand_list_push(&list, &pair);
   hand_list_push(&list, &solo);
-  card_array_init_from_string(&played, "♣3 ♦K");
+  cards_from_text(&played, "♣3 ♦K");
   hand_list_remove_contained(&list, &played);
   assert(hand_list_count(&list) == 1);
   assert(hand_type_equals(hand_list_at(&list, 0)->type, pair.type));
@@ -638,7 +694,7 @@ static void test_ai_decides_from_a_view(void) {
   ai_view_t view;
 
   printf("testing AI decisions...\n");
-  card_array_init_from_string(&cards, "♠9 ♠4 ♥4");
+  cards_from_text(&cards, "♠9 ♠4 ♥4");
   card_array_clear(&played);
 
   memset(&view, 0, sizeof(view));

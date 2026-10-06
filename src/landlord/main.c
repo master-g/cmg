@@ -24,6 +24,9 @@ SOFTWARE.
 
 #include "landlord.h"
 
+#include <stdio.h>
+#include <time.h>
+
 #define BENCH_SEED_BEGIN 10000
 #define BENCH_SEED_END 20000
 

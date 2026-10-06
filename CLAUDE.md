@@ -23,6 +23,7 @@
 - 安装依赖: 无第三方依赖，只需 cmake ≥ 3.16 + clang/gcc + clang-format
 - 构建: `make build`；单个子项目用 `make build TARGET=dsaac`（可选值见 Makefile 顶部注释）
 - 档位: `make build BUILD_TYPE=Release`（默认 Debug）；产物落到 `bin/`，cmake 中间件在 `build/`
+- cmake 选项经 `CMAKE_ARGS` 传入，如 `make build TARGET=landlord CMAKE_ARGS=-DLANDLORD_LOG=ON`；landlord 的选项见其 README
 - 测试: 无测试框架。`make test` 构建并运行 `dsaac`（`src/dsaac/test.c` 的 assert 自检）、`texas_test` 与 `landlord_test`；`make landlord-asan` 在 ASan/UBSan 下跑 landlord 自检
 - Lint / 格式化: `make fmt`（对 dsaac / epoll_examples / landlord / medsr / texas / tlpi 跑 `clang-format -i`）
 - 清理: `make clean` 只删 `bin/`，`make clean-build` 连 `build/` 一起删

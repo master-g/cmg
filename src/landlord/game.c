@@ -23,6 +23,10 @@ SOFTWARE.
 */
 
 #include "game.h"
+#include "log.h"
+
+#include <stdio.h>
+#include <string.h>
 
 void game_init(game_t *game) {
   int i = 0;

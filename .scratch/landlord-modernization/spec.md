@@ -1,6 +1,6 @@
 # Spec: landlord 现代化改造
 
-Status: ready-for-agent
+Status: done
 
 ## Problem Statement
 

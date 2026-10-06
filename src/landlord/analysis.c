@@ -26,6 +26,7 @@ SOFTWARE.
 #include "beat.h"
 
 #include <limits.h>
+#include <string.h>
 
 /*
  * extract hands like 34567 / 334455 / 333444555 etc

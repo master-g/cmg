@@ -1,29 +1,80 @@
-Landlord
-========
+# Landlord 斗地主
 
-Dou Dizhu is the most popular poker game in China, here is a C implementation  
+斗地主的 C 实现：规则、两种拆牌方式、压牌搜索、AI，以及一个按种子跑整局的对局引擎。
 
-Migrated from <https://github.com/master-g/Landlord> (branch `bleeding`, commit `b38315e`); the full history stays there. MIT licensed.
+从 <https://github.com/master-g/Landlord>（`bleeding` 分支，提交 `b38315e`）迁入，完整历史留在原仓库；
+Lua 与 JavaScript 绑定没有迁入。MIT 许可。术语见 [GLOSSARY.md](./GLOSSARY.md)。
 
-Run everything from the repo root:
+## 运行
 
-- `make build TARGET=landlord && ./bin/landlord` — the benchmark: plays 10000 AI-vs-AI games and prints the win counts.
-  All three seats use the same AI: search-tree hand analysis when beating, the standard heuristics for bidding and leading. A seed fully determines a game.
-- `make test` — builds and runs `landlord_test`, the assert-based self-check (rules table + whole games by seed).
-- `make landlord-baseline` — regenerates `baseline.c.inc`, the recorded outcome of every seed the self-check plays. The self-check fails when a game no longer matches it. Regenerate only after a change that is meant to alter how games play out, and say why in the commit.
-- `make landlord-asan` — runs the self-check under ASan/UBSan.
+都在仓库根目录执行：
 
-Both targets are built with strict warnings (`-Wall -Wextra -pedantic` and friends) and are expected to stay at zero warnings.
+| 命令 | 作用 |
+| --- | --- |
+| `make build TARGET=landlord && ./bin/landlord` | 基准：种子 10000–19999 各打一局，打印农民与地主的胜局数 |
+| `make test` | 构建并运行 `landlord_test` 自检（连同其他子项目的自检） |
+| `make landlord-asan` | 在 ASan/UBSan 下运行自检 |
+| `make landlord-baseline` | 重新生成对局基线 `baseline.c.inc` |
 
-The Lua and JavaScript bindings (`binding/`) were not migrated; they remain in the original repository.
+两个目标都以严格警告选项构建（`-Wall -Wextra -pedantic` 等），应当保持零警告。
 
+构建选项经 `CMAKE_ARGS` 传入，例如 `make build TARGET=landlord CMAKE_ARGS=-DLANDLORD_LOG=ON`：
 
-**TODO:**  
-beat might diffuse a bomb  
-hand prompt  
-end game strategy  
-bid  
-better AI  
-interface / lib  
-documentation  
-optimization  
+| 选项 | 默认 | 作用 |
+| --- | --- | --- |
+| `LANDLORD_LOG` | `OFF` | 打印每一局的每一手牌 |
+| `LANDLORD_ASCII_SUITS` | `OFF` | 花色写作 `c d h s`，不用 `♣ ♦ ♥ ♠` |
+
+选项会留在 cmake 缓存里，用完显式传 `=OFF` 或 `make clean-build`。
+
+## module 划分
+
+依赖自上而下，上面的只用下面的 interface。
+
+| module | 文件 | 做什么 |
+| --- | --- | --- |
+| Game | `game.[ch]` | `game_play(game, seed)` 打完一局：发牌、叫分、轮转、校验并应用每一手牌、判胜负 |
+| AI | `ai.[ch]` | 只读局面进，决定出：`ai_bid`、`ai_lead`、`ai_beat`。两个 AI 只差注入的拆牌方式 |
+| 拆牌 | `analysis.[ch]` | 手牌进，牌型列表出。`analysis_standard` 贪心，`analysis_advanced` 搜索手数最少的拆法 |
+| 压牌搜索 | `beat.[ch]` | 手牌加上一手进，所有压得过的牌型出 |
+| 牌型列表 | `hand_list.[ch]` | 定长的值类型，满了拒收，不分配内存 |
+| 规则 | `hand.[ch]` | `hand_parse` 判定一组牌是什么牌型，`hand_compare` 判定两手谁大。只有这里知道规则 |
+| 手牌 | `card.[ch]` | 一组牌：按点数计数、取牌，洗牌发牌，与文本互转 |
+| 随机数 | `lmath.[ch]` | MT19937 与组合枚举 |
+
+`player.[ch]` 是座位的数据，`log.h` 是日志宏，`landlord.h` 把全部头文件聚在一起。
+库代码不分配堆内存。
+
+几条值得知道的约定：
+
+- **种子决定一局。** 同一个种子在任何机器、任何构建档位下得到同一局牌，与之前打过什么无关。
+- **Game 不信任 AI。** 每一手牌都经规则判定：是不是合法牌型、是否压过上一手、是不是这家手里的牌。
+  不合格的牌进不了牌局，对局以 `GAME_STATUS_ILLEGAL` 结束并打印种子和那手牌。牌型以规则的判定为准。
+- **AI 不改局面。** 它拿到的 `ai_view_t` 只有自己的手牌和公开信息，扣牌、记录、重新拆牌都由 Game 做。
+- **压牌搜索只提候选。** 是否真的压得过由 `hand_compare` 决定。
+
+## 自检与基线
+
+`test.c` 是 assert 自检，不用测试框架。它检查两个 seam 以及它们之间各 module 的性质：
+
+- 规则：一张「牌 → 牌型」的用例表和一张「两手牌 → 大小」的用例表。新牌型、新反例直接加一行。
+- 整局：种子 10000–10999 每局都合法结束、有胜者、打出的牌加各家手牌恰好是一副牌；同一个种子打两遍结果相同。
+- 拆牌：2 万组随机手牌上，结果恰好覆盖手牌、每手合法且类型属实、搜索式拆牌不比贪心式多。
+- 压牌搜索：3000 组随机发牌上，每个候选都合法、确实更大、确实是自己的牌。
+- AI：手工构造一个局面，断言它的决定，不需要 Game。
+
+**基线**（`baseline.c.inc`）记录这 1000 个种子各自的结果：胜者、地主、叫分、出牌序列的摘要值。
+自检逐局对比，不一致就失败并打印种子。重构之后基线必须不变。
+
+只有在**有意**改变对局行为（修 AI 的缺陷、改策略、改规则）之后才运行 `make landlord-baseline`，
+并在提交说明里写明原因和前后的胜负数。基线文件是产物，不手改。
+
+当前基准结果：农民 5991 胜，地主 4009 胜，非法 0 局。
+
+## 已知的不足
+
+- **AI 选压牌的方式是反的。** `ai_best_beat` 只要有炸弹或王炸就先用，否则选「出完后剩余手数最多」的那手。
+  这是迁入时就有的行为，基线记录的也是它；改掉它属于改策略，没有在这次整理里做。
+- 叫分只看手数，不看牌力；残局没有专门的策略；没有出牌提示。
+- 四带二不接受「带一对当两张单牌」，飞机的带牌也必须点数各不相同。
+- 自检在 Debug 构建下约 3 秒，主要花在随机手牌的拆牌上。

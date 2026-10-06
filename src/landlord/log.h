@@ -22,22 +22,17 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_COMMON_H_
-#define LANDLORD_COMMON_H_
+#ifndef LANDLORD_LOG_H_
+#define LANDLORD_LOG_H_
 
-#define LANDLORD_GRAPHICAL_SUIT
-
-#include <errno.h>
-#include <math.h>
-#include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
-#define LANDLORD_PRINT_LOG 0
-
-#if (LANDLORD_PRINT_LOG == 1)
+/*
+ * LANDLORD_LOG prints every move of a game when the build defines
+ * LANDLORD_PRINT_LOG (cmake -DLANDLORD_LOG=ON). When it does not, the
+ * arguments are still checked against the format but never evaluated.
+ */
+#ifdef LANDLORD_PRINT_LOG
 #define LANDLORD_LOG(...) printf(__VA_ARGS__)
 #else
 #define LANDLORD_LOG(...)                                                      \
@@ -47,4 +42,4 @@ SOFTWARE.
   } while (0)
 #endif
 
-#endif /* LANDLORD_COMMON_H_ */
+#endif /* LANDLORD_LOG_H_ */

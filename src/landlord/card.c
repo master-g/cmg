@@ -23,6 +23,10 @@ SOFTWARE.
 */
 
 #include "card.h"
+#include "log.h"
+
+#include <stdlib.h>
+#include <string.h>
 
 static const uint8_t card_set[] = {
     0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B,
@@ -35,21 +39,21 @@ static const uint8_t card_set[] = {
  * text
  * ************************************************************/
 
-#ifdef LANDLORD_GRAPHICAL_SUIT
+#ifndef LANDLORD_ASCII_SUITS
 #define CARD_SUIT_STRING_LENGTH 3
 
 static const char suit_text_diamond[] = "\xE2\x99\xA6";
 static const char suit_text_club[] = "\xE2\x99\xA3";
 static const char suit_text_heart[] = "\xE2\x99\xA5";
 static const char suit_text_spade[] = "\xE2\x99\xA0";
-#else /* ifdef LANDLORD_GRAPHICAL_SUIT */
+#else /* ifndef LANDLORD_ASCII_SUITS */
 #define CARD_SUIT_STRING_LENGTH 1
 
 static const char suit_text_diamond[] = "d";
 static const char suit_text_club[] = "c";
 static const char suit_text_heart[] = "h";
 static const char suit_text_spade[] = "s";
-#endif /* ifdef LANDLORD_GRAPHICAL_SUIT */
+#endif /* ifndef LANDLORD_ASCII_SUITS */
 
 /* indexed by rank, rank 0 is no card */
 static const char rank_text[] = "?3456789TJQKA2rR";
@@ -155,7 +159,7 @@ void card_array_init_from_string(card_array_t *array, const char *str) {
 }
 
 void card_array_print(const card_array_t *array) {
-#if (LANDLORD_PRINT_LOG == 1)
+#ifdef LANDLORD_PRINT_LOG
   int i = 0;
   char str[CARD_STRING_SIZE];
 

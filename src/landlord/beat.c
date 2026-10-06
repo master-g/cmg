@@ -25,6 +25,8 @@ SOFTWARE.
 #include "beat.h"
 #include "lmath.h"
 
+#include <string.h>
+
 /* beat search context */
 typedef struct beat_ctx_s {
   /* rank count */
