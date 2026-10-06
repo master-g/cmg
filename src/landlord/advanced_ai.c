@@ -31,6 +31,8 @@ SOFTWARE.
 int AdvancedAI_GetReady(void *p, void *game) {
   player_t *player = (player_t *)p;
 
+  (void)game;
+
   CardArray_Sort(&player->cards, NULL);
   CardArray_Copy(&player->record, &player->cards);
 #if (PRINT_GAME_LOG == 1)
@@ -57,7 +59,6 @@ int AdvancedAI_Beat(void *p, void *g) {
   player_t *player = (player_t *)p;
   player_t *prevplayer = NULL;
   player_t *teammate = NULL;
-  player_t *landlord = NULL;
   game_t *game = (game_t *)g;
 
   Hand_Clear(&beat);
@@ -76,11 +77,8 @@ int AdvancedAI_Beat(void *p, void *g) {
 
   if (canbeat && (player->identity == PlayerIdentity_Peasant) &&
       (prevplayer->identity == PlayerIdentity_Peasant)) {
-    /* find teammate and landlord */
+    /* find teammate */
     for (i = 0; i < GAME_PLAYERS; i++) {
-      if (game->players[i].identity == PlayerIdentity_Landlord)
-        landlord = &game->players[i];
-
       if ((game->players[i].identity == PlayerIdentity_Peasant) &&
           (game->players[i].seatId != player->seatId))
         teammate = &game->players[i];

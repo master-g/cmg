@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include "card.h"
 
-const uint8_t _card_set[] = {
+static const uint8_t card_set[] = {
     0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B,
     0x1C, 0x1D, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29,
     0x2A, 0x2B, 0x2C, 0x2D, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37,
@@ -125,7 +125,7 @@ void *CardArray_InitFromString(card_array_t *array, const char *str) {
 }
 
 void CardArray_Reset(card_array_t *array) {
-  memcpy(array->cards, _card_set, sizeof(uint8_t) * CARD_SET_LENGTH);
+  memcpy(array->cards, card_set, sizeof(uint8_t) * CARD_SET_LENGTH);
   array->length = CARD_SET_LENGTH;
 }
 
@@ -327,13 +327,15 @@ void CardArray_RemoveRank(card_array_t *array, uint8_t rank) {
   CardArray_Copy(array, &temp);
 }
 
-int CardArray_StandardSort(const void *a, const void *b) {
+static int CardArray_StandardSort(const void *a, const void *b) {
   uint8_t ra = 0;
   uint8_t rb = 0;
 
   /* rotation */
-  ra = ((*(uint8_t *)a & 0xF0) >> 4) | ((*(uint8_t *)a & 0x0F) << 4);
-  rb = ((*(uint8_t *)b & 0xF0) >> 4) | ((*(uint8_t *)b & 0x0F) << 4);
+  ra = (uint8_t)(CARD_SUIT(*(const uint8_t *)a) >> 4 |
+                 CARD_RANK(*(const uint8_t *)a) << 4);
+  rb = (uint8_t)(CARD_SUIT(*(const uint8_t *)b) >> 4 |
+                 CARD_RANK(*(const uint8_t *)b) << 4);
 
   return rb - ra;
 }
@@ -341,9 +343,11 @@ int CardArray_StandardSort(const void *a, const void *b) {
 void CardArray_Sort(
     card_array_t *array, int (*comparator)(const void *, const void *)) {
   if (comparator == NULL)
-    qsort(array->cards, array->length, sizeof(uint8_t), CardArray_StandardSort);
+    qsort(
+        array->cards, (size_t)array->length, sizeof(uint8_t),
+        CardArray_StandardSort);
   else
-    qsort(array->cards, array->length, sizeof(uint8_t), comparator);
+    qsort(array->cards, (size_t)array->length, sizeof(uint8_t), comparator);
 }
 
 void CardArray_Reverse(card_array_t *array) {
@@ -359,43 +363,43 @@ void CardArray_Reverse(card_array_t *array) {
 #ifdef LL_GRAPHICAL_SUIT
 #define CARD_STRING_LENGTH 4
 
-unsigned char szDIAMOND[] = {0xE2, 0x99, 0xA6, 0};
-unsigned char szCLUB[] = {0xE2, 0x99, 0xA3, 0};
-unsigned char szHEART[] = {0xE2, 0x99, 0xA5, 0};
-unsigned char szSPADE[] = {0xE2, 0x99, 0xA0, 0};
+static const char szDIAMOND[] = "\xE2\x99\xA6";
+static const char szCLUB[] = "\xE2\x99\xA3";
+static const char szHEART[] = "\xE2\x99\xA5";
+static const char szSPADE[] = "\xE2\x99\xA0";
 #else /* ifdef LL_GRAPHICAL_SUIT */
 #define CARD_STRING_LENGTH 2
 
-unsigned char szDIAMOND[] = {'d', 0, 0, 0};
-unsigned char szCLUB[] = {'c', 0, 0, 0};
-unsigned char szHEART[] = {'h', 0, 0, 0};
-unsigned char szSPADE[] = {'s', 0, 0, 0};
+static const char szDIAMOND[] = {'d', 0, 0, 0};
+static const char szCLUB[] = {'c', 0, 0, 0};
+static const char szHEART[] = {'h', 0, 0, 0};
+static const char szSPADE[] = {'s', 0, 0, 0};
 #endif /* ifdef LL_GRAPHICAL_SUIT */
 
-char szRank[] = {'3', '4', '5', '6', '7', '8', '9', 'T',
-                 'J', 'Q', 'K', 'A', '2', 'r', 'R'};
+static const char szRank[] = {'3', '4', '5', '6', '7', '8', '9', 'T',
+                              'J', 'Q', 'K', 'A', '2', 'r', 'R'};
 
 int Card_ToString(uint8_t card, char *buf, int len) {
   if ((buf != NULL) && (len >= CARD_STRING_LENGTH)) {
-    char *szSuit = NULL;
+    const char *szSuit = NULL;
     int rank = CARD_RANK(card);
     int suit = CARD_SUIT(card);
 
     switch (suit) {
     case CARD_SUIT_DIAMOND:
-      szSuit = (char *)szDIAMOND;
+      szSuit = szDIAMOND;
       break;
 
     case CARD_SUIT_CLUB:
-      szSuit = (char *)szCLUB;
+      szSuit = szCLUB;
       break;
 
     case CARD_SUIT_HEART:
-      szSuit = (char *)szHEART;
+      szSuit = szHEART;
       break;
 
     case CARD_SUIT_SPADE:
-      szSuit = (char *)szSPADE;
+      szSuit = szSPADE;
       break;
 
     default:

@@ -96,7 +96,7 @@ SOFTWARE.
 #define HAND_PATTERN_20_3 42 /* four chain */
 #define HAND_PATTERN_END HAND_PATTERN_20_3
 
-const int _hand_pattern[][PATTERN_LENGTH] = {
+static const int hand_pattern[][PATTERN_LENGTH] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* place holder */
     {1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 1, solo */
     {2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, /* 2, pair */
@@ -155,7 +155,7 @@ const int _hand_pattern[][PATTERN_LENGTH] = {
  *  hands that had same length may have 2 variations at most
  */
 
-const int _hand_specs[HAND_MAX_LENGTH + 1][HAND_VARIATION][HAND_SPEC] = {
+static const int hand_specs[HAND_MAX_LENGTH + 1][HAND_VARIATION][HAND_SPEC] = {
     {/* place holder */
      {0, 0, 0, 0},
      {0, 0, 0, 0}},
@@ -238,13 +238,13 @@ void Hand_Copy(hand_t *dst, hand_t *src) {
  * ************************************************************/
 
 /* sort function for rank count array */
-int _Hand_PatternSort(const void *a, const void *b) {
-  return *(int *)b - *(int *)a;
+static int Hand_PatternSort(const void *a, const void *b) {
+  return *(const int *)b - *(const int *)a;
 }
 
 /* sort count array by counts */
-void _Hand_SortCount(int *count) {
-  qsort(count, CARD_RANK_END, sizeof(int), _Hand_PatternSort);
+static void Hand_SortCount(int *count) {
+  qsort(count, CARD_RANK_END, sizeof(int), Hand_PatternSort);
 }
 
 /*
@@ -261,14 +261,14 @@ void Hand_CountRank(card_array_t *array, int *count, int *sort) {
 
   if (sort != NULL) {
     memcpy(sort, count, sizeof(int) * CARD_RANK_END);
-    _Hand_SortCount(sort);
+    Hand_SortCount(sort);
   }
 }
 
 /* check if a sorted count array matches specific pattern */
-int _Hand_PatternMatch(int *sorted, int pattern) {
+static int Hand_PatternMatch(int *sorted, int pattern) {
   int ret =
-      memcmp(sorted, _hand_pattern[pattern], sizeof(int) * PATTERN_LENGTH) == 0
+      memcmp(sorted, hand_pattern[pattern], sizeof(int) * PATTERN_LENGTH) == 0
           ? 1
           : 0;
 
@@ -281,7 +281,7 @@ int _Hand_PatternMatch(int *sorted, int pattern) {
  * | 123 |                   duplicate: 3
  * |  1     2     3     4  | expectLength: 4
  */
-int _Hand_CheckChain(int *count, int duplicate, int expectLength) {
+static int Hand_CheckChain(int *count, int duplicate, int expectLength) {
   int i = 0;
   int marker = 0;
   int length = 0;
@@ -306,10 +306,10 @@ int _Hand_CheckChain(int *count, int duplicate, int expectLength) {
 
 /*
  * distribute cards
- * for example, _Hand_Distribute(xxx, 88666644, 422, 4, 2, 8)
+ * for example, Hand_Distribute(xxx, 88666644, 422, 4, 2, 8)
  * hand will be 66668844
  */
-void _Hand_Distribute(
+static void Hand_Distribute(
     hand_t *hand, card_array_t *array, int *count, int d1, int d2, int length) {
   int i = 0;
   int num = 0;
@@ -334,8 +334,7 @@ void _Hand_Distribute(
   }
 }
 
-int _Hand_CheckNuke(
-    hand_t *hand, card_array_t *array, int *count, int *sorted) {
+static int Hand_CheckNuke(hand_t *hand, card_array_t *array) {
   int ret = 0;
   if ((CARD_RANK(array->cards[0]) == CARD_RANK_R) &&
       (CARD_RANK(array->cards[1]) == CARD_RANK_r)) {
@@ -348,11 +347,10 @@ int _Hand_CheckNuke(
   return ret;
 }
 
-int _Hand_CheckBomb(
-    hand_t *hand, card_array_t *array, int *count, int *sorted) {
+static int Hand_CheckBomb(hand_t *hand, card_array_t *array, int *sorted) {
   int ret = 0;
 
-  if (_Hand_PatternMatch(sorted, HAND_PATTERN_4_1)) {
+  if (Hand_PatternMatch(sorted, HAND_PATTERN_4_1)) {
     /* bomb, 4 */
     CardArray_Copy(&hand->cards, array);
     hand->type =
@@ -390,12 +388,12 @@ int Hand_Parse(hand_t *hand, card_array_t *array) {
     }
 
     /* nuke */
-    if ((array->length == 2) && _Hand_CheckNuke(hand, array, count, sorted)) {
+    if ((array->length == 2) && Hand_CheckNuke(hand, array)) {
       break;
     }
 
     /* bomb */
-    if ((array->length == 4) && _Hand_CheckBomb(hand, array, count, sorted)) {
+    if ((array->length == 4) && Hand_CheckBomb(hand, array, sorted)) {
       break;
     }
 
@@ -403,7 +401,7 @@ int Hand_Parse(hand_t *hand, card_array_t *array) {
     for (i = 1; i < HAND_PRIMAL_FOUR + 1; i++) {
       int chainMinLength = chainlength[i];
       if ((array->length >= chainMinLength) && (array->length % i == 0) &&
-          _Hand_CheckChain(count, i, array->length / i)) {
+          Hand_CheckChain(count, i, array->length / i)) {
         hand->type = Hand_Format(i, HAND_KICKER_NONE, HAND_CHAIN);
         CardArray_Copy(&hand->cards, array);
         break;
@@ -418,19 +416,19 @@ int Hand_Parse(hand_t *hand, card_array_t *array) {
       int d2[] = {0, 1, 2, 1, 2};
 
       for (i = 0; i < 2; i++) {
-        pattern = _hand_specs[array->length][i][0];
-        primal = _hand_specs[array->length][i][1];
-        kicker = _hand_specs[array->length][i][2];
-        chain = _hand_specs[array->length][i][3];
+        pattern = hand_specs[array->length][i][0];
+        primal = hand_specs[array->length][i][1];
+        kicker = hand_specs[array->length][i][2];
+        chain = hand_specs[array->length][i][3];
 
         if (pattern == 0) {
           hand->type = 0;
           break;
         }
 
-        if (_Hand_PatternMatch(sorted, pattern)) {
+        if (Hand_PatternMatch(sorted, pattern)) {
           d1 = primal;
-          _Hand_Distribute(
+          Hand_Distribute(
               hand, array, count, d1, d2[kicker >> 4], array->length);
           hand->type = Hand_Format(primal, kicker, chain);
           break;
@@ -450,7 +448,7 @@ int Hand_Parse(hand_t *hand, card_array_t *array) {
  */
 
 /* one of a, b must be bomb or nuke */
-int _Hand_CompareBomb(hand_t *a, hand_t *b) {
+static int Hand_CompareBomb(hand_t *a, hand_t *b) {
   int ret = HAND_CMP_ILLEGAL;
 
   /* same type same cards, equal */
@@ -481,7 +479,7 @@ int Hand_Compare(hand_t *a, hand_t *b) {
         (b->type != HAND_PRIMAL_NUKE) && (b->type != HAND_PRIMAL_BOMB))
       result = HAND_CMP_ILLEGAL;
     else
-      result = _Hand_CompareBomb(a, b);
+      result = Hand_CompareBomb(a, b);
   } else /* same hand type and with no bombs */
   {
     /* same hand type but different length */

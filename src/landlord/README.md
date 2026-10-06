@@ -12,7 +12,8 @@ Run everything from the repo root:
 - `make test` — builds and runs `landlord_test`, the assert-based self-check (rules table + whole games by seed).
 - `make landlord-baseline` — regenerates `baseline.c.inc`, the recorded outcome of every seed the self-check plays. The self-check fails when a game no longer matches it. Regenerate only after a change that is meant to alter how games play out, and say why in the commit.
 - `make landlord-asan` — runs the self-check under ASan/UBSan.
-- `make build TARGET=landlord CMAKE_ARGS=-DLANDLORD_STRICT=ON` — builds with strict warnings.
+
+Both targets are built with strict warnings (`-Wall -Wextra -pedantic` and friends) and are expected to stay at zero warnings.
 
 The Lua and JavaScript bindings (`binding/`) were not migrated; they remain in the original repository.
 

@@ -37,7 +37,7 @@ extern "C" {
 
 #define MT_N 624
 
-typedef struct _mt19937_s {
+typedef struct mt19937_s {
   uint32_t mt[MT_N];
   /* state vector */
   int32_t mti; /* mti == N+1 -> mt[N] not initialized */

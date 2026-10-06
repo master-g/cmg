@@ -25,7 +25,7 @@ SOFTWARE.
 #include "deck.h"
 #include "lmath.h"
 
-void shuffle(uint8_t arr[], int len, mt19937_t *mt) {
+static void shuffle(uint8_t arr[], int len, mt19937_t *mt) {
   int i = len, j;
   uint8_t tmp = 0;
 

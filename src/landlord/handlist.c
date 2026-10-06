@@ -55,12 +55,12 @@ void HandList_Remove(rk_list_t *hl, hand_t *hand) {
   free(payload);
 }
 
-int _HandList_FindFunc(void *payload, void *context) {
+static int HandList_FindFunc(void *payload, void *context) {
   return ((hand_t *)payload)->type == *(int *)context ? 1 : 0;
 }
 
 hand_t *HandList_Find(rk_list_t *hl, int handtype) {
-  return rk_list_search(hl, &handtype, _HandList_FindFunc);
+  return rk_list_search(hl, &handtype, HandList_FindFunc);
 }
 
 /*
@@ -82,7 +82,7 @@ typedef struct hand_ctx_s {
 
 #define HandCtx_Clear(ctx) memset((ctx), 0, sizeof(hand_ctx_t))
 
-void HandCtx_Setup(hand_ctx_t *ctx, card_array_t *array) {
+static void HandCtx_Setup(hand_ctx_t *ctx, card_array_t *array) {
   /* setup search context */
   HandCtx_Clear(ctx);
 
@@ -93,8 +93,8 @@ void HandCtx_Setup(hand_ctx_t *ctx, card_array_t *array) {
   CardArray_Reverse(&ctx->rcards);
 }
 
-int _HandList_SearchBeat_Primal(
-    hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int primal) {
+static int
+SearchBeat_Primal(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int primal) {
   int i = 0;
   int canbeat = 0;
   int *count = NULL;
@@ -123,7 +123,7 @@ int _HandList_SearchBeat_Primal(
   return canbeat;
 }
 
-int _HandList_SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
+static int SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
   int canbeat = 0;
   int *count = NULL;
   int i = 0;
@@ -138,7 +138,7 @@ int _HandList_SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
 
   /* search for a higher rank bomb */
   if (tobeat->type == HAND_PRIMAL_BOMB) {
-    canbeat = _HandList_SearchBeat_Primal(ctx, tobeat, beat, 4);
+    canbeat = SearchBeat_Primal(ctx, tobeat, beat, 4);
   } else {
     /* tobeat is not a nuke or bomb, search a bomb to beat it */
     for (i = 0; i < ctx->cards.length;) {
@@ -182,8 +182,8 @@ int _HandList_SearchBeat_Bomb(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat) {
  * b) player_1 SEARCH_BEAT_LOOP player_1_prev_beat : possible for 333 vs 333
  *
  */
-int _HandList_SearchBeat_TrioKicker(
-    hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kick) {
+static int
+SearchBeat_TrioKicker(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kick) {
   int i = 0;
   int canbeat = 0;
   int cantriobeat = 0;
@@ -237,8 +237,7 @@ int _HandList_SearchBeat_TrioKicker(
    * same rank trio found, but kicker can't beat
    */
   if (canbeat == 0) {
-    cantriobeat =
-        _HandList_SearchBeat_Primal(ctx, &htrio, &htriobeat, HAND_PRIMAL_TRIO);
+    cantriobeat = SearchBeat_Primal(ctx, &htrio, &htriobeat, HAND_PRIMAL_TRIO);
 
     /* trio beat found, search for kicker beat */
     if (cantriobeat == 1) {
@@ -269,8 +268,8 @@ int _HandList_SearchBeat_TrioKicker(
   return canbeat;
 }
 
-int _HandList_SearchBeat_Chain(
-    hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int duplicate) {
+static int
+SearchBeat_Chain(hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int duplicate) {
   int canbeat = 0;
   int found = 0;
   int i, j, k, chainlength;
@@ -299,8 +298,8 @@ int _HandList_SearchBeat_Chain(
     }
 
     if (found) {
-      footer = i;    /* beat footer rank */
-      k = duplicate; /* how many cards needed for each rank */
+      footer = (uint8_t)i; /* beat footer rank */
+      k = duplicate;       /* how many cards needed for each rank */
 
       for (j = cards->length - 1; j >= 0 && chainlength > 0; j--) {
         if (CARD_RANK(cards->cards[j]) == footer) {
@@ -328,7 +327,7 @@ int _HandList_SearchBeat_Chain(
   return canbeat;
 }
 
-int _HandList_SearchBeat_TrioKickerChain(
+static int SearchBeat_TrioKickerChain(
     hand_ctx_t *ctx, hand_t *tobeat, hand_t *beat, int kc) {
   int canbeat = 0;
   int cantriobeat = 0;
@@ -360,7 +359,7 @@ int _HandList_SearchBeat_TrioKickerChain(
 
   htrio.type = Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN);
 
-  /* self beat, see _HandList_SearchBeat_TrioKicker */
+  /* self beat, see SearchBeat_TrioKicker */
   if (CardArray_IsContain(&temp, &htrio.cards)) {
     int n = 0; /* combination total */
 
@@ -425,7 +424,7 @@ int _HandList_SearchBeat_TrioKickerChain(
     /* restore rank count */
     memcpy(count, ctx->count, sizeof(int) * CARD_RANK_END);
 
-    cantriobeat = _HandList_SearchBeat_Chain(ctx, &htrio, &htriobeat, 3);
+    cantriobeat = SearchBeat_Chain(ctx, &htrio, &htriobeat, 3);
 
     /* higher rank trio chain found, search for kickers */
     if (cantriobeat) {
@@ -461,7 +460,7 @@ int _HandList_SearchBeat_TrioKickerChain(
   return canbeat;
 }
 
-int _HandList_SearchBeat(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
+static int SearchBeat_Any(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   int canbeat = 0;
   hand_ctx_t ctx;
 
@@ -471,51 +470,47 @@ int _HandList_SearchBeat(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   /* start search */
   switch (tobeat->type) {
   case Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = _HandList_SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
     break;
 
   case Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = _HandList_SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAINLESS):
-    canbeat = _HandList_SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
+    canbeat = SearchBeat_Primal(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAINLESS):
-    canbeat =
-        _HandList_SearchBeat_TrioKicker(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_TrioKicker(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAINLESS):
-    canbeat =
-        _HandList_SearchBeat_TrioKicker(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_TrioKicker(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
     break;
 
   case Hand_Format(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
     break;
 
   case Hand_Format(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
+    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_TRIO);
     break;
 
   case Hand_Format(HAND_PRIMAL_FOUR, HAND_KICKER_NONE, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_FOUR);
+    canbeat = SearchBeat_Chain(&ctx, tobeat, beat, HAND_PRIMAL_FOUR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_PAIR, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_TrioKickerChain(
-        &ctx, tobeat, beat, HAND_PRIMAL_PAIR);
+    canbeat = SearchBeat_TrioKickerChain(&ctx, tobeat, beat, HAND_PRIMAL_PAIR);
     break;
 
   case Hand_Format(HAND_PRIMAL_TRIO, HAND_KICKER_SOLO, HAND_CHAIN):
-    canbeat = _HandList_SearchBeat_TrioKickerChain(
-        &ctx, tobeat, beat, HAND_PRIMAL_SOLO);
+    canbeat = SearchBeat_TrioKickerChain(&ctx, tobeat, beat, HAND_PRIMAL_SOLO);
     break;
 
   default:
@@ -524,7 +519,7 @@ int _HandList_SearchBeat(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
 
   /* search for bomb/nuke */
   if (canbeat == 0)
-    canbeat = _HandList_SearchBeat_Bomb(&ctx, tobeat, beat);
+    canbeat = SearchBeat_Bomb(&ctx, tobeat, beat);
 
   return canbeat;
 }
@@ -537,9 +532,9 @@ int _HandList_SearchBeat(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
 int HandList_SearchBeat(card_array_t *cards, hand_t *tobeat, hand_t *beat) {
   /* already in search loop, continue */
   if (beat->type != 0)
-    return _HandList_SearchBeat(cards, beat, beat);
+    return SearchBeat_Any(cards, beat, beat);
   else
-    return _HandList_SearchBeat(cards, tobeat, beat);
+    return SearchBeat_Any(cards, tobeat, beat);
 }
 
 rk_list_t *HandList_SearchBeatList(card_array_t *cards, hand_t *tobeat) {
@@ -553,7 +548,7 @@ rk_list_t *HandList_SearchBeatList(card_array_t *cards, hand_t *tobeat) {
 
   hl = rk_list_create();
   do {
-    canbeat = _HandList_SearchBeat(cards, &htobeat, &beat);
+    canbeat = SearchBeat_Any(cards, &htobeat, &beat);
 
     if (canbeat) {
       Hand_Copy(&htobeat, &beat);
@@ -574,8 +569,8 @@ rk_list_t *HandList_SearchBeatList(card_array_t *cards, hand_t *tobeat) {
  * extract hands like 34567 / 334455 / 333444555 etc
  * array is a processed card array holds count[rank] == duplicate
  */
-void _HandList_ExtractConsecutive(
-    rk_list_t *hl, card_array_t *array, int duplicate) {
+static void
+HandList_ExtractConsecutive(rk_list_t *hl, card_array_t *array, int duplicate) {
   int i = 0;
   int j = 0;
   int k = 0;
@@ -662,8 +657,8 @@ void _HandList_ExtractConsecutive(
 }
 
 /* extract nuke/bomb/2 from array, these cards will be removed from array */
-void _HandList_ExtractNukeBomb2(
-    rk_list_t *hl, card_array_t *array, int *count) {
+static void
+HandList_ExtractNukeBomb2(rk_list_t *hl, card_array_t *array, int *count) {
   int i = 0;
   hand_t hand;
 
@@ -770,7 +765,7 @@ rk_list_t *HandList_StandardAnalyze(card_array_t *cards) {
   hl = rk_list_create();
 
   /* nuke, bomb and 2 */
-  _HandList_ExtractNukeBomb2(hl, &array, count);
+  HandList_ExtractNukeBomb2(hl, &array, count);
 
   /* chains */
   for (i = 0; i < array.length;) {
@@ -785,9 +780,9 @@ rk_list_t *HandList_StandardAnalyze(card_array_t *cards) {
   }
 
   /* chain */
-  _HandList_ExtractConsecutive(hl, &arrtrio, 3);
-  _HandList_ExtractConsecutive(hl, &arrpair, 2);
-  _HandList_ExtractConsecutive(hl, &arrsolo, 1);
+  HandList_ExtractConsecutive(hl, &arrtrio, 3);
+  HandList_ExtractConsecutive(hl, &arrpair, 2);
+  HandList_ExtractConsecutive(hl, &arrsolo, 1);
 
   return hl;
 }
@@ -797,7 +792,7 @@ rk_list_t *HandList_StandardAnalyze(card_array_t *cards) {
  * hand evaluator
  * ************************************************************
  */
-int _HandList_CalculateConsecutive(card_array_t *array, int duplicate) {
+static int HandList_CalculateConsecutive(card_array_t *array, int duplicate) {
   int hands = 0;
   int i = 0;
   int j = 0;
@@ -931,9 +926,9 @@ int HandList_StandardEvaluator(card_array_t *array) {
   }
 
   /* chain */
-  hands += _HandList_CalculateConsecutive(&arrtrio, 3);
-  hands += _HandList_CalculateConsecutive(&arrpair, 2);
-  hands += _HandList_CalculateConsecutive(&arrsolo, 1);
+  hands += HandList_CalculateConsecutive(&arrtrio, 3);
+  hands += HandList_CalculateConsecutive(&arrpair, 2);
+  hands += HandList_CalculateConsecutive(&arrsolo, 1);
 
   return hands;
 }
@@ -943,7 +938,7 @@ int HandList_StandardEvaluator(card_array_t *array) {
  * advanced hand analyze
  * ************************************************************
  */
-void _HandList_SearchLongestConsecutive(
+static void HandList_SearchLongestConsecutive(
     hand_ctx_t *ctx, hand_t *hand, int duplicate) {
   /* context */
   int i = 0;
@@ -1023,29 +1018,7 @@ void _HandList_SearchLongestConsecutive(
   }
 }
 
-void _HandList_SearchPrimal(hand_ctx_t *ctx, hand_t *hand, int primal) {
-  int i = 0;
-  int *count = ctx->count;
-  int primals[] = {0, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
-  card_array_t *rcards = &ctx->rcards;
-
-  if ((primal > 3) || (primal < 1))
-    return;
-
-  /* search count[rank] >= primal */
-  for (i = 0; i < rcards->length; i++) {
-    if (count[CARD_RANK(rcards->cards[i])] >= primal) {
-      /* found */
-      Hand_Clear(hand);
-      CardArray_PushBackCards(&hand->cards, rcards, i, primal);
-      hand->type =
-          Hand_Format(primals[primal], HAND_KICKER_NONE, HAND_CHAINLESS);
-      break;
-    }
-  }
-}
-
-typedef void (*_HandList_SearchPrimalFunc)(hand_ctx_t *, hand_t *, int);
+typedef void (*HandList_SearchPrimalFunc)(hand_ctx_t *, hand_t *, int);
 
 #define HAND_SEARCH_TYPES 3
 
@@ -1054,17 +1027,17 @@ typedef void (*_HandList_SearchPrimalFunc)(hand_ctx_t *, hand_t *, int);
  * result stores in hand
  * return 0 when stop
  */
-int _HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
+static int HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
   int found = 0;
   int i = *begin;
   int primals[] = {1, 2, 3};
 
   /* solo chain, pair chain, trio chain, trio, pair, solo */
-  _HandList_SearchPrimalFunc searchers[HAND_SEARCH_TYPES];
+  HandList_SearchPrimalFunc searchers[HAND_SEARCH_TYPES];
 
-  searchers[0] = _HandList_SearchLongestConsecutive;
-  searchers[1] = _HandList_SearchLongestConsecutive;
-  searchers[2] = _HandList_SearchLongestConsecutive;
+  searchers[0] = HandList_SearchLongestConsecutive;
+  searchers[1] = HandList_SearchLongestConsecutive;
+  searchers[2] = HandList_SearchLongestConsecutive;
 
   if (ctx->cards.length == 0)
     return 0;
@@ -1098,7 +1071,7 @@ int _HLAA_TraverseChains(hand_ctx_t *ctx, int *begin, hand_t *hand) {
 /*
  * extract all chains or primal hands in hand_ctx
  */
-void _HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
+static void HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
   int found = 0;
   int lastsearch = 0;
   hand_t workinghand;
@@ -1108,14 +1081,14 @@ void _HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
   Hand_Clear(&workinghand);
   Hand_Clear(&lasthand);
 
-  found = _HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
+  found = HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
 
   while (found != 0) {
     HandList_PushFront(hands, &lasthand);
 
     Hand_Copy(&workinghand, &lasthand);
 
-    while ((found = _HLAA_TraverseChains(ctx, &lastsearch, &workinghand)) != 0)
+    while ((found = HLAA_TraverseChains(ctx, &lastsearch, &workinghand)) != 0)
       HandList_PushFront(hands, &workinghand);
 
     /* can't find any more hands, try to reduce chain length */
@@ -1152,14 +1125,14 @@ void _HLAA_ExtractAllChains(hand_ctx_t *ctx, rk_list_t *hands) {
       if (found == 0) {
         lastsearch++;
         Hand_Clear(&lasthand);
-        found = _HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
+        found = HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
       }
     }
   }
 }
 
 /* advanced search tree payload */
-typedef struct _hltree_payload_s {
+typedef struct hltree_payload_s {
   /* hand context */
   hand_ctx_t ctx;
   /* hand */
@@ -1167,14 +1140,14 @@ typedef struct _hltree_payload_s {
   /* evaluation weight */
   int weight;
 
-} _hltree_payload_t;
+} hltree_payload_t;
 
-rk_tree_t *_HLAA_TreeAddHand(rk_tree_t *tree, rk_list_node_t *handnode) {
-  _hltree_payload_t *oldpayload = NULL;
-  _hltree_payload_t *newpayload = NULL;
+static rk_tree_t *HLAA_TreeAddHand(rk_tree_t *tree, rk_list_node_t *handnode) {
+  hltree_payload_t *oldpayload = NULL;
+  hltree_payload_t *newpayload = NULL;
 
-  oldpayload = (_hltree_payload_t *)tree->payload;
-  newpayload = (_hltree_payload_t *)malloc(sizeof(_hltree_payload_t));
+  oldpayload = (hltree_payload_t *)tree->payload;
+  newpayload = (hltree_payload_t *)malloc(sizeof(hltree_payload_t));
 
   /* make diff here */
   memcpy(&newpayload->ctx, &oldpayload->ctx, sizeof(hand_ctx_t));
@@ -1203,7 +1176,7 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   rk_tree_t *workingtree = NULL;
   rk_tree_t *tnode = NULL;
   rk_tree_t *shortest = NULL;
-  _hltree_payload_t *pload = NULL;
+  hltree_payload_t *pload = NULL;
 
   hand_ctx_t ctx;
 
@@ -1217,7 +1190,7 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   CardArray_Copy(&ctx.cards, array);
 
   /* extract bombs and 2 */
-  _HandList_ExtractNukeBomb2(handlist, &ctx.cards, ctx.count);
+  HandList_ExtractNukeBomb2(handlist, &ctx.cards, ctx.count);
 
   /* finish building beat_search_context */
   CardArray_Copy(&ctx.rcards, &ctx.cards);
@@ -1226,14 +1199,14 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   /* magic goes here */
 
   /* root */
-  pload = (_hltree_payload_t *)malloc(sizeof(_hltree_payload_t));
+  pload = (hltree_payload_t *)malloc(sizeof(hltree_payload_t));
   memcpy(&pload->ctx, &ctx, sizeof(hand_ctx_t));
   pload->weight = 0;
   grandtree = rk_tree_create(pload);
 
   /* first expansion */
   chains = rk_list_create();
-  _HLAA_ExtractAllChains(&ctx, chains);
+  HLAA_ExtractAllChains(&ctx, chains);
 
   /* no chains, fall back to standard analyze */
   if (rk_list_empty(chains)) {
@@ -1248,7 +1221,7 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   st = rk_list_create();
 
   while (hlnode != NULL) {
-    tnode = _HLAA_TreeAddHand(grandtree, hlnode);
+    tnode = HLAA_TreeAddHand(grandtree, hlnode);
     rk_list_push(st, tnode);
 
     hlnode = hlnode->next;
@@ -1261,17 +1234,17 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
     /* pop stack */
     workingtree = rk_list_pop(st);
     chains = rk_list_create();
-    pload = (_hltree_payload_t *)workingtree->payload;
+    pload = (hltree_payload_t *)workingtree->payload;
 
     /* expansion */
-    _HLAA_ExtractAllChains(&pload->ctx, chains);
+    HLAA_ExtractAllChains(&pload->ctx, chains);
 
     if (!rk_list_empty(chains)) {
       /* push new nodes */
       hlnode = chains->first;
 
       while (hlnode != NULL) {
-        tnode = _HLAA_TreeAddHand(workingtree, hlnode);
+        tnode = HLAA_TreeAddHand(workingtree, hlnode);
         rk_list_push(st, tnode);
 
         hlnode = hlnode->next;
@@ -1288,13 +1261,13 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
   while (!rk_list_empty(st)) {
     /* pop stack */
     workingtree = rk_list_pop(st);
-    pload = (_hltree_payload_t *)workingtree->payload;
+    pload = (hltree_payload_t *)workingtree->payload;
 
     /* calculate other hands weight */
     pload->weight += HandList_StandardEvaluator(&pload->ctx.cards);
 
     if ((shortest == NULL) ||
-        (pload->weight < ((_hltree_payload_t *)shortest->payload)->weight))
+        (pload->weight < ((hltree_payload_t *)shortest->payload)->weight))
       shortest = workingtree;
   }
 
@@ -1302,12 +1275,12 @@ rk_list_t *HandList_AdvancedAnalyze(card_array_t *array) {
 
   /* extract shortest node's other hands */
   others = HandList_StandardAnalyze(
-      &((_hltree_payload_t *)(shortest->payload))->ctx.cards);
+      &((hltree_payload_t *)(shortest->payload))->ctx.cards);
 
   while (shortest != NULL &&
-         ((_hltree_payload_t *)shortest->payload)->weight != 0) {
+         ((hltree_payload_t *)shortest->payload)->weight != 0) {
     HandList_PushFront(
-        others, &((_hltree_payload_t *)(shortest->payload))->hand);
+        others, &((hltree_payload_t *)(shortest->payload))->hand);
     shortest = shortest->parent;
   }
 
@@ -1348,9 +1321,9 @@ typedef struct beat_node_s {
 } beat_node_t;
 
 /* sort function */
-int _BeatNode_ValueSort(const void *a, const void *b) {
-  const beat_node_t *na = *(beat_node_t **)a;
-  const beat_node_t *nb = *(beat_node_t **)b;
+static int BeatNode_ValueSort(const void *a, const void *b) {
+  const beat_node_t *na = *(beat_node_t *const *)a;
+  const beat_node_t *nb = *(beat_node_t *const *)b;
 
   return na->value != nb->value ? na->value - nb->value : na->order - nb->order;
 }
@@ -1411,7 +1384,7 @@ int HandList_BestBeat(
     }
 
     /* sort primal hands */
-    qsort(hnodes, nodei, sizeof(beat_node_t *), _BeatNode_ValueSort);
+    qsort(hnodes, (size_t)nodei, sizeof(beat_node_t *), BeatNode_ValueSort);
   }
 
   /* re-build hand list */

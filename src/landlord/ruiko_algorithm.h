@@ -43,14 +43,14 @@ typedef int (*rk_algo_search)(void *payload, void *context);
  * list
  * ************************************************************/
 
-typedef struct _rk_list_node_s {
+typedef struct rk_list_node_s {
   void *payload;
-  struct _rk_list_node_s *prev;
-  struct _rk_list_node_s *next;
+  struct rk_list_node_s *prev;
+  struct rk_list_node_s *next;
 
 } rk_list_node_t;
 
-typedef struct _rk_list_s {
+typedef struct rk_list_s {
   int count;
   rk_list_node_t *first;
   rk_list_node_t *last;
@@ -63,9 +63,9 @@ typedef struct _rk_list_s {
 #define rk_list_empty(l) ((l)->count == 0)
 
 #define rk_list_foreach(L, S, M, V)                                            \
-  rk_list_node_t *_rkfn_ = NULL;                                               \
+  rk_list_node_t *rkfn = NULL;                                                 \
   rk_list_node_t *V = NULL;                                                    \
-  for (V = _rkfn_ = L->S; _rkfn_ != NULL; V = _rkfn_ = _rkfn_->M)
+  for (V = rkfn = L->S; rkfn != NULL; V = rkfn = rkfn->M)
 
 rk_list_t *rk_list_create(void);
 
@@ -93,11 +93,11 @@ void *rk_list_search(rk_list_t *list, void *context, rk_algo_search search);
  * tree
  * ************************************************************/
 
-typedef struct _rk_tree_node_s {
+typedef struct rk_tree_node_s {
   void *payload;
-  struct _rk_tree_node_s *parent;
-  struct _rk_tree_node_s *child;
-  struct _rk_tree_node_s *sibling;
+  struct rk_tree_node_s *parent;
+  struct rk_tree_node_s *child;
+  struct rk_tree_node_s *sibling;
 
 } rk_tree_t;
 
@@ -110,8 +110,6 @@ rk_tree_t *rk_tree_add_child(rk_tree_t *node, void *payload);
 void rk_tree_dump(rk_tree_t *tree, rk_list_t *list);
 
 void rk_tree_dump_leaves(rk_tree_t *tree, rk_list_t *list);
-
-void history_purge();
 
 #ifdef __cplusplus
 }

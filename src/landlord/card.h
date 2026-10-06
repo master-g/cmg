@@ -73,7 +73,7 @@ extern "C" {
 #define CardArray_IsFull(a) ((a)->length >= CARD_SET_LENGTH)
 #define CardArray_IsEmpty(a) ((a)->length == 0)
 
-typedef struct _card_arr_s {
+typedef struct card_arr_s {
   int length;
   uint8_t cards[CARD_ARRAY_PRESET_LENGTH];
 

@@ -57,7 +57,6 @@ int main(void) {
   printf("ended at %ld\n", (long)time(NULL));
   printf("\n");
 
-  history_purge();
   memtrack_list_allocations();
   return 0;
 }

@@ -40,7 +40,7 @@ static size_t memtrack_livebytes = 0;
 #define MAGIC1 0xDEADBEEF
 #define MAGIC2 0xBEEFDEAD
 
-struct memblock *memblockList = NULL;
+static struct memblock *memblockList = NULL;
 
 static void memblock_print_info(struct memblock *mb) {
   printf(

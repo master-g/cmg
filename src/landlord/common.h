@@ -44,9 +44,13 @@ extern "C" {
 #define PRINT_GAME_LOG 0
 
 #if (PRINT_GAME_LOG == 1)
-#define DBGLog printf
+#define DBGLog(...) printf(__VA_ARGS__)
 #else
-#define DBGLog (void)
+#define DBGLog(...)                                                            \
+  do {                                                                         \
+    if (0)                                                                     \
+      printf(__VA_ARGS__);                                                     \
+  } while (0)
 #endif
 
 #ifdef __cplusplus

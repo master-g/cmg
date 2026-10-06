@@ -43,7 +43,7 @@ void Random_Init(mt19937_t *context, uint32_t seed) {
     context->mt[context->mti] =
         (1812433253 * (context->mt[context->mti - 1] ^
                        (context->mt[context->mti - 1] >> 30)) +
-         context->mti);
+         (uint32_t)context->mti);
     context->mt[context->mti] &= FULL_MASK;
   }
 }
