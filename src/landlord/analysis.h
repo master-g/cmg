@@ -22,11 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_ANALYSIS_H
-#define LANDLORD_ANALYSIS_H
+#ifndef LANDLORD_ANALYSIS_H_
+#define LANDLORD_ANALYSIS_H_
 
 #include "hand.h"
-#include "handlist.h"
+#include "hand_list.h"
 
 /* ************************************************************
  * analysis: take cards apart into the hands they will be played as
@@ -36,21 +36,21 @@ SOFTWARE.
  * ************************************************************/
 
 /* an analysis takes cards apart */
-typedef void (*Analysis_Func)(const card_array_t *cards, hand_list_t *hl);
+typedef void (*analysis_func_t)(const card_array_t *cards, hand_list_t *hl);
 
 /*
  * greedy: nuke, bombs and 2 first, then whatever chains the rest forms
  */
-void Analysis_Standard(const card_array_t *array, hand_list_t *hl);
+void analysis_standard(const card_array_t *array, hand_list_t *hl);
 
 /*
  * searches the ways to pull chains out for the split with the fewest hands
  */
-void Analysis_Advanced(const card_array_t *array, hand_list_t *hl);
+void analysis_advanced(const card_array_t *array, hand_list_t *hl);
 
 /*
  * how many hands the cards take when taken apart by analyze
  */
-int Analysis_CountHands(Analysis_Func analyze, const card_array_t *array);
+int analysis_count_hands(analysis_func_t analyze, const card_array_t *array);
 
-#endif /* LANDLORD_ANALYSIS_H */
+#endif /* LANDLORD_ANALYSIS_H_ */

@@ -7,7 +7,7 @@ set(LANDLORD_SOURCES
         card.c
         game.c
         hand.c
-        handlist.c
+        hand_list.c
         lmath.c
         player.c
         )

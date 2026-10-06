@@ -22,34 +22,34 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "handlist.h"
+#include "hand_list.h"
 
-void HandList_Clear(hand_list_t *hl) { hl->count = 0; }
+void hand_list_clear(hand_list_t *hl) { hl->count = 0; }
 
-int HandList_Count(const hand_list_t *hl) { return hl->count; }
+int hand_list_count(const hand_list_t *hl) { return hl->count; }
 
-const hand_t *HandList_At(const hand_list_t *hl, int i) {
+const hand_t *hand_list_at(const hand_list_t *hl, int i) {
   return ((i >= 0) && (i < hl->count)) ? &hl->hands[i] : NULL;
 }
 
-int HandList_Push(hand_list_t *hl, const hand_t *hand) {
+int hand_list_push(hand_list_t *hl, const hand_t *hand) {
   if (hl->count >= HAND_LIST_CAPACITY)
     return 0;
 
-  Hand_Copy(&hl->hands[hl->count++], hand);
+  hand_copy(&hl->hands[hl->count++], hand);
   return 1;
 }
 
-void HandList_RemoveContained(hand_list_t *hl, const card_array_t *cards) {
+void hand_list_remove_contained(hand_list_t *hl, const card_array_t *cards) {
   int i = 0;
   int kept = 0;
 
   for (i = 0; i < hl->count; i++) {
-    if (CardArray_IsContain(cards, &hl->hands[i].cards))
+    if (card_array_contains(cards, &hl->hands[i].cards))
       continue;
 
     if (kept != i)
-      Hand_Copy(&hl->hands[kept], &hl->hands[i]);
+      hand_copy(&hl->hands[kept], &hl->hands[i]);
 
     kept++;
   }
@@ -57,11 +57,11 @@ void HandList_RemoveContained(hand_list_t *hl, const card_array_t *cards) {
   hl->count = kept;
 }
 
-void HandList_Print(const hand_list_t *hl) {
+void hand_list_print(const hand_list_t *hl) {
   int i = 0;
 
-  DBGLog("-----hand_list_t begin---------\n");
+  LANDLORD_LOG("-----hand_list_t begin---------\n");
   for (i = 0; i < hl->count; i++)
-    Hand_Print(&hl->hands[i]);
-  DBGLog("-----hand_list_t ended---------\n");
+    hand_print(&hl->hands[i]);
+  LANDLORD_LOG("-----hand_list_t ended---------\n");
 }

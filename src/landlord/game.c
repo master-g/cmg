@@ -24,77 +24,87 @@ SOFTWARE.
 
 #include "game.h"
 
-void Game_Init(game_t *game) {
+void game_init(game_t *game) {
   int i = 0;
 
   memset(game, 0, sizeof(game_t));
 
   /* every game is played by the same AI setup */
   for (i = 0; i < GAME_PLAYERS; i++) {
-    game->players[i].ai = &AI_Advanced;
-    game->players[i].identity = PlayerIdentity_Peasant;
-    game->players[i].seatId = i;
+    game->players[i].ai = &ai_advanced;
+    game->players[i].identity = PLAYER_IDENTITY_PEASANT;
+    game->players[i].seat = i;
   }
 
-  Random_Init(&game->mt, 0);
-  CardArray_Reset(&game->deck);
+  mt19937_init(&game->mt, 0);
+  card_array_reset(&game->deck);
+}
+
+/* the player whose turn it is */
+static player_t *game_current_player(game_t *game) {
+  return &game->players[game->player_index];
+}
+
+/* the turn passes to the next seat */
+static void game_next_player(game_t *game) {
+  game->player_index = (game->player_index + 1) % GAME_PLAYERS;
 }
 
 /* back to an empty table, the seats keep their AI */
-static void Game_Reset(game_t *game) {
+static void game_reset(game_t *game) {
   int i = 0;
 
   for (i = 0; i < GAME_PLAYERS; i++)
-    Player_Clear(&game->players[i]);
+    player_clear(&game->players[i]);
 
   game->bid = 0;
-  game->playerIndex = 0;
+  game->player_index = 0;
   game->landlord = 0;
-  game->lastplay = 0;
+  game->last_play = 0;
   game->winner = 0;
-  game->status = GameStatus_Halt;
-  game->phase = Phase_Play;
+  game->status = GAME_STATUS_HALT;
+  game->phase = GAME_PHASE_PLAY;
 
-  Hand_Clear(&game->lastHand);
-  CardArray_Reset(&game->deck);
-  CardArray_Clear(&game->kittyCards);
-  CardArray_Clear(&game->cardRecord);
+  hand_clear(&game->last_hand);
+  card_array_reset(&game->deck);
+  card_array_clear(&game->kitty_cards);
+  card_array_clear(&game->card_record);
 }
 
 /* what the current player is allowed to know */
 static void
-Game_MakeView(const game_t *game, ai_view_t *view, const hand_t *tobeat) {
-  const player_t *player = Game_GetCurrentPlayer(game);
+game_make_view(const game_t *game, ai_view_t *view, const hand_t *tobeat) {
+  const player_t *player = &game->players[game->player_index];
   int i = 0;
 
   view->ai = player->ai;
-  view->seat = game->playerIndex;
+  view->seat = game->player_index;
   view->landlord = game->landlord;
   view->bid = game->bid;
   view->cards = &player->cards;
-  view->hands = &player->handlist;
-  view->lastHand = tobeat;
-  view->lastPlayer = game->lastplay;
-  view->played = &game->cardRecord;
+  view->hands = &player->hands;
+  view->last_hand = tobeat;
+  view->last_player = game->last_play;
+  view->played = &game->card_record;
 
   for (i = 0; i < GAME_PLAYERS; i++)
-    view->cardsLeft[i] = CardArray_Length(&game->players[i].cards);
+    view->cards_left[i] = card_array_length(&game->players[i].cards);
 }
 
-static void Game_Reject(game_t *game, const hand_t *hand, const char *reason) {
+static void game_reject(game_t *game, const hand_t *hand, const char *reason) {
   int i = 0;
   char str[CARD_STRING_SIZE];
 
   fprintf(
       stderr, "seed %u: player %d, %s:", (unsigned)game->seed,
-      game->playerIndex, reason);
-  for (i = 0; i < CardArray_Length(&hand->cards); i++) {
-    Card_ToString(CardArray_At(&hand->cards, i), str, sizeof(str));
+      game->player_index, reason);
+  for (i = 0; i < card_array_length(&hand->cards); i++) {
+    card_to_string(card_array_at(&hand->cards, i), str, sizeof(str));
     fprintf(stderr, " %s", str);
   }
   fprintf(stderr, "\n");
 
-  game->status = GameStatus_Illegal;
+  game->status = GAME_STATUS_ILLEGAL;
 }
 
 /*
@@ -107,44 +117,44 @@ static void Game_Reject(game_t *game, const hand_t *hand, const char *reason) {
  * and goes on record.
  */
 static int
-Game_AcceptHand(game_t *game, const hand_t *played, const hand_t *tobeat) {
-  player_t *player = Game_GetCurrentPlayer(game);
+game_accept_hand(game_t *game, const hand_t *played, const hand_t *tobeat) {
+  player_t *player = game_current_player(game);
   hand_t hand;
 
-  if (!Hand_Parse(&hand, &played->cards)) {
-    Game_Reject(game, played, "not a hand");
+  if (!hand_parse(&hand, &played->cards)) {
+    game_reject(game, played, "not a hand");
     return 0;
   }
 
-  if ((tobeat != NULL) && (Hand_Compare(&hand, tobeat) != HAND_CMP_GREATER)) {
-    Game_Reject(game, played, "does not beat the last hand");
+  if ((tobeat != NULL) && (hand_compare(&hand, tobeat) != HAND_CMP_GREATER)) {
+    game_reject(game, played, "does not beat the last hand");
     return 0;
   }
 
-  if (!CardArray_IsContain(&player->cards, &hand.cards)) {
-    Game_Reject(game, played, "not the player's cards");
+  if (!card_array_contains(&player->cards, &hand.cards)) {
+    game_reject(game, played, "not the player's cards");
     return 0;
   }
 
-  CardArray_Subtract(&player->cards, &hand.cards);
+  card_array_subtract(&player->cards, &hand.cards);
 
   if (tobeat == NULL) {
     /* a lead is made of whole hands of the analysis, the rest still holds */
-    HandList_RemoveContained(&player->handlist, &hand.cards);
+    hand_list_remove_contained(&player->hands, &hand.cards);
   } else {
     /* a beat may break hands up, take the cards apart again */
-    player->ai->analyze(&player->cards, &player->handlist);
+    player->ai->analyze(&player->cards, &player->hands);
   }
 
-  Hand_Copy(&game->lastHand, &hand);
-  game->lastplay = game->playerIndex;
-  game->phase = Phase_Query;
-  CardArray_Concat(&game->cardRecord, &game->lastHand.cards);
+  hand_copy(&game->last_hand, &hand);
+  game->last_play = game->player_index;
+  game->phase = GAME_PHASE_QUERY;
+  card_array_concat(&game->card_record, &game->last_hand.cards);
 
   return 1;
 }
 
-void Game_Play(game_t *game, uint32_t seed) {
+void game_play(game_t *game, uint32_t seed) {
   int i = 0;
   int beat = 0;
   int bid = 0;
@@ -153,51 +163,53 @@ void Game_Play(game_t *game, uint32_t seed) {
   hand_t tobeat;
 
   /* the seed alone decides the game: seed, then shuffle a fresh deck */
-  Game_Reset(game);
+  game_reset(game);
 
   game->seed = seed;
-  Random_Init(&game->mt, seed);
-  CardArray_Reset(&game->deck);
-  CardArray_Shuffle(&game->deck, &game->mt);
+  mt19937_init(&game->mt, seed);
+  card_array_reset(&game->deck);
+  card_array_shuffle(&game->deck, &game->mt);
 
   /* bid */
   /* TODO log */
-  game->status = GameStatus_Bid;
+  game->status = GAME_STATUS_BID;
   game->bid = 0;
-  game->highestBidder = -1;
+  game->highest_bidder = -1;
 
-  while (game->status == GameStatus_Bid) {
-    game->playerIndex = Random_Int32(&game->mt) % GAME_PLAYERS;
+  while (game->status == GAME_STATUS_BID) {
+    game->player_index = mt19937_int32(&game->mt) % GAME_PLAYERS;
 
     for (i = 0; i < GAME_PLAYERS; i++) {
-      CardArray_Deal(
-          &game->deck, &Game_GetCurrentPlayer(game)->cards, GAME_HAND_CARDS);
-      Game_MakeView(game, &view, NULL);
-      bid = AI_Bid(&view);
+      card_array_deal(
+          &game->deck, &game_current_player(game)->cards, GAME_HAND_CARDS);
+      game_make_view(game, &view, NULL);
+      bid = ai_bid(&view);
 
       if (bid > game->bid) {
-        DBGLog("\nPlayer ---- %d ---- bid for %d\n", game->playerIndex, bid);
-        game->highestBidder = game->playerIndex;
+        LANDLORD_LOG(
+            "\nPlayer ---- %d ---- bid for %d\n", game->player_index, bid);
+        game->highest_bidder = game->player_index;
         game->bid = bid;
       }
 
-      Game_IncPlayerIndex(game);
+      game_next_player(game);
     }
 
     /* check if bid stage is done */
     if (game->bid == 0) {
       /* nobody bid, deal again from a reshuffled deck */
-      CardArray_Reset(&game->deck);
-      CardArray_Shuffle(&game->deck, &game->mt);
+      card_array_reset(&game->deck);
+      card_array_shuffle(&game->deck, &game->mt);
     } else {
       /* setup landlord, game start! */
-      game->landlord = game->highestBidder;
-      game->players[game->landlord].identity = PlayerIdentity_Landlord;
-      game->playerIndex = game->landlord;
-      game->phase = Phase_Play;
-      CardArray_Deal(&game->deck, &game->kittyCards, GAME_REST_CARDS);
-      CardArray_Concat(&game->players[game->landlord].cards, &game->kittyCards);
-      game->status = GameStatus_Ready;
+      game->landlord = game->highest_bidder;
+      game->players[game->landlord].identity = PLAYER_IDENTITY_LANDLORD;
+      game->player_index = game->landlord;
+      game->phase = GAME_PHASE_PLAY;
+      card_array_deal(&game->deck, &game->kitty_cards, GAME_REST_CARDS);
+      card_array_concat(
+          &game->players[game->landlord].cards, &game->kitty_cards);
+      game->status = GAME_STATUS_READY;
     }
   }
 
@@ -205,53 +217,54 @@ void Game_Play(game_t *game, uint32_t seed) {
   for (i = 0; i < GAME_PLAYERS; i++) {
     player_t *player = &game->players[i];
 
-    CardArray_Sort(&player->cards);
-    player->ai->analyze(&player->cards, &player->handlist);
+    card_array_sort(&player->cards);
+    player->ai->analyze(&player->cards, &player->hands);
   }
 
   /* game play */
-  while (game->status == GameStatus_Ready) {
-    if (game->phase == Phase_Play) {
-      Game_MakeView(game, &view, NULL);
-      AI_Lead(&view, &played);
+  while (game->status == GAME_STATUS_READY) {
+    if (game->phase == GAME_PHASE_PLAY) {
+      game_make_view(game, &view, NULL);
+      ai_lead(&view, &played);
 
-      if (!Game_AcceptHand(game, &played, NULL))
+      if (!game_accept_hand(game, &played, NULL))
         break;
 
-      DBGLog("\nPlayer ---- %d ---- played\n", game->playerIndex);
-      Hand_Print(&game->lastHand);
-    } else if ((game->phase == Phase_Query) || (game->phase == Phase_Pass)) {
-      Hand_Copy(&tobeat, &game->lastHand);
-      Game_MakeView(game, &view, &tobeat);
-      beat = AI_Beat(&view, &played);
+      LANDLORD_LOG("\nPlayer ---- %d ---- played\n", game->player_index);
+      hand_print(&game->last_hand);
+    } else if (
+        (game->phase == GAME_PHASE_QUERY) || (game->phase == GAME_PHASE_PASS)) {
+      hand_copy(&tobeat, &game->last_hand);
+      game_make_view(game, &view, &tobeat);
+      beat = ai_beat(&view, &played);
 
       /* has beat in this phase */
       if (beat == 0) {
         /* two player pass */
-        if (game->phase == Phase_Pass)
-          game->phase = Phase_Play;
+        if (game->phase == GAME_PHASE_PASS)
+          game->phase = GAME_PHASE_PLAY;
         else
-          game->phase = Phase_Pass;
+          game->phase = GAME_PHASE_PASS;
 
-        DBGLog("\nPlayer ---- %d ---- passed\n", game->playerIndex);
+        LANDLORD_LOG("\nPlayer ---- %d ---- passed\n", game->player_index);
       } else {
-        if (!Game_AcceptHand(game, &played, &tobeat))
+        if (!game_accept_hand(game, &played, &tobeat))
           break;
 
-        DBGLog("\nPlayer ---- %d ---- beat\n", game->playerIndex);
-        Hand_Print(&game->lastHand);
+        LANDLORD_LOG("\nPlayer ---- %d ---- beat\n", game->player_index);
+        hand_print(&game->last_hand);
       }
     }
 
-    Game_IncPlayerIndex(game);
+    game_next_player(game);
 
     /* check if there is player win */
     for (i = 0; i < GAME_PLAYERS; i++) {
-      if (CardArray_IsEmpty(&game->players[i].cards)) {
-        game->status = GameStatus_Over;
+      if (card_array_is_empty(&game->players[i].cards)) {
+        game->status = GAME_STATUS_OVER;
         game->winner = i;
 
-        DBGLog("\nPlayer ++++ %d ++++ wins!\n", i);
+        LANDLORD_LOG("\nPlayer ++++ %d ++++ wins!\n", i);
         break;
       }
     }

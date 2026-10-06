@@ -28,49 +28,53 @@ SOFTWARE.
  * MT19937 random number generator
  * ************************************************************/
 
-#define M 397
-#define MATRIX_A 0x9908B0DF   /* constant vector A */
-#define UPPER_MASK 0x80000000 /* most significant w-r bits */
-#define LOWER_MASK 0x7FFFFFFF /* least significant w-r bits */
+#define MT19937_M 397
+#define MT19937_MATRIX_A 0x9908B0DF   /* constant vector A */
+#define MT19937_UPPER_MASK 0x80000000 /* most significant w-r bits */
+#define MT19937_LOWER_MASK 0x7FFFFFFF /* least significant w-r bits */
 
-#define FULL_MASK 0xFFFFFFFF
+#define MT19937_FULL_MASK 0xFFFFFFFF
 
-void Random_Init(mt19937_t *context, uint32_t seed) {
-  context->mt[0] = seed & FULL_MASK;
+void mt19937_init(mt19937_t *context, uint32_t seed) {
+  context->mt[0] = seed & MT19937_FULL_MASK;
 
-  for (context->mti = 1; context->mti < MT_N; context->mti++) {
+  for (context->mti = 1; context->mti < MT19937_N; context->mti++) {
     /* See Knuth TAOCP Vol2. 3rd Ed. P.106 for multiplier. */
     context->mt[context->mti] =
         (1812433253 * (context->mt[context->mti - 1] ^
                        (context->mt[context->mti - 1] >> 30)) +
          (uint32_t)context->mti);
-    context->mt[context->mti] &= FULL_MASK;
+    context->mt[context->mti] &= MT19937_FULL_MASK;
   }
 }
 
-uint32_t Random_uint32(mt19937_t *context) {
+uint32_t mt19937_uint32(mt19937_t *context) {
   uint32_t y;
   int kk;
-  static uint32_t mag01[2] = {0x0, MATRIX_A};
+  static uint32_t mag01[2] = {0x0, MT19937_MATRIX_A};
 
-  /* mag01[x] = x * MATRIX_A for x = 0, 1 */
+  /* mag01[x] = x * MT19937_MATRIX_A for x = 0, 1 */
 
-  if (context->mti >= MT_N) {
-    if (context->mti == MT_N + 1)
-      Random_Init(context, 5489);
+  if (context->mti >= MT19937_N) {
+    if (context->mti == MT19937_N + 1)
+      mt19937_init(context, 5489);
 
-    for (kk = 0; kk < MT_N - M; kk++) {
-      y = (context->mt[kk] & UPPER_MASK) | (context->mt[kk + 1] & LOWER_MASK);
-      context->mt[kk] = context->mt[kk + M] ^ (y >> 1) ^ mag01[y & 0x1];
+    for (kk = 0; kk < MT19937_N - MT19937_M; kk++) {
+      y = (context->mt[kk] & MT19937_UPPER_MASK) |
+          (context->mt[kk + 1] & MT19937_LOWER_MASK);
+      context->mt[kk] = context->mt[kk + MT19937_M] ^ (y >> 1) ^ mag01[y & 0x1];
     }
 
-    for (; kk < MT_N - 1; kk++) {
-      y = (context->mt[kk] & UPPER_MASK) | (context->mt[kk + 1] & LOWER_MASK);
+    for (; kk < MT19937_N - 1; kk++) {
+      y = (context->mt[kk] & MT19937_UPPER_MASK) |
+          (context->mt[kk + 1] & MT19937_LOWER_MASK);
       context->mt[kk] =
-          context->mt[kk + (M - MT_N)] ^ (y >> 1) ^ mag01[y & 0x1];
+          context->mt[kk + (MT19937_M - MT19937_N)] ^ (y >> 1) ^ mag01[y & 0x1];
     }
-    y = (context->mt[MT_N - 1] & UPPER_MASK) | (context->mt[0] & LOWER_MASK);
-    context->mt[MT_N - 1] = context->mt[M - 1] ^ (y >> 1) ^ mag01[y & 0x1];
+    y = (context->mt[MT19937_N - 1] & MT19937_UPPER_MASK) |
+        (context->mt[0] & MT19937_LOWER_MASK);
+    context->mt[MT19937_N - 1] =
+        context->mt[MT19937_M - 1] ^ (y >> 1) ^ mag01[y & 0x1];
 
     context->mti = 0;
   }
@@ -86,8 +90,8 @@ uint32_t Random_uint32(mt19937_t *context) {
   return y;
 }
 
-int32_t Random_Int32(mt19937_t *context) {
-  return (int32_t)(Random_uint32(context) >> 1);
+int32_t mt19937_int32(mt19937_t *context) {
+  return (int32_t)(mt19937_uint32(context) >> 1);
 }
 
 /* ************************************************************
@@ -106,7 +110,7 @@ int32_t Random_Int32(mt19937_t *context) {
    Returns: 1 if a valid combination was found
    0, otherwise
  */
-int LMath_NextComb(int comb[], int k, int n) {
+int lmath_next_comb(int comb[], int k, int n) {
   int i = k - 1;
 
   ++comb[i];

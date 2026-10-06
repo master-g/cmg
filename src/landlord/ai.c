@@ -24,16 +24,16 @@ SOFTWARE.
 
 #include "ai.h"
 
-const ai_t AI_Standard = {Analysis_Standard};
+const ai_t ai_standard = {analysis_standard};
 
-const ai_t AI_Advanced = {Analysis_Advanced};
+const ai_t ai_advanced = {analysis_advanced};
 
-int AI_Bid(const ai_view_t *view) {
+int ai_bid(const ai_view_t *view) {
   int shouldbid = 0;
   int handlistlen = 0;
 
   /* the fewer hands the cards need, the more they are worth */
-  handlistlen = Analysis_CountHands(Analysis_Standard, view->cards);
+  handlistlen = analysis_count_hands(analysis_standard, view->cards);
 
   if (handlistlen > 9) {
     shouldbid = 0;
@@ -52,76 +52,76 @@ int AI_Bid(const ai_view_t *view) {
 }
 
 /* first hand of that type the seat holds */
-static const hand_t *AI_FindHand(const hand_list_t *hands, hand_type_t type) {
+static const hand_t *ai_find_hand(const hand_list_t *hands, hand_type_t type) {
   int i = 0;
 
-  for (i = 0; i < HandList_Count(hands); i++) {
-    if (Hand_TypeEquals(HandList_At(hands, i)->type, type))
-      return HandList_At(hands, i);
+  for (i = 0; i < hand_list_count(hands); i++) {
+    if (hand_type_equals(hand_list_at(hands, i)->type, type))
+      return hand_list_at(hands, i);
   }
 
   return NULL;
 }
 
-static int AI_CountHands(const hand_list_t *hands, hand_type_t type) {
+static int ai_count_hands(const hand_list_t *hands, hand_type_t type) {
   int i = 0;
   int count = 0;
 
-  for (i = 0; i < HandList_Count(hands); i++) {
-    if (Hand_TypeEquals(HandList_At(hands, i)->type, type))
+  for (i = 0; i < hand_list_count(hands); i++) {
+    if (hand_type_equals(hand_list_at(hands, i)->type, type))
       count++;
   }
 
   return count;
 }
 
-static void AI_AppendHand(hand_t *hand, const hand_t *part) {
-  CardArray_Concat(&hand->cards, &part->cards);
+static void ai_append_hand(hand_t *hand, const hand_t *part) {
+  card_array_concat(&hand->cards, &part->cards);
 }
 
-void AI_Lead(const ai_view_t *view, hand_t *hand) {
+void ai_lead(const ai_view_t *view, hand_t *hand) {
   const hand_list_t *hands = view->hands;
   int i = 0;
   const hand_t *node = NULL;
   int need = 0;
-  const hand_type_t solo = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
-  const hand_type_t pair = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
-  const hand_type_t trio = Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
+  const hand_type_t solo = hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
+  const hand_type_t pair = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
+  const hand_type_t trio = hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
   hand_type_t kickertype = solo;
 
-  Hand_Clear(hand);
+  hand_clear(hand);
 
   /* empty hands */
-  if ((hands == NULL) || (HandList_Count(hands) == 0))
+  if ((hands == NULL) || (hand_list_count(hands) == 0))
     return;
 
   /* last hand */
-  if (HandList_Count(hands) == 1) {
-    AI_AppendHand(hand, HandList_At(hands, 0));
+  if (hand_list_count(hands) == 1) {
+    ai_append_hand(hand, hand_list_at(hands, 0));
     return;
   }
 
   /* try to find longest hand combination */
   node =
-      AI_FindHand(hands, Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true));
+      ai_find_hand(hands, hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true));
 
   if (node != NULL) {
-    AI_AppendHand(hand, node);
+    ai_append_hand(hand, node);
 
     /* how many kickers do we need */
-    need = CardArray_Length(&node->cards) / 3;
+    need = card_array_length(&node->cards) / 3;
 
     /* trio-pair-chain then trio-solo-chain */
-    if (AI_CountHands(hands, pair) >= need)
+    if (ai_count_hands(hands, pair) >= need)
       kickertype = pair;
-    else if (AI_CountHands(hands, solo) >= need)
+    else if (ai_count_hands(hands, solo) >= need)
       kickertype = solo;
     else
       return;
 
-    for (i = 0; (need > 0) && (i < HandList_Count(hands)); i++) {
-      if (Hand_TypeEquals(HandList_At(hands, i)->type, kickertype)) {
-        AI_AppendHand(hand, HandList_At(hands, i));
+    for (i = 0; (need > 0) && (i < hand_list_count(hands)); i++) {
+      if (hand_type_equals(hand_list_at(hands, i)->type, kickertype)) {
+        ai_append_hand(hand, hand_list_at(hands, i));
         need--;
       }
     }
@@ -131,55 +131,55 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
 
   /* pair chain */
   node =
-      AI_FindHand(hands, Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true));
+      ai_find_hand(hands, hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true));
 
   /* solo chain */
   if (node == NULL)
-    node =
-        AI_FindHand(hands, Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true));
+    node = ai_find_hand(
+        hands, hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true));
 
   if (node != NULL) {
-    AI_AppendHand(hand, node);
+    ai_append_hand(hand, node);
     return;
   }
 
   /* trio */
-  node = AI_FindHand(hands, trio);
+  node = ai_find_hand(hands, trio);
 
-  if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
-    AI_AppendHand(hand, node);
+  if ((node != NULL) && (hand_rank(node) != CARD_RANK_2)) {
+    ai_append_hand(hand, node);
 
     /* pair */
-    node = AI_FindHand(hands, pair);
+    node = ai_find_hand(hands, pair);
 
-    if ((node == NULL) || (Hand_Rank(node) == CARD_RANK_2)) {
+    if ((node == NULL) || (hand_rank(node) == CARD_RANK_2)) {
       /* solo, 2 and jokers are too good to be thrown in as a kicker */
-      node = AI_FindHand(hands, solo);
+      node = ai_find_hand(hands, solo);
 
-      if ((node != NULL) && (Hand_Rank(node) >= CARD_RANK_2))
+      if ((node != NULL) && (hand_rank(node) >= CARD_RANK_2))
         node = NULL;
     }
 
     /* no solo nor pair, return with trio */
     if (node != NULL)
-      AI_AppendHand(hand, node);
+      ai_append_hand(hand, node);
 
     return;
   }
 
   /* pair */
-  node = AI_FindHand(hands, pair);
+  node = ai_find_hand(hands, pair);
 
-  if ((node != NULL) && (Hand_Rank(node) != CARD_RANK_2)) {
-    AI_AppendHand(hand, node);
+  if ((node != NULL) && (hand_rank(node) != CARD_RANK_2)) {
+    ai_append_hand(hand, node);
     return;
   }
 
   /* just play */
-  AI_AppendHand(hand, HandList_At(hands, 0));
+  ai_append_hand(hand, hand_list_at(hands, 0));
 }
 
-#define BEAT_VALUE_FACTOR 10
+#define AI_BEAT_VALUE_FACTOR 10
 
 /*
  * Choose one of the hands that beat tobeat.
@@ -192,38 +192,38 @@ void AI_Lead(const ai_view_t *view, hand_t *hand) {
  * it reads backwards: it spends bombs first and keeps the split that needs
  * the most hands. Changing it is a change of strategy, not a refactoring.
  */
-static int AI_BestBeat(
+static int ai_best_beat(
     const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
-    Analysis_Func analyze) {
+    analysis_func_t analyze) {
   hand_list_t beats;
   int i = 0;
   int normal = 0;
   int chosen = -1;
   int chosenvalue = 0;
 
-  Beat_SearchAll(cards, tobeat, &beats);
+  beat_search_all(cards, tobeat, &beats);
 
-  for (i = 0; i < HandList_Count(&beats); i++) {
-    const hand_t *candidate = HandList_At(&beats, i);
+  for (i = 0; i < hand_list_count(&beats); i++) {
+    const hand_t *candidate = hand_list_at(&beats, i);
 
-    if (Hand_IsBomb(candidate) || Hand_IsNuke(candidate))
+    if (hand_is_bomb(candidate) || hand_is_nuke(candidate))
       chosen = i;
     else
       normal++;
   }
 
   if (chosen < 0) {
-    for (i = 0; i < HandList_Count(&beats); i++) {
-      const hand_t *candidate = HandList_At(&beats, i);
+    for (i = 0; i < hand_list_count(&beats); i++) {
+      const hand_t *candidate = hand_list_at(&beats, i);
       card_array_t rest;
       int value = 0;
 
       /* a single candidate needs no valuing */
       if (normal > 1) {
-        CardArray_Copy(&rest, cards);
-        CardArray_Subtract(&rest, &candidate->cards);
-        value = Analysis_CountHands(analyze, &rest) * BEAT_VALUE_FACTOR +
-                Hand_Rank(candidate);
+        card_array_copy(&rest, cards);
+        card_array_subtract(&rest, &candidate->cards);
+        value = analysis_count_hands(analyze, &rest) * AI_BEAT_VALUE_FACTOR +
+                hand_rank(candidate);
       }
 
       if ((chosen < 0) || (value >= chosenvalue)) {
@@ -236,26 +236,26 @@ static int AI_BestBeat(
   if (chosen < 0)
     return 0;
 
-  Hand_Copy(beat, HandList_At(&beats, chosen));
+  hand_copy(beat, hand_list_at(&beats, chosen));
   return 1;
 }
 
-int AI_Beat(const ai_view_t *view, hand_t *hand) {
+int ai_beat(const ai_view_t *view, hand_t *hand) {
   int canbeat = 0;
 
-  Hand_Clear(hand);
+  hand_clear(hand);
 
-  canbeat = AI_BestBeat(view->cards, view->lastHand, hand, view->ai->analyze);
+  canbeat = ai_best_beat(view->cards, view->last_hand, hand, view->ai->analyze);
 
   /* peasant cooperation: the last hand came from the other peasant */
   if (canbeat && (view->seat != view->landlord) &&
-      (view->lastPlayer != view->landlord)) {
+      (view->last_player != view->landlord)) {
     /* don't bomb/nuke teammate */
-    if (Hand_IsBomb(hand) || Hand_IsNuke(hand))
+    if (hand_is_bomb(hand) || hand_is_nuke(hand))
       canbeat = 0;
 
     /* let the teammate run when it is closer to going out */
-    if (view->cardsLeft[view->lastPlayer] < view->cardsLeft[view->seat])
+    if (view->cards_left[view->last_player] < view->cards_left[view->seat])
       canbeat = 0;
   }
 

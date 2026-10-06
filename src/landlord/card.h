@@ -28,9 +28,7 @@ SOFTWARE.
 #include "common.h"
 #include "lmath.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <stdbool.h>
 
 /* a card is one byte: suit in the high half, rank in the low half */
 
@@ -49,8 +47,8 @@ typedef enum {
   CARD_RANK_K,
   CARD_RANK_A,
   CARD_RANK_2,
-  CARD_RANK_r, /* black joker */
-  CARD_RANK_R, /* red joker */
+  CARD_RANK_BLACK_JOKER, /* black joker */
+  CARD_RANK_RED_JOKER,   /* red joker */
 
   CARD_RANK_END,
   CARD_RANK_BEG = CARD_RANK_3
@@ -80,116 +78,132 @@ typedef enum {
  * ************************************************************
  */
 
-typedef struct card_arr_s {
+typedef struct card_array_s {
   int length;
   uint8_t cards[CARD_SET_LENGTH];
 } card_array_t;
 
-#define CardArray_Clear(a) (memset((a), 0, sizeof(card_array_t)))
-#define CardArray_Copy(d, s) (memcpy((d), (s), sizeof(card_array_t)))
-#define CardArray_IsFull(a) (CardArray_Length(a) >= CARD_SET_LENGTH)
-#define CardArray_IsEmpty(a) (CardArray_Length(a) == 0)
+/*
+ * empty the array
+ */
+void card_array_clear(card_array_t *array);
+
+/*
+ * make dst hold the same cards in the same order as src
+ */
+void card_array_copy(card_array_t *dst, const card_array_t *src);
+
+/*
+ * does it hold a whole deck, so nothing more fits
+ */
+bool card_array_is_full(const card_array_t *array);
+
+/*
+ * does it hold no card
+ */
+bool card_array_is_empty(const card_array_t *array);
 
 /*
  * how many cards
  */
-int CardArray_Length(const card_array_t *array);
+int card_array_length(const card_array_t *array);
 
 /*
  * the card at position i, 0 when there is none
  */
-uint8_t CardArray_At(const card_array_t *array, int i);
+uint8_t card_array_at(const card_array_t *array, int i);
 
 /*
  * Fill a card array from a string such as "♠A ♥T ♣3 ♦r"
- * (or "sA hT c3 dr" without LL_GRAPHICAL_SUIT).
+ * (or "sA hT c3 dr" without LANDLORD_GRAPHICAL_SUIT).
  * A card is a suit and a rank in either order, anything else is skipped.
  */
-void CardArray_InitFromString(card_array_t *array, const char *str);
+void card_array_init_from_string(card_array_t *array, const char *str);
 
 /*
  * Reset a card array to the 54 cards of a deck, in a fixed order
  */
-void CardArray_Reset(card_array_t *array);
+void card_array_reset(card_array_t *array);
 
 /*
  * Fisher-Yates shuffle
  */
-void CardArray_Shuffle(card_array_t *array, mt19937_t *mt);
+void card_array_shuffle(card_array_t *array, mt19937_t *mt);
 
 /*
  * move up to count cards from the back of deck into array, replacing what
  * array held; returns how many were dealt
  */
-int CardArray_Deal(card_array_t *deck, card_array_t *array, int count);
+int card_array_deal(card_array_t *deck, card_array_t *array, int count);
 
 /*
  * append tail to head as far as it fits, returns how many cards were appended
  */
-int CardArray_Concat(card_array_t *head, const card_array_t *tail);
+int card_array_concat(card_array_t *head, const card_array_t *tail);
 
 /*
  * remove every card of sub from from
  */
-void CardArray_Subtract(card_array_t *from, const card_array_t *sub);
+void card_array_subtract(card_array_t *from, const card_array_t *sub);
 
 /*
  * is every card of segment in array
  */
-int CardArray_IsContain(const card_array_t *array, const card_array_t *segment);
+bool card_array_contains(
+    const card_array_t *array, const card_array_t *segment);
 
 /*
  * push a card to the rear of the array, ignored when the array is full
  */
-void CardArray_PushBack(card_array_t *array, uint8_t card);
+void card_array_push_back(card_array_t *array, uint8_t card);
 
 /*
  * pop a card from the front of the array, 0 when it is empty
  */
-uint8_t CardArray_PopFront(card_array_t *array);
+uint8_t card_array_pop_front(card_array_t *array);
 
 /*
  * drop multiple cards from the front of the array, returns how many
  */
-int CardArray_DropFront(card_array_t *array, int count);
+int card_array_drop_front(card_array_t *array, int count);
 
 /*
  * count[rank] = how many cards of that rank, for every rank up to
  * CARD_RANK_END
  */
-void CardArray_CountRanks(const card_array_t *array, int *count);
+void card_array_count_ranks(const card_array_t *array, int *count);
 
 /*
  * append the first count cards of a rank in src to dst, in the order src
  * holds them; returns how many were appended
  */
-int CardArray_TakeRank(
+int card_array_take_rank(
     card_array_t *dst, const card_array_t *src, int rank, int count);
 
 /*
  * append every card of a rank in src to dst
  */
-void CardArray_CopyRank(card_array_t *dst, const card_array_t *src, int rank);
+void card_array_copy_rank(card_array_t *dst, const card_array_t *src, int rank);
 
 /*
  * remove specific rank cards from array
  */
-void CardArray_RemoveRank(card_array_t *array, int rank);
+void card_array_remove_rank(card_array_t *array, int rank);
 
 /*
  * sort cards from high to low, by rank then by suit
  */
-void CardArray_Sort(card_array_t *array);
+void card_array_sort(card_array_t *array);
 
 /*
  * reverse cards
  */
-void CardArray_Reverse(card_array_t *array);
+void card_array_reverse(card_array_t *array);
 
 /*
  * print every card in the array
  */
-void CardArray_Print(const card_array_t *array);
+void card_array_print(const card_array_t *array);
 
 /* a card as text needs this much room, including the terminator */
 #define CARD_STRING_SIZE 5
@@ -199,10 +213,6 @@ void CardArray_Print(const card_array_t *array);
  * written, 0 when buf is smaller than CARD_STRING_SIZE. A suit or rank that
  * is not a card's shows as '?'.
  */
-int Card_ToString(uint8_t card, char *buf, int len);
-
-#ifdef __cplusplus
-}
-#endif
+int card_to_string(uint8_t card, char *buf, int len);
 
 #endif /* LANDLORD_CARD_H_ */

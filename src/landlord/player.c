@@ -24,8 +24,8 @@ SOFTWARE.
 
 #include "player.h"
 
-void Player_Clear(player_t *player) {
-  HandList_Clear(&player->handlist);
-  player->identity = PlayerIdentity_Peasant;
-  CardArray_Clear(&player->cards);
+void player_clear(player_t *player) {
+  hand_list_clear(&player->hands);
+  player->identity = PLAYER_IDENTITY_PEASANT;
+  card_array_clear(&player->cards);
 }

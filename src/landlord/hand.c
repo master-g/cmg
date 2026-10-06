@@ -23,7 +23,7 @@ SOFTWARE.
 */
 
 /*
- * brief about Hand_Parse function
+ * brief about hand_parse function
  * --------------------------------------
  *
  * A hand is recognised from how many cards of each rank it holds, the suits
@@ -41,7 +41,7 @@ SOFTWARE.
 /* ************************************************************
  * hand
  * ************************************************************/
-hand_type_t Hand_Type(hand_primal_t primal, hand_kicker_t kicker, bool chain) {
+hand_type_t hand_type(hand_primal_t primal, hand_kicker_t kicker, bool chain) {
   hand_type_t type;
 
   type.primal = primal;
@@ -51,29 +51,29 @@ hand_type_t Hand_Type(hand_primal_t primal, hand_kicker_t kicker, bool chain) {
   return type;
 }
 
-bool Hand_TypeEquals(hand_type_t a, hand_type_t b) {
+bool hand_type_equals(hand_type_t a, hand_type_t b) {
   return (a.primal == b.primal) && (a.kicker == b.kicker) &&
          (a.chain == b.chain);
 }
 
-bool Hand_IsType(
+bool hand_is_type(
     const hand_t *hand, hand_primal_t primal, hand_kicker_t kicker,
     bool chain) {
-  return Hand_TypeEquals(hand->type, Hand_Type(primal, kicker, chain));
+  return hand_type_equals(hand->type, hand_type(primal, kicker, chain));
 }
 
-bool Hand_IsNone(const hand_t *hand) {
+bool hand_is_none(const hand_t *hand) {
   return hand->type.primal == HAND_PRIMAL_NONE;
 }
 
-void Hand_Clear(hand_t *hand) {
-  CardArray_Clear(&hand->cards);
-  hand->type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
+void hand_clear(hand_t *hand) {
+  card_array_clear(&hand->cards);
+  hand->type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
 }
 
-void Hand_Copy(hand_t *dst, const hand_t *src) {
+void hand_copy(hand_t *dst, const hand_t *src) {
   dst->type = src->type;
-  CardArray_Copy(&dst->cards, &src->cards);
+  card_array_copy(&dst->cards, &src->cards);
 }
 
 /* ************************************************************
@@ -81,11 +81,11 @@ void Hand_Copy(hand_t *dst, const hand_t *src) {
  * ************************************************************/
 
 /* sorted cards, so the same card twice would be next to each other */
-static int Hand_HasDuplicate(const card_array_t *sorted) {
+static int hand_has_duplicate(const card_array_t *sorted) {
   int i = 0;
 
-  for (i = 1; i < CardArray_Length(sorted); i++) {
-    if (CardArray_At(sorted, i) == CardArray_At(sorted, i - 1))
+  for (i = 1; i < card_array_length(sorted); i++) {
+    if (card_array_at(sorted, i) == card_array_at(sorted, i - 1))
       return 1;
   }
 
@@ -97,7 +97,7 @@ static int Hand_HasDuplicate(const card_array_t *sorted) {
  * part: either a single rank, or consecutive ranks below 2
  * | 666 | 777 | 888 | 999 |    duplicate: 3, ranks: 4
  */
-static int Hand_IsPrimalRun(const int *count, int duplicate, int ranks) {
+static int hand_is_primal_run(const int *count, int duplicate, int ranks) {
   int i = 0;
   int first = 0;
   int last = 0;
@@ -121,23 +121,23 @@ static int Hand_IsPrimalRun(const int *count, int duplicate, int ranks) {
  * primal cards first, kickers after them, both from high to low
  * for example 88666644 becomes 66668844
  */
-static void Hand_Arrange(
+static void hand_arrange(
     hand_t *hand, const card_array_t *sorted, const int *count, int primal) {
   int rank = 0;
 
   /* sorted is high to low, so walk the ranks the same way */
   for (rank = CARD_RANK_END - 1; rank >= CARD_RANK_BEG; rank--) {
     if (count[rank] == primal)
-      CardArray_CopyRank(&hand->cards, sorted, rank);
+      card_array_copy_rank(&hand->cards, sorted, rank);
   }
 
   for (rank = CARD_RANK_END - 1; rank >= CARD_RANK_BEG; rank--) {
     if ((count[rank] != 0) && (count[rank] != primal))
-      CardArray_CopyRank(&hand->cards, sorted, rank);
+      card_array_copy_rank(&hand->cards, sorted, rank);
   }
 }
 
-bool Hand_Parse(hand_t *hand, const card_array_t *array) {
+bool hand_parse(hand_t *hand, const card_array_t *array) {
   int i = 0;
   int primal = 0;
   int ranks = 0;
@@ -148,21 +148,21 @@ bool Hand_Parse(hand_t *hand, const card_array_t *array) {
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH / 2,
       HAND_TRIO_CHAIN_MIN_LENGTH / 3, HAND_FOUR_CHAIN_MIN_LENGTH / 4};
   card_array_t sorted;
-  int length = CardArray_Length(array);
+  int length = card_array_length(array);
 
-  Hand_Clear(hand);
+  hand_clear(hand);
 
-  if ((CardArray_Length(array) < HAND_MIN_LENGTH) ||
-      (CardArray_Length(array) > HAND_MAX_LENGTH))
+  if ((card_array_length(array) < HAND_MIN_LENGTH) ||
+      (card_array_length(array) > HAND_MAX_LENGTH))
     return false;
 
-  CardArray_Copy(&sorted, array);
-  CardArray_Sort(&sorted);
+  card_array_copy(&sorted, array);
+  card_array_sort(&sorted);
 
-  if (Hand_HasDuplicate(&sorted))
+  if (hand_has_duplicate(&sorted))
     return false;
 
-  CardArray_CountRanks(&sorted, count);
+  card_array_count_ranks(&sorted, count);
 
   for (i = CARD_RANK_BEG; i < CARD_RANK_END; i++) {
     /* more than four of a rank, these are not cards from one deck */
@@ -173,16 +173,17 @@ bool Hand_Parse(hand_t *hand, const card_array_t *array) {
   }
 
   /* nuke */
-  if ((length == 2) && count[CARD_RANK_r] && count[CARD_RANK_R]) {
-    hand->type = Hand_Type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
-    CardArray_Copy(&hand->cards, &sorted);
+  if ((length == 2) && count[CARD_RANK_BLACK_JOKER] &&
+      count[CARD_RANK_RED_JOKER]) {
+    hand->type = hand_type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
+    card_array_copy(&hand->cards, &sorted);
     return true;
   }
 
   /* bomb */
   if ((length == 4) && (times[4] == 1)) {
-    hand->type = Hand_Type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
-    CardArray_Copy(&hand->cards, &sorted);
+    hand->type = hand_type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
+    card_array_copy(&hand->cards, &sorted);
     return true;
   }
 
@@ -191,7 +192,7 @@ bool Hand_Parse(hand_t *hand, const card_array_t *array) {
     ;
   ranks = times[primal];
 
-  if (!Hand_IsPrimalRun(count, primal, ranks))
+  if (!hand_is_primal_run(count, primal, ranks))
     return false;
 
   if (length == primal * ranks) {
@@ -219,31 +220,31 @@ bool Hand_Parse(hand_t *hand, const card_array_t *array) {
   }
 
   /* SOLO to FOUR are the number of cards per rank */
-  hand->type = Hand_Type((hand_primal_t)primal, kicker, ranks > 1);
-  Hand_Arrange(hand, &sorted, count, primal);
+  hand->type = hand_type((hand_primal_t)primal, kicker, ranks > 1);
+  hand_arrange(hand, &sorted, count, primal);
 
   return true;
 }
 
 /*
  * ************************************************************
- * layout: what Hand_Parse arranged
+ * layout: what hand_parse arranged
  * ************************************************************
  */
 
-int Hand_Rank(const hand_t *hand) {
-  return CARD_RANK(CardArray_At(&hand->cards, 0));
+int hand_rank(const hand_t *hand) {
+  return CARD_RANK(card_array_at(&hand->cards, 0));
 }
 
-void Hand_Split(
+void hand_split(
     const hand_t *hand, card_array_t *primal, card_array_t *kickers) {
   int count[CARD_RANK_END];
   int rank = 0;
   int most = 0;
 
-  CardArray_Clear(primal);
-  CardArray_Clear(kickers);
-  CardArray_CountRanks(&hand->cards, count);
+  card_array_clear(primal);
+  card_array_clear(kickers);
+  card_array_count_ranks(&hand->cards, count);
 
   for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
     if (count[rank] > most)
@@ -255,7 +256,7 @@ void Hand_Split(
     if (count[rank] == 0)
       continue;
 
-    CardArray_CopyRank(
+    card_array_copy_rank(
         count[rank] == most ? primal : kickers, &hand->cards, rank);
   }
 }
@@ -266,19 +267,19 @@ void Hand_Split(
  * ************************************************************
  */
 
-bool Hand_IsBomb(const hand_t *hand) {
-  return Hand_IsType(hand, HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
+bool hand_is_bomb(const hand_t *hand) {
+  return hand_is_type(hand, HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
 }
 
-bool Hand_IsNuke(const hand_t *hand) {
-  return Hand_IsType(hand, HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
+bool hand_is_nuke(const hand_t *hand) {
+  return hand_is_type(hand, HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
 }
 
-HandCompareResult Hand_Compare(const hand_t *a, const hand_t *b) {
-  if (!Hand_TypeEquals(a->type, b->type)) {
+hand_compare_t hand_compare(const hand_t *a, const hand_t *b) {
+  if (!hand_type_equals(a->type, b->type)) {
     /* different hand types only compare when a bomb or the nuke is in */
-    if (!Hand_IsBomb(a) && !Hand_IsNuke(a) && !Hand_IsBomb(b) &&
-        !Hand_IsNuke(b))
+    if (!hand_is_bomb(a) && !hand_is_nuke(a) && !hand_is_bomb(b) &&
+        !hand_is_nuke(b))
       return HAND_CMP_ILLEGAL;
 
     /* nuke over bomb over everything else */
@@ -286,23 +287,23 @@ HandCompareResult Hand_Compare(const hand_t *a, const hand_t *b) {
   }
 
   /* same hand type but different length */
-  if (CardArray_Length(&a->cards) != CardArray_Length(&b->cards))
+  if (card_array_length(&a->cards) != card_array_length(&b->cards))
     return HAND_CMP_ILLEGAL;
 
   /* same hand type and same length, the rank decides */
-  if (Hand_Rank(a) == Hand_Rank(b))
+  if (hand_rank(a) == hand_rank(b))
     return HAND_CMP_EQUAL;
 
-  return Hand_Rank(a) > Hand_Rank(b) ? HAND_CMP_GREATER : HAND_CMP_LESS;
+  return hand_rank(a) > hand_rank(b) ? HAND_CMP_GREATER : HAND_CMP_LESS;
 }
 
-void Hand_Print(const hand_t *hand) {
+void hand_print(const hand_t *hand) {
   const char *toprint = "";
 
-  DBGLog("Hand type: [");
+  LANDLORD_LOG("Hand type: [");
 
   if (hand == NULL) {
-    DBGLog("null\n");
+    LANDLORD_LOG("null\n");
     return;
   }
 
@@ -336,7 +337,7 @@ void Hand_Print(const hand_t *hand) {
     break;
   }
 
-  DBGLog("%s", toprint);
+  LANDLORD_LOG("%s", toprint);
 
   switch (hand->type.kicker) {
   case HAND_KICKER_NONE:
@@ -361,12 +362,12 @@ void Hand_Print(const hand_t *hand) {
   }
 
   if (toprint != NULL)
-    DBGLog("%s", toprint);
+    LANDLORD_LOG("%s", toprint);
 
   if (hand->type.chain)
-    DBGLog(" chain");
+    LANDLORD_LOG(" chain");
 
-  DBGLog("]\n");
+  LANDLORD_LOG("]\n");
 
-  CardArray_Print(&hand->cards);
+  card_array_print(&hand->cards);
 }

@@ -4,13 +4,13 @@
 
 **Blocked by:** 13（const、枚举与结构化牌型）
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] 没有 PascalCase 的函数名和驼峰的字段名
-- [ ] 枚举常量采用同一种命名写法
-- [ ] include guard 写法一致
-- [ ] 已知拼写错误（如 length、recycle 的误拼）已修正
-- [ ] 重命名与行为改动不混在同一个提交里
-- [ ] 基线与改动前完全一致
-- [ ] landlord 在严格警告选项下零警告
-- [ ] `make fmt` 后工作区无改动，`make test` 通过
+- [x] 没有 PascalCase 的函数名和驼峰的字段名
+- [x] 枚举常量采用同一种命名写法
+- [x] include guard 写法一致
+- [x] 已知拼写错误（如 length、recycle 的误拼）已修正
+- [x] 重命名与行为改动不混在同一个提交里
+- [x] 基线与改动前完全一致
+- [x] landlord 在严格警告选项下零警告
+- [x] `make fmt` 后工作区无改动，`make test` 通过

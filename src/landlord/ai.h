@@ -29,10 +29,6 @@ SOFTWARE.
 #include "beat.h"
 #include "hand.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define AI_PLAYERS 3
 
 /*
@@ -46,14 +42,14 @@ extern "C" {
 
 /* how an AI takes cards apart, the only thing the AIs differ in */
 typedef struct ai_s {
-  Analysis_Func analyze;
+  analysis_func_t analyze;
 } ai_t;
 
 /* greedy analysis: bombs first, then the chains that happen to be there */
-extern const ai_t AI_Standard;
+extern const ai_t ai_standard;
 
 /* searches for the split with the fewest hands */
-extern const ai_t AI_Advanced;
+extern const ai_t ai_advanced;
 
 /* what one seat may know, all of it read only */
 typedef struct ai_view_s {
@@ -63,30 +59,26 @@ typedef struct ai_view_s {
   int bid;                    /* highest bid so far */
   const card_array_t *cards;  /* the seat's own cards */
   const hand_list_t *hands;   /* those cards taken apart, kept by the game */
-  const hand_t *lastHand;     /* the hand to beat, NULL when leading */
-  int lastPlayer;             /* who played lastHand */
-  int cardsLeft[AI_PLAYERS];  /* cards every seat still holds */
+  const hand_t *last_hand;    /* the hand to beat, NULL when leading */
+  int last_player;            /* who played last_hand */
+  int cards_left[AI_PLAYERS]; /* cards every seat still holds */
   const card_array_t *played; /* every card played so far */
 } ai_view_t;
 
 /*
  * how much to bid for landlord, 0 to stay out
  */
-int AI_Bid(const ai_view_t *view);
+int ai_bid(const ai_view_t *view);
 
 /*
  * choose the hand to lead with, always plays
  */
-void AI_Lead(const ai_view_t *view, hand_t *hand);
+void ai_lead(const ai_view_t *view, hand_t *hand);
 
 /*
- * choose a hand that beats view->lastHand
+ * choose a hand that beats view->last_hand
  * returns 0 to pass, in which case hand is not meaningful
  */
-int AI_Beat(const ai_view_t *view, hand_t *hand);
-
-#ifdef __cplusplus
-}
-#endif
+int ai_beat(const ai_view_t *view, hand_t *hand);
 
 #endif /* LANDLORD_AI_H_ */

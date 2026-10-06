@@ -33,7 +33,7 @@ SOFTWARE.
  * chain when there are enough of them, single hands otherwise
  * cards has to be sorted from high to low
  */
-static void HandList_ExtractConsecutive(
+static void analysis_extract_consecutive(
     hand_list_t *hl, const card_array_t *cards, const int *count,
     int duplicate) {
   int rank = 0;
@@ -63,20 +63,20 @@ static void HandList_ExtractConsecutive(
 
     if (runlen * duplicate >= chainlen[duplicate]) {
       /* chain */
-      Hand_Clear(&hand);
-      hand.type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, true);
+      hand_clear(&hand);
+      hand.type = hand_type(primal[duplicate], HAND_KICKER_NONE, true);
 
       for (r = runtop; r > runtop - runlen; r--)
-        CardArray_CopyRank(&hand.cards, cards, r);
+        card_array_copy_rank(&hand.cards, cards, r);
 
-      HandList_Push(hl, &hand);
+      hand_list_push(hl, &hand);
     } else {
       /* not a chain */
       for (r = runtop; r > runtop - runlen; r--) {
-        Hand_Clear(&hand);
-        hand.type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, false);
-        CardArray_CopyRank(&hand.cards, cards, r);
-        HandList_Push(hl, &hand);
+        hand_clear(&hand);
+        hand.type = hand_type(primal[duplicate], HAND_KICKER_NONE, false);
+        card_array_copy_rank(&hand.cards, cards, r);
+        hand_list_push(hl, &hand);
       }
     }
 
@@ -86,107 +86,109 @@ static void HandList_ExtractConsecutive(
 
 /* extract nuke/bomb/2 from array, these cards will be removed from array */
 static void
-HandList_ExtractNukeBomb2(hand_list_t *hl, card_array_t *array, int *count) {
+analysis_extract_nuke_bomb_2(hand_list_t *hl, card_array_t *array, int *count) {
   int i = 0;
   hand_t hand;
 
   /* nuke */
-  if (count[CARD_RANK_r] && count[CARD_RANK_R]) {
-    Hand_Clear(&hand);
-    hand.type = Hand_Type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
-    CardArray_CopyRank(&hand.cards, array, CARD_RANK_R);
-    CardArray_CopyRank(&hand.cards, array, CARD_RANK_r);
+  if (count[CARD_RANK_BLACK_JOKER] && count[CARD_RANK_RED_JOKER]) {
+    hand_clear(&hand);
+    hand.type = hand_type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
+    card_array_copy_rank(&hand.cards, array, CARD_RANK_RED_JOKER);
+    card_array_copy_rank(&hand.cards, array, CARD_RANK_BLACK_JOKER);
 
-    HandList_Push(hl, &hand);
+    hand_list_push(hl, &hand);
 
-    count[CARD_RANK_r] = 0;
-    count[CARD_RANK_R] = 0;
+    count[CARD_RANK_BLACK_JOKER] = 0;
+    count[CARD_RANK_RED_JOKER] = 0;
 
-    CardArray_RemoveRank(array, CARD_RANK_r);
-    CardArray_RemoveRank(array, CARD_RANK_R);
+    card_array_remove_rank(array, CARD_RANK_BLACK_JOKER);
+    card_array_remove_rank(array, CARD_RANK_RED_JOKER);
   }
 
   /* bomb */
   for (i = CARD_RANK_2; i >= CARD_RANK_3; i--) {
     if (count[i] == 4) {
-      Hand_Clear(&hand);
-      hand.type = Hand_Type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
-      CardArray_CopyRank(&hand.cards, array, i);
+      hand_clear(&hand);
+      hand.type = hand_type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
+      card_array_copy_rank(&hand.cards, array, i);
 
-      HandList_Push(hl, &hand);
+      hand_list_push(hl, &hand);
 
       count[i] = 0;
-      CardArray_RemoveRank(array, i);
+      card_array_remove_rank(array, i);
     }
   }
 
   /* joker */
-  if ((count[CARD_RANK_r] != 0) || (count[CARD_RANK_R] != 0)) {
-    Hand_Clear(&hand);
-    CardArray_CopyRank(
+  if ((count[CARD_RANK_BLACK_JOKER] != 0) ||
+      (count[CARD_RANK_RED_JOKER] != 0)) {
+    hand_clear(&hand);
+    card_array_copy_rank(
         &hand.cards, array,
-        count[CARD_RANK_r] != 0 ? CARD_RANK_r : CARD_RANK_R);
-    hand.type = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
+        count[CARD_RANK_BLACK_JOKER] != 0 ? CARD_RANK_BLACK_JOKER
+                                          : CARD_RANK_RED_JOKER);
+    hand.type = hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
 
-    HandList_Push(hl, &hand);
-    count[CARD_RANK_r] = 0;
-    count[CARD_RANK_R] = 0;
-    CardArray_RemoveRank(array, CARD_RANK_r);
-    CardArray_RemoveRank(array, CARD_RANK_R);
+    hand_list_push(hl, &hand);
+    count[CARD_RANK_BLACK_JOKER] = 0;
+    count[CARD_RANK_RED_JOKER] = 0;
+    card_array_remove_rank(array, CARD_RANK_BLACK_JOKER);
+    card_array_remove_rank(array, CARD_RANK_RED_JOKER);
   }
 
   /* 2 */
   if (count[CARD_RANK_2] != 0) {
-    Hand_Clear(&hand);
-    CardArray_CopyRank(&hand.cards, array, CARD_RANK_2);
+    hand_clear(&hand);
+    card_array_copy_rank(&hand.cards, array, CARD_RANK_2);
 
     switch (count[CARD_RANK_2]) {
     case 1:
-      hand.type = Hand_Type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
+      hand.type = hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
       break;
 
     case 2:
-      hand.type = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
+      hand.type = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
       break;
 
     case 3:
-      hand.type = Hand_Type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
+      hand.type = hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
       break;
 
     default:
       break;
     }
     count[CARD_RANK_2] = 0;
-    CardArray_RemoveRank(array, CARD_RANK_2);
-    HandList_Push(hl, &hand);
+    card_array_remove_rank(array, CARD_RANK_2);
+    hand_list_push(hl, &hand);
   }
 }
 
-void Analysis_Standard(const card_array_t *cards, hand_list_t *hl) {
+void analysis_standard(const card_array_t *cards, hand_list_t *hl) {
   int count[CARD_RANK_END];
   card_array_t array;
 
-  CardArray_Copy(&array, cards);
-  CardArray_Sort(&array);
-  CardArray_CountRanks(&array, count);
+  card_array_copy(&array, cards);
+  card_array_sort(&array);
+  card_array_count_ranks(&array, count);
 
-  HandList_Clear(hl);
+  hand_list_clear(hl);
 
   /* nuke, bomb and 2 */
-  HandList_ExtractNukeBomb2(hl, &array, count);
+  analysis_extract_nuke_bomb_2(hl, &array, count);
 
   /* trios, pairs and solos, chained up where they can */
-  HandList_ExtractConsecutive(hl, &array, count, 3);
-  HandList_ExtractConsecutive(hl, &array, count, 2);
-  HandList_ExtractConsecutive(hl, &array, count, 1);
+  analysis_extract_consecutive(hl, &array, count, 3);
+  analysis_extract_consecutive(hl, &array, count, 2);
+  analysis_extract_consecutive(hl, &array, count, 1);
 }
 
-int Analysis_CountHands(Analysis_Func analyze, const card_array_t *array) {
+int analysis_count_hands(analysis_func_t analyze, const card_array_t *array) {
   hand_list_t hl;
 
   analyze(array, &hl);
 
-  return HandList_Count(&hl);
+  return hand_list_count(&hl);
 }
 
 /*
@@ -196,7 +198,7 @@ int Analysis_CountHands(Analysis_Func analyze, const card_array_t *array) {
  */
 
 /* cards being taken apart */
-typedef struct hand_ctx_s {
+typedef struct analysis_ctx_s {
   /* rank count */
   int count[CARD_RANK_END];
   /* original cards */
@@ -204,13 +206,11 @@ typedef struct hand_ctx_s {
   /* the cards, low to high */
   card_array_t rcards;
 
-} hand_ctx_t;
-
-#define HandCtx_Clear(ctx) memset((ctx), 0, sizeof(hand_ctx_t))
+} analysis_ctx_t;
 
 /* the longest chain of ranks held at least `duplicate` times, lowest wins */
-static void HandList_SearchLongestConsecutive(
-    const hand_ctx_t *ctx, hand_t *hand, int duplicate) {
+static void analysis_search_longest_chain(
+    const analysis_ctx_t *ctx, hand_t *hand, int duplicate) {
   int i = 0;
   int rankstart = 0;
   int beststart = 0;
@@ -226,10 +226,10 @@ static void HandList_SearchLongestConsecutive(
     return;
 
   /* early break */
-  if (CardArray_Length(&ctx->rcards) < chainlen[duplicate])
+  if (card_array_length(&ctx->rcards) < chainlen[duplicate])
     return;
 
-  Hand_Clear(hand);
+  hand_clear(hand);
 
   /*
    * i <= CARD_RANK_2
@@ -260,15 +260,15 @@ static void HandList_SearchLongestConsecutive(
   if (bestlen > 0) {
     /* from the top of the chain down */
     for (i = beststart + bestlen - 1; i >= beststart; i--)
-      CardArray_TakeRank(&hand->cards, &ctx->rcards, i, duplicate);
+      card_array_take_rank(&hand->cards, &ctx->rcards, i, duplicate);
 
-    hand->type = Hand_Type(primal[duplicate], HAND_KICKER_NONE, true);
+    hand->type = hand_type(primal[duplicate], HAND_KICKER_NONE, true);
   }
 }
 
-typedef void (*HandList_SearchPrimalFunc)(const hand_ctx_t *, hand_t *, int);
+typedef void (*analysis_search_func_t)(const analysis_ctx_t *, hand_t *, int);
 
-#define HAND_SEARCH_TYPES 3
+#define ANALYSIS_SEARCH_TYPES 3
 
 /*
  * pass a empty hand to start traverse
@@ -276,30 +276,30 @@ typedef void (*HandList_SearchPrimalFunc)(const hand_ctx_t *, hand_t *, int);
  * return 0 when stop
  */
 static int
-HLAA_TraverseChains(const hand_ctx_t *ctx, int *begin, hand_t *hand) {
+analysis_traverse_chains(const analysis_ctx_t *ctx, int *begin, hand_t *hand) {
   int found = 0;
   int i = *begin;
   int primals[] = {1, 2, 3};
 
   /* solo chain, pair chain, trio chain, trio, pair, solo */
-  HandList_SearchPrimalFunc searchers[HAND_SEARCH_TYPES];
+  analysis_search_func_t searchers[ANALYSIS_SEARCH_TYPES];
 
-  searchers[0] = HandList_SearchLongestConsecutive;
-  searchers[1] = HandList_SearchLongestConsecutive;
-  searchers[2] = HandList_SearchLongestConsecutive;
+  searchers[0] = analysis_search_longest_chain;
+  searchers[1] = analysis_search_longest_chain;
+  searchers[2] = analysis_search_longest_chain;
 
-  if (CardArray_IsEmpty(&ctx->cards))
+  if (card_array_is_empty(&ctx->cards))
     return 0;
 
-  if (*begin >= HAND_SEARCH_TYPES)
+  if (*begin >= ANALYSIS_SEARCH_TYPES)
     return 0;
 
   /* init search */
-  if (Hand_IsNone(hand)) {
-    while (i < HAND_SEARCH_TYPES && Hand_IsNone(hand)) {
+  if (hand_is_none(hand)) {
+    while (i < ANALYSIS_SEARCH_TYPES && hand_is_none(hand)) {
       searchers[i](ctx, hand, primals[i]);
 
-      if (!Hand_IsNone(hand)) {
+      if (!hand_is_none(hand)) {
         found = 1;
         break;
       } else {
@@ -311,7 +311,7 @@ HLAA_TraverseChains(const hand_ctx_t *ctx, int *begin, hand_t *hand) {
     /* if found == 0, should PANIC */
   } else {
     /* continue search via beat */
-    found = Beat_Search(&ctx->cards, hand, hand);
+    found = beat_search(&ctx->cards, hand, hand);
   }
 
   return found;
@@ -320,58 +320,60 @@ HLAA_TraverseChains(const hand_ctx_t *ctx, int *begin, hand_t *hand) {
 /*
  * extract all chains or primal hands in hand_ctx
  */
-static void HLAA_ExtractAllChains(const hand_ctx_t *ctx, hand_list_t *hands) {
+static void
+analysis_extract_all_chains(const analysis_ctx_t *ctx, hand_list_t *hands) {
   int found = 0;
   int lastsearch = 0;
   hand_t workinghand;
   hand_t lasthand;
 
   /* init search */
-  Hand_Clear(&workinghand);
-  Hand_Clear(&lasthand);
+  hand_clear(&workinghand);
+  hand_clear(&lasthand);
 
-  found = HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
+  found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);
 
   while (found != 0) {
-    HandList_Push(hands, &lasthand);
+    hand_list_push(hands, &lasthand);
 
-    Hand_Copy(&workinghand, &lasthand);
+    hand_copy(&workinghand, &lasthand);
 
-    while ((found = HLAA_TraverseChains(ctx, &lastsearch, &workinghand)) != 0)
-      HandList_Push(hands, &workinghand);
+    while ((found = analysis_traverse_chains(ctx, &lastsearch, &workinghand)) !=
+           0)
+      hand_list_push(hands, &workinghand);
 
     /* can't find any more hands, try to reduce chain length */
-    if (!Hand_IsNone(&lasthand)) {
-      if (Hand_IsType(&lasthand, HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true)) {
-        if (CardArray_Length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
-          CardArray_DropFront(&lasthand.cards, 1);
+    if (!hand_is_none(&lasthand)) {
+      if (hand_is_type(&lasthand, HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true)) {
+        if (card_array_length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
+          card_array_drop_front(&lasthand.cards, 1);
           found = 1;
         } else {
-          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
+          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
-          Hand_IsType(&lasthand, HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true)) {
-        if (CardArray_Length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
-          CardArray_DropFront(&lasthand.cards, 2);
+          hand_is_type(&lasthand, HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true)) {
+        if (card_array_length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
+          card_array_drop_front(&lasthand.cards, 2);
           found = 1;
         } else {
-          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
+          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
-          Hand_IsType(&lasthand, HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true)) {
-        if (CardArray_Length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
-          CardArray_DropFront(&lasthand.cards, 3);
+          hand_is_type(&lasthand, HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true)) {
+        if (card_array_length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
+          card_array_drop_front(&lasthand.cards, 3);
           found = 1;
         } else {
-          lasthand.type = Hand_Type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
+          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       }
 
       /* still can't found, loop through hand type for more */
       if (found == 0) {
         lastsearch++;
-        Hand_Clear(&lasthand);
-        found = HLAA_TraverseChains(ctx, &lastsearch, &lasthand);
+        hand_clear(&lasthand);
+        found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);
       }
     }
   }
@@ -397,85 +399,85 @@ typedef struct analysis_best_s {
 
 } analysis_best_t;
 
-static void HLAA_Search(
-    const hand_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
+static void analysis_search(
+    const analysis_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
   hand_list_t chains;
   int i = 0;
 
-  HandList_Clear(&chains);
+  hand_list_clear(&chains);
 
   if (depth < ANALYSIS_MAX_DEPTH)
-    HLAA_ExtractAllChains(ctx, &chains);
+    analysis_extract_all_chains(ctx, &chains);
 
-  if (HandList_Count(&chains) == 0) {
+  if (hand_list_count(&chains) == 0) {
     /* nothing more to pull out, the rest is played as it is */
-    int weight = depth + Analysis_CountHands(Analysis_Standard, &ctx->cards);
+    int weight = depth + analysis_count_hands(analysis_standard, &ctx->cards);
 
     /* on a tie the split found last wins */
     if (weight <= best->weight) {
       best->weight = weight;
       best->depth = depth;
       memcpy(best->path, path, sizeof(hand_t) * (size_t)depth);
-      CardArray_Copy(&best->leftover, &ctx->cards);
+      card_array_copy(&best->leftover, &ctx->cards);
     }
 
     return;
   }
 
-  for (i = 0; i < HandList_Count(&chains); i++) {
-    hand_ctx_t rest;
+  for (i = 0; i < hand_list_count(&chains); i++) {
+    analysis_ctx_t rest;
 
     /* the cards without this chain */
-    Hand_Copy(&path[depth], HandList_At(&chains, i));
-    CardArray_Copy(&rest.cards, &ctx->cards);
-    CardArray_Subtract(&rest.cards, &path[depth].cards);
-    CardArray_Copy(&rest.rcards, &rest.cards);
-    CardArray_Reverse(&rest.rcards);
-    CardArray_CountRanks(&rest.cards, rest.count);
+    hand_copy(&path[depth], hand_list_at(&chains, i));
+    card_array_copy(&rest.cards, &ctx->cards);
+    card_array_subtract(&rest.cards, &path[depth].cards);
+    card_array_copy(&rest.rcards, &rest.cards);
+    card_array_reverse(&rest.rcards);
+    card_array_count_ranks(&rest.cards, rest.count);
 
-    HLAA_Search(&rest, path, depth + 1, best);
+    analysis_search(&rest, path, depth + 1, best);
   }
 }
 
 /*
  * search hand via least hands
  */
-void Analysis_Advanced(const card_array_t *array, hand_list_t *hl) {
+void analysis_advanced(const card_array_t *array, hand_list_t *hl) {
   hand_list_t bombs;
   hand_t path[ANALYSIS_MAX_DEPTH];
   analysis_best_t best;
-  hand_ctx_t ctx;
+  analysis_ctx_t ctx;
   int i = 0;
 
-  HandCtx_Clear(&ctx);
-  CardArray_CountRanks(array, ctx.count);
-  CardArray_Copy(&ctx.cards, array);
-  CardArray_Sort(&ctx.cards);
+  memset(&ctx, 0, sizeof(ctx));
+  card_array_count_ranks(array, ctx.count);
+  card_array_copy(&ctx.cards, array);
+  card_array_sort(&ctx.cards);
 
   /* nuke, bombs and 2 are never broken up */
-  HandList_Clear(&bombs);
-  HandList_ExtractNukeBomb2(&bombs, &ctx.cards, ctx.count);
+  hand_list_clear(&bombs);
+  analysis_extract_nuke_bomb_2(&bombs, &ctx.cards, ctx.count);
 
-  CardArray_Copy(&ctx.rcards, &ctx.cards);
-  CardArray_Reverse(&ctx.rcards);
+  card_array_copy(&ctx.rcards, &ctx.cards);
+  card_array_reverse(&ctx.rcards);
 
   best.weight = INT_MAX;
   best.depth = 0;
-  CardArray_Clear(&best.leftover);
-  HLAA_Search(&ctx, path, 0, &best);
+  card_array_clear(&best.leftover);
+  analysis_search(&ctx, path, 0, &best);
 
   /* no chains at all, this is the standard analysis */
   if (best.depth == 0) {
-    Analysis_Standard(array, hl);
+    analysis_standard(array, hl);
     return;
   }
 
   /* the leftover, then the chains from the last pulled to the first */
-  Analysis_Standard(&best.leftover, hl);
+  analysis_standard(&best.leftover, hl);
 
   for (i = best.depth - 1; i >= 0; i--)
-    HandList_Push(hl, &best.path[i]);
+    hand_list_push(hl, &best.path[i]);
 
-  for (i = 0; i < HandList_Count(&bombs); i++)
-    HandList_Push(hl, HandList_At(&bombs, i));
+  for (i = 0; i < hand_list_count(&bombs); i++)
+    hand_list_push(hl, hand_list_at(&bombs, i));
 }

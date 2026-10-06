@@ -27,33 +27,25 @@ SOFTWARE.
 
 #include "ai.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 typedef enum {
-  PlayerIdentity_Peasant = 0,
-  PlayerIdentity_Landlord
+  PLAYER_IDENTITY_PEASANT = 0,
+  PLAYER_IDENTITY_LANDLORD
 
-} PlayerIdentity;
+} player_identity_t;
 
 /* a seat at the table, owned and kept up to date by the game */
 typedef struct player_s {
-  card_array_t cards;      /* card array, will change during game play */
-  hand_list_t handlist;    /* cards taken apart by the seat's AI */
-  PlayerIdentity identity; /* peasant or landlord */
-  int seatId;              /* 0, 1, 2 */
-  const ai_t *ai;          /* who decides for this seat */
+  card_array_t cards;         /* card array, will change during game play */
+  hand_list_t hands;          /* cards taken apart by the seat's AI */
+  player_identity_t identity; /* peasant or landlord */
+  int seat;                   /* 0, 1, 2 */
+  const ai_t *ai;             /* who decides for this seat */
 
 } player_t;
 
 /*
  * clear a player context
  */
-void Player_Clear(player_t *player);
-
-#ifdef __cplusplus
-}
-#endif
+void player_clear(player_t *player);
 
 #endif /* LANDLORD_PLAYER_H_ */

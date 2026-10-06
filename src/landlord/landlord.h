@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_LANDLORD_H
-#define LANDLORD_LANDLORD_H
+#ifndef LANDLORD_LANDLORD_H_
+#define LANDLORD_LANDLORD_H_
 
 #include "ai.h"
 #include "analysis.h"
@@ -32,8 +32,8 @@ SOFTWARE.
 #include "common.h"
 #include "game.h"
 #include "hand.h"
-#include "handlist.h"
+#include "hand_list.h"
 #include "lmath.h"
 #include "player.h"
 
-#endif /* LANDLORD_LANDLORD_H */
+#endif /* LANDLORD_LANDLORD_H_ */

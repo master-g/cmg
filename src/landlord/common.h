@@ -25,7 +25,7 @@ SOFTWARE.
 #ifndef LANDLORD_COMMON_H_
 #define LANDLORD_COMMON_H_
 
-#define LL_GRAPHICAL_SUIT
+#define LANDLORD_GRAPHICAL_SUIT
 
 #include <errno.h>
 #include <math.h>
@@ -35,24 +35,16 @@ SOFTWARE.
 #include <string.h>
 #include <time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#define LANDLORD_PRINT_LOG 0
 
-#define PRINT_GAME_LOG 0
-
-#if (PRINT_GAME_LOG == 1)
-#define DBGLog(...) printf(__VA_ARGS__)
+#if (LANDLORD_PRINT_LOG == 1)
+#define LANDLORD_LOG(...) printf(__VA_ARGS__)
 #else
-#define DBGLog(...)                                                            \
+#define LANDLORD_LOG(...)                                                      \
   do {                                                                         \
     if (0)                                                                     \
       printf(__VA_ARGS__);                                                     \
   } while (0)
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif /* LANDLORD_COMMON_H_ */

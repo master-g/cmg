@@ -22,11 +22,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_BEAT_H
-#define LANDLORD_BEAT_H
+#ifndef LANDLORD_BEAT_H_
+#define LANDLORD_BEAT_H_
 
 #include "hand.h"
-#include "handlist.h"
+#include "hand_list.h"
 
 /* ************************************************************
  * beat search: the hands in some cards that beat a given hand
@@ -39,13 +39,13 @@ SOFTWARE.
  *
  * returns 0 when there is none
  */
-int Beat_Search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat);
+int beat_search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat);
 
 /*
  * every hand in cards that beats tobeat, as judged by the rules, in the order
  * the search finds them
  */
-void Beat_SearchAll(
+void beat_search_all(
     const card_array_t *cards, const hand_t *tobeat, hand_list_t *hl);
 
-#endif /* LANDLORD_BEAT_H */
+#endif /* LANDLORD_BEAT_H_ */

@@ -27,12 +27,6 @@ SOFTWARE.
 
 #include "card.h"
 
-#include <stdbool.h>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #define HAND_MIN_LENGTH 1
 #define HAND_MAX_LENGTH 20
 #define HAND_SOLO_CHAIN_MIN_LENGTH 5
@@ -74,7 +68,7 @@ typedef enum {
   HAND_CMP_LESS = -1,
   HAND_CMP_EQUAL = 0,
   HAND_CMP_GREATER = 1
-} HandCompareResult;
+} hand_compare_t;
 
 /*
  * hand is a valid card set that can play.
@@ -88,74 +82,70 @@ typedef struct hand_s {
 /*
  * a hand type from its three parts
  */
-hand_type_t Hand_Type(hand_primal_t primal, hand_kicker_t kicker, bool chain);
+hand_type_t hand_type(hand_primal_t primal, hand_kicker_t kicker, bool chain);
 
 /*
  * are two hand types the same
  */
-bool Hand_TypeEquals(hand_type_t a, hand_type_t b);
+bool hand_type_equals(hand_type_t a, hand_type_t b);
 
 /*
  * is the hand of exactly this type
  */
-bool Hand_IsType(
+bool hand_is_type(
     const hand_t *hand, hand_primal_t primal, hand_kicker_t kicker, bool chain);
 
 /*
  * has the hand no type, that is, it is not a hand
  */
-bool Hand_IsNone(const hand_t *hand);
+bool hand_is_none(const hand_t *hand);
 
 /*
  * clear a hand
  */
-void Hand_Clear(hand_t *hand);
+void hand_clear(hand_t *hand);
 
 /*
  * copy hands
  */
-void Hand_Copy(hand_t *dst, const hand_t *src);
+void hand_copy(hand_t *dst, const hand_t *src);
 
 /*
  * parse a card array to hand, the card array is left as it is
  * returns false and leaves hand empty when the cards are not a hand
  */
-bool Hand_Parse(hand_t *hand, const card_array_t *array);
+bool hand_parse(hand_t *hand, const card_array_t *array);
 
 /*
  * compare two hands, this is the only place that knows which hand is greater
  */
-HandCompareResult Hand_Compare(const hand_t *a, const hand_t *b);
+hand_compare_t hand_compare(const hand_t *a, const hand_t *b);
 
 /*
  * the rank a hand is compared by: its highest primal rank
  */
-int Hand_Rank(const hand_t *hand);
+int hand_rank(const hand_t *hand);
 
 /*
  * the two parts of a hand: the cards that give it its rank (the trios of a
  * trio chain with kickers) and the kickers they carry, both from high to low
  */
-void Hand_Split(
+void hand_split(
     const hand_t *hand, card_array_t *primal, card_array_t *kickers);
 
 /*
  * four of a kind, beats everything but a higher bomb and the nuke
  */
-bool Hand_IsBomb(const hand_t *hand);
+bool hand_is_bomb(const hand_t *hand);
 
 /*
  * both jokers, beats everything
  */
-bool Hand_IsNuke(const hand_t *hand);
+bool hand_is_nuke(const hand_t *hand);
 
 /*
  * hand print
  */
-void Hand_Print(const hand_t *hand);
-
-#ifdef __cplusplus
-}
-#endif
+void hand_print(const hand_t *hand);
 
 #endif /* LANDLORD_HAND_H_ */

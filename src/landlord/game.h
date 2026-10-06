@@ -27,54 +27,45 @@ SOFTWARE.
 
 #include "card.h"
 #include "hand.h"
-#include "handlist.h"
+#include "hand_list.h"
 #include "lmath.h"
 #include "player.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 #define GAME_PLAYERS 3
 #define GAME_HAND_CARDS 17
 #define GAME_REST_CARDS 3
 
-#define IncPlayerIdx(x) (((x) + 1) % GAME_PLAYERS)
-#define Game_GetCurrentPlayer(g) (&(g)->players[(g)->playerIndex])
-#define Game_IncPlayerIndex(g)                                                 \
-  ((g)->playerIndex = IncPlayerIdx((g)->playerIndex))
+typedef enum {
+  GAME_STATUS_HALT = 0,
+  GAME_STATUS_BID,
+  GAME_STATUS_READY,
+  GAME_STATUS_OVER,
+  GAME_STATUS_ILLEGAL /* a player handed in cards the rules reject */
+
+} game_status_t;
 
 typedef enum {
-  GameStatus_Halt = 0,
-  GameStatus_Bid,
-  GameStatus_Ready,
-  GameStatus_Over,
-  GameStatus_Illegal /* a player handed in cards the rules reject */
+  GAME_PHASE_PLAY = 0,
+  GAME_PHASE_QUERY,
+  GAME_PHASE_PASS
 
-} GameStatus;
-
-typedef enum {
-  Phase_Play = 0,
-  Phase_Query,
-  Phase_Pass
-
-} StagePhase;
+} game_phase_t;
 
 typedef struct game_s {
   player_t players[GAME_PLAYERS]; /* player array */
   card_array_t deck;              /* deck */
   mt19937_t mt;                   /* random context */
-  hand_t lastHand;                /* last played hand */
-  card_array_t cardRecord;        /* card record */
-  card_array_t kittyCards;        /* kitty cards */
+  hand_t last_hand;               /* last played hand */
+  card_array_t card_record;       /* card record */
+  card_array_t kitty_cards;       /* kitty cards */
   int bid;                        /* current bid */
-  int highestBidder;              /* for the highest bidder! */
-  int playerIndex;                /* current player index */
+  int highest_bidder;             /* for the highest bidder! */
+  int player_index;               /* current player index */
   int landlord;                   /* landlord index */
-  int lastplay;                   /* who played the last hand */
+  int last_play;                  /* who played the last hand */
   int winner;                     /* who win the last game */
-  GameStatus status;              /* game status */
-  StagePhase phase;               /* game phase */
+  game_status_t status;           /* game status */
+  game_phase_t phase;             /* game phase */
   uint32_t seed;                  /* seed of the game being played */
 
 } game_t;
@@ -82,17 +73,13 @@ typedef struct game_s {
 /*
  * seat three AIs at the table, once
  */
-void Game_Init(game_t *game);
+void game_init(game_t *game);
 
 /*
  * Play one whole game. The seed alone decides it: the same seed gives the
  * same game whatever was played before. Afterwards the game holds the
  * result: status, winner, landlord, bid and every card played in order.
  */
-void Game_Play(game_t *game, uint32_t seed);
-
-#ifdef __cplusplus
-}
-#endif
+void game_play(game_t *game, uint32_t seed);
 
 #endif /* LANDLORD_GAME_H_ */

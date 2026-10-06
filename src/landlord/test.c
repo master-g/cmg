@@ -90,12 +90,12 @@ static void test_rules(void) {
     hand_t hand;
     bool ishand;
 
-    CardArray_InitFromString(&cards, parse_cases[i].cards);
-    ishand = Hand_Parse(&hand, &cards);
+    card_array_init_from_string(&cards, parse_cases[i].cards);
+    ishand = hand_parse(&hand, &cards);
 
     /* not a hand: no type; a hand: exactly the expected type */
     if ((ishand != (want.primal != HAND_PRIMAL_NONE)) ||
-        !Hand_TypeEquals(hand.type, want)) {
+        !hand_type_equals(hand.type, want)) {
       printf(
           "  [%s] parsed as primal %d kicker %d chain %d, expected primal %d "
           "kicker %d chain %d\n",
@@ -111,11 +111,11 @@ static void test_rules(void) {
 static int same_sequence(const card_array_t *a, const card_array_t *b) {
   int i;
 
-  if (CardArray_Length(a) != CardArray_Length(b))
+  if (card_array_length(a) != card_array_length(b))
     return 0;
 
-  for (i = 0; i < CardArray_Length(a); i++) {
-    if (CardArray_At(a, i) != CardArray_At(b, i))
+  for (i = 0; i < card_array_length(a); i++) {
+    if (card_array_at(a, i) != card_array_at(b, i))
       return 0;
   }
 
@@ -126,8 +126,8 @@ static hand_t parse(const char *str) {
   card_array_t cards;
   hand_t hand;
 
-  CardArray_InitFromString(&cards, str);
-  Hand_Parse(&hand, &cards);
+  card_array_init_from_string(&cards, str);
+  hand_parse(&hand, &cards);
   return hand;
 }
 
@@ -137,21 +137,21 @@ static void test_parse_keeps_input(void) {
   card_array_t before;
   hand_t hand;
 
-  CardArray_InitFromString(&cards, "♥7 ♣3 ♠3 ♥3");
-  CardArray_Copy(&before, &cards);
-  assert(Hand_Parse(&hand, &cards));
+  card_array_init_from_string(&cards, "♥7 ♣3 ♠3 ♥3");
+  card_array_copy(&before, &cards);
+  assert(hand_parse(&hand, &cards));
   assert(memcmp(&cards, &before, sizeof(card_array_t)) == 0);
 
   /* the trio leads the parsed hand */
-  assert(CardArray_Length(&hand.cards) == 4);
-  assert(CARD_RANK(CardArray_At(&hand.cards, 0)) == CARD_RANK_3);
-  assert(CARD_RANK(CardArray_At(&hand.cards, 3)) == CARD_RANK_7);
+  assert(card_array_length(&hand.cards) == 4);
+  assert(CARD_RANK(card_array_at(&hand.cards, 0)) == CARD_RANK_3);
+  assert(CARD_RANK(card_array_at(&hand.cards, 3)) == CARD_RANK_7);
 }
 
 typedef struct {
   const char *a;
   const char *b;
-  HandCompareResult result; /* Hand_Compare(a, b) */
+  hand_compare_t result; /* hand_compare(a, b) */
 } compare_case_t;
 
 static const compare_case_t compare_cases[] = {
@@ -189,10 +189,10 @@ static void test_compare(void) {
   for (i = 0; i < sizeof(compare_cases) / sizeof(compare_cases[0]); i++) {
     hand_t a = parse(compare_cases[i].a);
     hand_t b = parse(compare_cases[i].b);
-    HandCompareResult result;
+    hand_compare_t result;
 
-    assert(!Hand_IsNone(&a) && !Hand_IsNone(&b));
-    result = Hand_Compare(&a, &b);
+    assert(!hand_is_none(&a) && !hand_is_none(&b));
+    result = hand_compare(&a, &b);
     if (result != compare_cases[i].result) {
       printf(
           "  [%s] against [%s] is %d, expected %d\n", compare_cases[i].a,
@@ -213,29 +213,29 @@ static void test_card_array(void) {
   int i;
 
   printf("testing card array...\n");
-  CardArray_Reset(&reference);
+  card_array_reset(&reference);
 
-  CardArray_Reset(full);
+  card_array_reset(full);
   for (i = 0; i < CARD_SET_LENGTH; i++) {
-    assert(CardArray_PopFront(full) == CardArray_At(&reference, i));
-    assert(CardArray_Length(full) == CARD_SET_LENGTH - 1 - i);
+    assert(card_array_pop_front(full) == card_array_at(&reference, i));
+    assert(card_array_length(full) == CARD_SET_LENGTH - 1 - i);
   }
-  assert(CardArray_PopFront(full) == 0);
+  assert(card_array_pop_front(full) == 0);
 
-  CardArray_Reset(full);
-  assert(CardArray_DropFront(full, 4) == 4);
-  assert(CardArray_Length(full) == CARD_SET_LENGTH - 4);
-  assert(CardArray_At(full, 0) == CardArray_At(&reference, 4));
+  card_array_reset(full);
+  assert(card_array_drop_front(full, 4) == 4);
+  assert(card_array_length(full) == CARD_SET_LENGTH - 4);
+  assert(card_array_at(full, 0) == card_array_at(&reference, 4));
   assert(
-      CardArray_At(full, CardArray_Length(full) - 1) ==
-      CardArray_At(&reference, CARD_SET_LENGTH - 1));
-  assert(CardArray_DropFront(full, CARD_SET_LENGTH) == CARD_SET_LENGTH - 4);
-  assert(CardArray_Length(full) == 0);
+      card_array_at(full, card_array_length(full) - 1) ==
+      card_array_at(&reference, CARD_SET_LENGTH - 1));
+  assert(card_array_drop_front(full, CARD_SET_LENGTH) == CARD_SET_LENGTH - 4);
+  assert(card_array_length(full) == 0);
 
-  CardArray_Reset(full);
-  CardArray_PushBack(
-      full, CardArray_At(&reference, 0)); /* full, must be ignored */
-  assert(CardArray_Length(full) == CARD_SET_LENGTH);
+  card_array_reset(full);
+  card_array_push_back(
+      full, card_array_at(&reference, 0)); /* full, must be ignored */
+  assert(card_array_length(full) == CARD_SET_LENGTH);
 
   free(full);
 }
@@ -248,36 +248,36 @@ static void test_card_text(void) {
   printf("testing card text...\n");
 
   /* always terminated, and it reads back as the same card */
-  CardArray_InitFromString(&cards, "♠A ♥T ♣3 ♦r ♠R ♦2");
-  assert(CardArray_Length(&cards) == 6);
-  assert(Card_ToString(CardArray_At(&cards, 0), str, sizeof(str)) == 4);
+  card_array_init_from_string(&cards, "♠A ♥T ♣3 ♦r ♠R ♦2");
+  assert(card_array_length(&cards) == 6);
+  assert(card_to_string(card_array_at(&cards, 0), str, sizeof(str)) == 4);
   assert(strcmp(str, "♠A") == 0);
-  assert(Card_ToString(CardArray_At(&cards, 3), str, sizeof(str)) == 4);
+  assert(card_to_string(card_array_at(&cards, 3), str, sizeof(str)) == 4);
   assert(strcmp(str, "♦r") == 0);
 
   /* no room: nothing is written */
-  assert(Card_ToString(CardArray_At(&cards, 0), small, sizeof(small)) == 0);
+  assert(card_to_string(card_array_at(&cards, 0), small, sizeof(small)) == 0);
   assert(strcmp(small, "x") == 0);
 
   /* not a card: shows as '?', still terminated */
-  assert(Card_ToString(0, str, sizeof(str)) == 2);
+  assert(card_to_string(0, str, sizeof(str)) == 2);
   assert(strcmp(str, "??") == 0);
-  assert(Card_ToString(0xF3, str, sizeof(str)) == 2);
+  assert(card_to_string(0xF3, str, sizeof(str)) == 2);
   assert(strcmp(str, "?5") == 0);
 
   /* anything that is not a suit or a rank is skipped */
-  CardArray_InitFromString(&cards, "");
-  assert(CardArray_Length(&cards) == 0);
-  CardArray_InitFromString(&cards, "xyz, 1 0 ?");
-  assert(CardArray_Length(&cards) == 0);
-  CardArray_InitFromString(&cards, "♣3, junk ♠ and 7♦ ♥");
-  assert(CardArray_Length(&cards) == 2);
-  assert(CARD_RANK(CardArray_At(&cards, 0)) == CARD_RANK_3);
-  assert(CARD_RANK(CardArray_At(&cards, 1)) == CARD_RANK_7);
+  card_array_init_from_string(&cards, "");
+  assert(card_array_length(&cards) == 0);
+  card_array_init_from_string(&cards, "xyz, 1 0 ?");
+  assert(card_array_length(&cards) == 0);
+  card_array_init_from_string(&cards, "♣3, junk ♠ and 7♦ ♥");
+  assert(card_array_length(&cards) == 2);
+  assert(CARD_RANK(card_array_at(&cards, 0)) == CARD_RANK_3);
+  assert(CARD_RANK(card_array_at(&cards, 1)) == CARD_RANK_7);
 
   /* reading past the end gives no card */
-  assert(CardArray_At(&cards, 2) == 0);
-  assert(CardArray_At(&cards, -1) == 0);
+  assert(card_array_at(&cards, 2) == 0);
+  assert(card_array_at(&cards, -1) == 0);
 }
 
 /* cards are asked for by rank, sorted or not */
@@ -287,23 +287,23 @@ static void test_cards_by_rank(void) {
   int count[CARD_RANK_END];
 
   printf("testing cards by rank...\n");
-  CardArray_InitFromString(&cards, "♠5 ♣K ♥5 ♦9 ♣5 ♠K");
+  card_array_init_from_string(&cards, "♠5 ♣K ♥5 ♦9 ♣5 ♠K");
 
-  CardArray_CountRanks(&cards, count);
+  card_array_count_ranks(&cards, count);
   assert(count[CARD_RANK_5] == 3 && count[CARD_RANK_K] == 2);
   assert(count[CARD_RANK_9] == 1 && count[CARD_RANK_A] == 0);
 
-  CardArray_Clear(&taken);
-  assert(CardArray_TakeRank(&taken, &cards, CARD_RANK_5, 2) == 2);
-  assert(CardArray_TakeRank(&taken, &cards, CARD_RANK_K, 5) == 2);
-  assert(CardArray_TakeRank(&taken, &cards, CARD_RANK_A, 1) == 0);
-  assert(CardArray_Length(&taken) == 4);
-  assert(CardArray_IsContain(&cards, &taken));
-  assert(CardArray_Length(&cards) == 6); /* taking copies, the source stays */
+  card_array_clear(&taken);
+  assert(card_array_take_rank(&taken, &cards, CARD_RANK_5, 2) == 2);
+  assert(card_array_take_rank(&taken, &cards, CARD_RANK_K, 5) == 2);
+  assert(card_array_take_rank(&taken, &cards, CARD_RANK_A, 1) == 0);
+  assert(card_array_length(&taken) == 4);
+  assert(card_array_contains(&cards, &taken));
+  assert(card_array_length(&cards) == 6); /* taking copies, the source stays */
 
-  CardArray_RemoveRank(&cards, CARD_RANK_5);
-  assert(CardArray_Length(&cards) == 3);
-  assert(!CardArray_IsContain(&cards, &taken));
+  card_array_remove_rank(&cards, CARD_RANK_5);
+  assert(card_array_length(&cards) == 3);
+  assert(!card_array_contains(&cards, &taken));
 }
 
 /* ************************************************************
@@ -319,29 +319,29 @@ static void test_hand_list(void) {
   int i;
 
   printf("testing hand list...\n");
-  HandList_Clear(&list);
-  assert(HandList_Count(&list) == 0);
-  assert(HandList_At(&list, 0) == NULL);
+  hand_list_clear(&list);
+  assert(hand_list_count(&list) == 0);
+  assert(hand_list_at(&list, 0) == NULL);
 
   for (i = 0; i < HAND_LIST_CAPACITY; i++)
-    assert(HandList_Push(&list, i % 2 ? &pair : &solo) == 1);
+    assert(hand_list_push(&list, i % 2 ? &pair : &solo) == 1);
 
   /* full: the hand is refused and nothing changes */
-  assert(HandList_Push(&list, &pair) == 0);
-  assert(HandList_Count(&list) == HAND_LIST_CAPACITY);
-  assert(HandList_At(&list, HAND_LIST_CAPACITY) == NULL);
-  assert(Hand_TypeEquals(
-      HandList_At(&list, HAND_LIST_CAPACITY - 1)->type, pair.type));
+  assert(hand_list_push(&list, &pair) == 0);
+  assert(hand_list_count(&list) == HAND_LIST_CAPACITY);
+  assert(hand_list_at(&list, HAND_LIST_CAPACITY) == NULL);
+  assert(hand_type_equals(
+      hand_list_at(&list, HAND_LIST_CAPACITY - 1)->type, pair.type));
 
   /* hands made of played cards go, the others keep their order */
-  HandList_Clear(&list);
-  HandList_Push(&list, &solo);
-  HandList_Push(&list, &pair);
-  HandList_Push(&list, &solo);
-  CardArray_InitFromString(&played, "♣3 ♦K");
-  HandList_RemoveContained(&list, &played);
-  assert(HandList_Count(&list) == 1);
-  assert(Hand_TypeEquals(HandList_At(&list, 0)->type, pair.type));
+  hand_list_clear(&list);
+  hand_list_push(&list, &solo);
+  hand_list_push(&list, &pair);
+  hand_list_push(&list, &solo);
+  card_array_init_from_string(&played, "♣3 ♦K");
+  hand_list_remove_contained(&list, &played);
+  assert(hand_list_count(&list) == 1);
+  assert(hand_type_equals(hand_list_at(&list, 0)->type, pair.type));
 }
 
 /* ************************************************************
@@ -349,7 +349,7 @@ static void test_hand_list(void) {
  * ************************************************************/
 
 /* returns the number of hands */
-static int check_analysis(Analysis_Func analyze, const card_array_t *cards) {
+static int check_analysis(analysis_func_t analyze, const card_array_t *cards) {
   hand_list_t hands;
   card_array_t covered;
   card_array_t sorted;
@@ -357,24 +357,24 @@ static int check_analysis(Analysis_Func analyze, const card_array_t *cards) {
 
   analyze(cards, &hands);
 
-  CardArray_Clear(&covered);
-  for (i = 0; i < HandList_Count(&hands); i++) {
-    const hand_t *hand = HandList_At(&hands, i);
+  card_array_clear(&covered);
+  for (i = 0; i < hand_list_count(&hands); i++) {
+    const hand_t *hand = hand_list_at(&hands, i);
     hand_t judged;
 
     /* legal, and of the type the analysis says it is */
-    assert(Hand_Parse(&judged, &hand->cards));
-    assert(Hand_TypeEquals(judged.type, hand->type));
-    CardArray_Concat(&covered, &hand->cards);
+    assert(hand_parse(&judged, &hand->cards));
+    assert(hand_type_equals(judged.type, hand->type));
+    card_array_concat(&covered, &hand->cards);
   }
 
   /* every card in exactly one hand */
-  CardArray_Copy(&sorted, cards);
-  CardArray_Sort(&sorted);
-  CardArray_Sort(&covered);
+  card_array_copy(&sorted, cards);
+  card_array_sort(&sorted);
+  card_array_sort(&covered);
   assert(same_sequence(&covered, &sorted));
 
-  return HandList_Count(&hands);
+  return hand_list_count(&hands);
 }
 
 static void test_analysis(void) {
@@ -383,23 +383,23 @@ static void test_analysis(void) {
   int round;
 
   printf("testing analysis...\n");
-  Random_Init(&mt, 1987);
+  mt19937_init(&mt, 1987);
 
   for (round = 0; round < 20000; round++) {
     card_array_t cards;
     int standard;
     int advanced;
 
-    CardArray_Reset(&deck);
-    CardArray_Shuffle(&deck, &mt);
-    CardArray_Deal(&deck, &cards, 1 + (int)(Random_Int32(&mt) % 20));
+    card_array_reset(&deck);
+    card_array_shuffle(&deck, &mt);
+    card_array_deal(&deck, &cards, 1 + (int)(mt19937_int32(&mt) % 20));
 
-    standard = check_analysis(Analysis_Standard, &cards);
-    advanced = check_analysis(Analysis_Advanced, &cards);
+    standard = check_analysis(analysis_standard, &cards);
+    advanced = check_analysis(analysis_advanced, &cards);
 
     /* searching must never do worse than being greedy */
     assert(advanced <= standard);
-    assert(standard == Analysis_CountHands(Analysis_Standard, &cards));
+    assert(standard == analysis_count_hands(analysis_standard, &cards));
   }
 }
 
@@ -414,7 +414,7 @@ static void test_beat_search(void) {
   int offered = 0;
 
   printf("testing beat search...\n");
-  Random_Init(&mt, 2014);
+  mt19937_init(&mt, 2014);
 
   for (round = 0; round < 3000; round++) {
     card_array_t mine;
@@ -422,27 +422,27 @@ static void test_beat_search(void) {
     hand_list_t lead;
     int i;
 
-    CardArray_Reset(&deck);
-    CardArray_Shuffle(&deck, &mt);
-    CardArray_Deal(&deck, &mine, 20);
-    CardArray_Deal(&deck, &theirs, 17);
+    card_array_reset(&deck);
+    card_array_shuffle(&deck, &mt);
+    card_array_deal(&deck, &mine, 20);
+    card_array_deal(&deck, &theirs, 17);
 
     /* answer every hand the other player could lead */
-    Analysis_Standard(&theirs, &lead);
-    for (i = 0; i < HandList_Count(&lead); i++) {
+    analysis_standard(&theirs, &lead);
+    for (i = 0; i < hand_list_count(&lead); i++) {
       hand_t tobeat;
       hand_list_t beats;
       int j;
 
-      assert(Hand_Parse(&tobeat, &HandList_At(&lead, i)->cards));
-      Beat_SearchAll(&mine, &tobeat, &beats);
+      assert(hand_parse(&tobeat, &hand_list_at(&lead, i)->cards));
+      beat_search_all(&mine, &tobeat, &beats);
 
-      for (j = 0; j < HandList_Count(&beats); j++) {
+      for (j = 0; j < hand_list_count(&beats); j++) {
         hand_t beat;
 
-        assert(Hand_Parse(&beat, &HandList_At(&beats, j)->cards));
-        assert(Hand_Compare(&beat, &tobeat) == HAND_CMP_GREATER);
-        assert(CardArray_IsContain(&mine, &beat.cards));
+        assert(hand_parse(&beat, &hand_list_at(&beats, j)->cards));
+        assert(hand_compare(&beat, &tobeat) == HAND_CMP_GREATER);
+        assert(card_array_contains(&mine, &beat.cards));
         offered++;
       }
     }
@@ -482,9 +482,9 @@ static game_summary_t summarize(const game_t *game) {
   summary.landlord = game->landlord;
   summary.bid = game->bid;
   summary.plays = 2166136261u;
-  for (i = 0; i < CardArray_Length(&game->cardRecord); i++)
+  for (i = 0; i < card_array_length(&game->card_record); i++)
     summary.plays =
-        (summary.plays ^ CardArray_At(&game->cardRecord, i)) * 16777619u;
+        (summary.plays ^ card_array_at(&game->card_record, i)) * 16777619u;
 
   return summary;
 }
@@ -493,11 +493,11 @@ static void print_baseline(void) {
   game_t game;
   uint32_t seed;
 
-  Game_Init(&game);
+  game_init(&game);
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_END; seed++) {
     game_summary_t s;
 
-    Game_Play(&game, seed);
+    game_play(&game, seed);
     s = summarize(&game);
     printf(
         "{%d, %d, %d, 0x%08xu}, /* %u */\n", s.winner, s.landlord, s.bid,
@@ -514,12 +514,12 @@ static void test_baseline(void) {
       sizeof(baseline) / sizeof(baseline[0]) ==
       TEST_SEED_END - TEST_SEED_BEGIN);
 
-  Game_Init(&game);
+  game_init(&game);
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_END; seed++) {
     const game_summary_t *want = &baseline[seed - TEST_SEED_BEGIN];
     game_summary_t got;
 
-    Game_Play(&game, seed);
+    game_play(&game, seed);
     got = summarize(&game);
     if (got.landlord != want->landlord || got.bid != want->bid) {
       printf(
@@ -550,18 +550,18 @@ static void test_determinism(void) {
   uint32_t seed;
 
   printf("testing determinism...\n");
-  Game_Init(&game);
+  game_init(&game);
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_BEGIN + 20; seed++) {
-    Game_Play(&game, seed);
+    game_play(&game, seed);
     first = game;
 
     /* an unrelated game in between must not matter */
-    Game_Play(&game, seed + 12345);
+    game_play(&game, seed + 12345);
 
-    Game_Play(&game, seed);
+    game_play(&game, seed);
     if (game.winner != first.winner || game.landlord != first.landlord ||
         game.bid != first.bid ||
-        !same_sequence(&game.cardRecord, &first.cardRecord)) {
+        !same_sequence(&game.card_record, &first.card_record)) {
       printf("  seed %u played differently the second time\n", (unsigned)seed);
       assert(0);
     }
@@ -574,22 +574,22 @@ static int is_whole_deck(const game_t *game) {
   card_array_t deck;
   int i;
 
-  CardArray_Copy(&all, &game->cardRecord);
+  card_array_copy(&all, &game->card_record);
   for (i = 0; i < GAME_PLAYERS; i++) {
     card_array_t held;
 
     /* a full array silently ignores what does not fit, count first */
-    if (CardArray_Length(&all) + CardArray_Length(&game->players[i].cards) >
+    if (card_array_length(&all) + card_array_length(&game->players[i].cards) >
         CARD_SET_LENGTH)
       return 0;
 
-    CardArray_Copy(&held, &game->players[i].cards);
-    CardArray_Concat(&all, &held);
+    card_array_copy(&held, &game->players[i].cards);
+    card_array_concat(&all, &held);
   }
 
-  CardArray_Reset(&deck);
-  CardArray_Sort(&deck);
-  CardArray_Sort(&all);
+  card_array_reset(&deck);
+  card_array_sort(&deck);
+  card_array_sort(&all);
 
   return same_sequence(&all, &deck);
 }
@@ -598,14 +598,14 @@ static int is_whole_deck(const game_t *game) {
 static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
   hand_t hand;
 
-  Hand_Clear(&hand);
-  hand.type = Hand_Type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
-  CardArray_PushBack(&hand.cards, CardArray_At(cards, 0));
-  CardArray_PushBack(
-      &hand.cards, CardArray_At(cards, CardArray_Length(cards) - 1));
+  hand_clear(&hand);
+  hand.type = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
+  card_array_push_back(&hand.cards, card_array_at(cards, 0));
+  card_array_push_back(
+      &hand.cards, card_array_at(cards, card_array_length(cards) - 1));
 
-  HandList_Clear(hl);
-  HandList_Push(hl, &hand);
+  hand_list_clear(hl);
+  hand_list_push(hl, &hand);
 }
 
 static void test_game_rejects_illegal_hands(void) {
@@ -617,13 +617,13 @@ static void test_game_rejects_illegal_hands(void) {
   printf("  (one rejection message is expected below)\n");
   fflush(stdout);
 
-  Game_Init(&game);
+  game_init(&game);
   for (i = 0; i < GAME_PLAYERS; i++)
     game.players[i].ai = &cheat;
 
-  Game_Play(&game, TEST_SEED_BEGIN);
-  assert(game.status == GameStatus_Illegal);
-  assert(CardArray_Length(&game.cardRecord) == 0);
+  game_play(&game, TEST_SEED_BEGIN);
+  assert(game.status == GAME_STATUS_ILLEGAL);
+  assert(card_array_length(&game.card_record) == 0);
 }
 
 /* ************************************************************
@@ -638,38 +638,38 @@ static void test_ai_decides_from_a_view(void) {
   ai_view_t view;
 
   printf("testing AI decisions...\n");
-  CardArray_InitFromString(&cards, "♠9 ♠4 ♥4");
-  CardArray_Clear(&played);
+  card_array_init_from_string(&cards, "♠9 ♠4 ♥4");
+  card_array_clear(&played);
 
   memset(&view, 0, sizeof(view));
-  view.ai = &AI_Standard;
+  view.ai = &ai_standard;
   view.seat = 1;
   view.landlord = 0;
   view.cards = &cards;
-  view.lastHand = &last;
+  view.last_hand = &last;
   view.played = &played;
-  view.cardsLeft[0] = 10;
-  view.cardsLeft[1] = CardArray_Length(&cards);
-  view.cardsLeft[2] = 2;
+  view.cards_left[0] = 10;
+  view.cards_left[1] = card_array_length(&cards);
+  view.cards_left[2] = 2;
 
   /* the landlord led a pair of 3, the peasant answers with its pair of 4 */
-  view.lastPlayer = 0;
-  assert(AI_Beat(&view, &decision) == 1);
-  assert(CardArray_Length(&decision.cards) == 2);
-  assert(CARD_RANK(CardArray_At(&decision.cards, 0)) == CARD_RANK_4);
-  assert(CARD_RANK(CardArray_At(&decision.cards, 1)) == CARD_RANK_4);
+  view.last_player = 0;
+  assert(ai_beat(&view, &decision) == 1);
+  assert(card_array_length(&decision.cards) == 2);
+  assert(CARD_RANK(card_array_at(&decision.cards, 0)) == CARD_RANK_4);
+  assert(CARD_RANK(card_array_at(&decision.cards, 1)) == CARD_RANK_4);
 
   /* the same pair from a teammate who is closer to going out: pass */
-  view.lastPlayer = 2;
-  assert(AI_Beat(&view, &decision) == 0);
+  view.last_player = 2;
+  assert(ai_beat(&view, &decision) == 0);
 
   /* deciding changes nothing it was shown */
-  assert(CardArray_Length(&cards) == 3);
+  assert(card_array_length(&cards) == 3);
 
   /* nothing in hand beats a pair of 2 */
   last = parse("♣2 ♦2");
-  view.lastPlayer = 0;
-  assert(AI_Beat(&view, &decision) == 0);
+  view.last_player = 0;
+  assert(ai_beat(&view, &decision) == 0);
 }
 
 static void test_games(void) {
@@ -677,17 +677,17 @@ static void test_games(void) {
   uint32_t seed;
 
   printf("testing games...\n");
-  Game_Init(&game);
+  game_init(&game);
   for (seed = TEST_SEED_BEGIN; seed < TEST_SEED_END; seed++) {
-    Game_Play(&game, seed);
+    game_play(&game, seed);
 
     /*
      * the game itself refuses any hand that is not legal, does not beat the
      * last one or is not made of the player's own cards, and stops there
      */
-    if (game.status != GameStatus_Over || game.winner < 0 ||
+    if (game.status != GAME_STATUS_OVER || game.winner < 0 ||
         game.winner >= GAME_PLAYERS ||
-        CardArray_Length(&game.players[game.winner].cards) != 0) {
+        card_array_length(&game.players[game.winner].cards) != 0) {
       printf("  seed %u did not finish with a winner\n", (unsigned)seed);
       assert(0);
     }

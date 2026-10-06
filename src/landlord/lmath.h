@@ -22,39 +22,31 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LMATH_H_
-#define LMATH_H_
+#ifndef LANDLORD_LMATH_H_
+#define LANDLORD_LMATH_H_
 
 #include "common.h"
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 /* ************************************************************
  * MT19937 random number generator
  * ************************************************************/
 
-#define MT_N 624
+#define MT19937_N 624
 
 typedef struct mt19937_s {
-  uint32_t mt[MT_N];
+  uint32_t mt[MT19937_N];
   /* state vector */
   int32_t mti; /* mti == N+1 -> mt[N] not initialized */
 
 } mt19937_t;
 
-void Random_Init(mt19937_t *context, uint32_t seed);
-uint32_t Random_uint32(mt19937_t *context);
-int32_t Random_Int32(mt19937_t *context);
+void mt19937_init(mt19937_t *context, uint32_t seed);
+uint32_t mt19937_uint32(mt19937_t *context);
+int32_t mt19937_int32(mt19937_t *context);
 /* ************************************************************
  * math
  * ************************************************************/
 
-int LMath_NextComb(int comb[], int k, int n);
+int lmath_next_comb(int comb[], int k, int n);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* LMATH_H_ */
+#endif /* LANDLORD_LMATH_H_ */

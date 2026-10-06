@@ -37,12 +37,12 @@ int main(void) {
 
   printf("start at %ld\n", (long)time(NULL));
 
-  Game_Init(&game);
+  game_init(&game);
 
   for (seed = BENCH_SEED_BEGIN; seed < BENCH_SEED_END; seed++) {
-    Game_Play(&game, seed);
+    game_play(&game, seed);
 
-    if (game.status != GameStatus_Over)
+    if (game.status != GAME_STATUS_OVER)
       illegal++;
     else if (game.winner == game.landlord)
       landlordwon++;

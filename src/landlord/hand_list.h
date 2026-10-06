@@ -22,8 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_HANDLIST_H
-#define LANDLORD_HANDLIST_H
+#ifndef LANDLORD_HAND_LIST_H_
+#define LANDLORD_HAND_LIST_H_
 
 #include "hand.h"
 
@@ -45,32 +45,32 @@ typedef struct hand_list_s {
 /*
  * empty the list
  */
-void HandList_Clear(hand_list_t *hl);
+void hand_list_clear(hand_list_t *hl);
 
 /*
  * how many hands
  */
-int HandList_Count(const hand_list_t *hl);
+int hand_list_count(const hand_list_t *hl);
 
 /*
  * the hand at position i, NULL when there is none
  */
-const hand_t *HandList_At(const hand_list_t *hl, int i);
+const hand_t *hand_list_at(const hand_list_t *hl, int i);
 
 /*
  * append a copy of hand, returns 0 and leaves the list alone when it is full
  */
-int HandList_Push(hand_list_t *hl, const hand_t *hand);
+int hand_list_push(hand_list_t *hl, const hand_t *hand);
 
 /*
  * remove every hand made only of cards in `cards`, keeping the order of the
  * rest
  */
-void HandList_RemoveContained(hand_list_t *hl, const card_array_t *cards);
+void hand_list_remove_contained(hand_list_t *hl, const card_array_t *cards);
 
 /*
  * print hand_list_t
  */
-void HandList_Print(const hand_list_t *hl);
+void hand_list_print(const hand_list_t *hl);
 
-#endif /* LANDLORD_HANDLIST_H */
+#endif /* LANDLORD_HAND_LIST_H_ */
