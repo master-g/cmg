@@ -200,52 +200,41 @@ void ai_lead(const ai_view_t *view, hand_t *hand) {
 /*
  * Choose one of the hands that beat tobeat.
  *
- * A bomb or the nuke is taken whenever there is one, the last one found.
- * Otherwise every candidate is valued by the hands the remaining cards would
- * take (times ten) plus its own rank, and the highest value is played.
- *
- * NOTE: this is what the AI has always done and the baseline records it, but
- * it reads backwards: it spends bombs first and keeps the split that needs
- * the most hands. Changing it is a change of strategy, not a refactoring.
+ * Every candidate is valued by the hands the remaining cards would take
+ * (times ten) plus its own rank, and the lowest value is played: get rid of
+ * the most for the least. A bomb or the nuke is only spent when nothing else
+ * beats the hand, or when it is the last hand to play.
  */
 static bool ai_best_beat(
     const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
     analysis_func_t analyze) {
   hand_list_t beats;
   int i = 0;
-  int normal = 0;
   int chosen = -1;
   int chosenvalue = 0;
+  bool chosenspends = false;
 
   beat_search_all(cards, tobeat, &beats);
 
   for (i = 0; i < hand_list_count(&beats); i++) {
     const hand_t *candidate = hand_list_at(&beats, i);
+    card_array_t rest;
+    int value = 0;
+    bool spends = false;
 
-    if (hand_is_bomb(candidate) || hand_is_nuke(candidate))
+    card_array_copy(&rest, cards);
+    card_array_subtract(&rest, &candidate->cards);
+    value = analysis_count_hands(analyze, &rest) * AI_BEAT_VALUE_FACTOR +
+            hand_rank(candidate);
+    spends = (hand_is_bomb(candidate) || hand_is_nuke(candidate)) &&
+             !card_array_is_empty(&rest);
+
+    /* on a tie the candidate found first wins */
+    if ((chosen < 0) || (chosenspends && !spends) ||
+        ((chosenspends == spends) && (value < chosenvalue))) {
       chosen = i;
-    else
-      normal++;
-  }
-
-  if (chosen < 0) {
-    for (i = 0; i < hand_list_count(&beats); i++) {
-      const hand_t *candidate = hand_list_at(&beats, i);
-      card_array_t rest;
-      int value = 0;
-
-      /* a single candidate needs no valuing */
-      if (normal > 1) {
-        card_array_copy(&rest, cards);
-        card_array_subtract(&rest, &candidate->cards);
-        value = analysis_count_hands(analyze, &rest) * AI_BEAT_VALUE_FACTOR +
-                hand_rank(candidate);
-      }
-
-      if ((chosen < 0) || (value >= chosenvalue)) {
-        chosen = i;
-        chosenvalue = value;
-      }
+      chosenvalue = value;
+      chosenspends = spends;
     }
   }
 

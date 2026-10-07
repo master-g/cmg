@@ -726,6 +726,26 @@ static void test_ai_decides_from_a_view(void) {
   last = parse("♣2 ♦2");
   view.last_player = 0;
   assert(ai_beat(&view, &decision) == 0);
+
+  /* a bomb is kept while something cheaper beats the hand */
+  cards_from_text(&cards, "♠9 ♠8 ♥8 ♦8 ♣8 ♠4 ♥4");
+  last = parse("♣3 ♦3");
+  assert(ai_beat(&view, &decision) == 1);
+  assert(card_array_length(&decision.cards) == 2);
+  assert(CARD_RANK(card_array_at(&decision.cards, 0)) == CARD_RANK_4);
+
+  /* and spent when nothing else does */
+  last = parse("♣2 ♦2");
+  assert(ai_beat(&view, &decision) == 1);
+  assert(hand_is_bomb(&decision));
+
+  /* of two pairs that beat, the one that leaves fewer hands: 99 leaves the
+     chain 45678 whole, 55 would break it */
+  view.ai = &ai_advanced;
+  cards_from_text(&cards, "♠9 ♥9 ♠8 ♠7 ♠6 ♠5 ♥5 ♠4");
+  last = parse("♣3 ♦3");
+  assert(ai_beat(&view, &decision) == 1);
+  assert(CARD_RANK(card_array_at(&decision.cards, 0)) == CARD_RANK_9);
 }
 
 static void test_games(void) {
