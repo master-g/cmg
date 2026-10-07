@@ -26,9 +26,19 @@ SOFTWARE.
 
 #include <stddef.h>
 
-const ai_t ai_standard = {analysis_standard};
+static int ai_standard_count(const card_array_t *cards) {
+  return analysis_count_hands(analysis_standard, cards);
+}
 
-const ai_t ai_advanced = {analysis_advanced};
+static int ai_advanced_count(const card_array_t *cards) {
+  return analysis_count_hands(analysis_advanced, cards);
+}
+
+const ai_t ai_standard = {analysis_standard, ai_standard_count};
+
+const ai_t ai_advanced = {analysis_advanced, ai_advanced_count};
+
+const ai_t ai_counted = {analysis_counted, analysis_counted_hands};
 
 /*
  * How many hands the cards take apart into decides the bid. Exactly
@@ -207,7 +217,7 @@ void ai_lead(const ai_view_t *view, hand_t *hand) {
  */
 static bool ai_best_beat(
     const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
-    analysis_func_t analyze) {
+    const ai_t *ai) {
   hand_list_t beats;
   int i = 0;
   int chosen = -1;
@@ -224,8 +234,7 @@ static bool ai_best_beat(
 
     card_array_copy(&rest, cards);
     card_array_subtract(&rest, &candidate->cards);
-    value = analysis_count_hands(analyze, &rest) * AI_BEAT_VALUE_FACTOR +
-            hand_rank(candidate);
+    value = ai->count(&rest) * AI_BEAT_VALUE_FACTOR + hand_rank(candidate);
     spends = (hand_is_bomb(candidate) || hand_is_nuke(candidate)) &&
              !card_array_is_empty(&rest);
 
@@ -250,7 +259,7 @@ bool ai_beat(const ai_view_t *view, hand_t *hand) {
 
   hand_clear(hand);
 
-  canbeat = ai_best_beat(view->cards, view->last_hand, hand, view->ai->analyze);
+  canbeat = ai_best_beat(view->cards, view->last_hand, hand, view->ai);
 
   /* peasant cooperation: the last hand came from the other peasant */
   if (canbeat && (view->seat != view->landlord) &&

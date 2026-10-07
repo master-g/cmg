@@ -41,9 +41,13 @@ SOFTWARE.
  * http://mcts.ai/about/index.html
  */
 
-/* how an AI takes cards apart, the only thing the AIs differ in */
+/*
+ * how an AI takes cards apart, and how many hands it reckons cards will
+ * take; the only things the AIs differ in
+ */
 typedef struct ai_s {
   analysis_func_t analyze;
+  int (*count)(const card_array_t *cards);
 } ai_t;
 
 /* greedy analysis: bombs first, then the chains that happen to be there */
@@ -51,6 +55,9 @@ extern const ai_t ai_standard;
 
 /* searches for the split with the fewest hands */
 extern const ai_t ai_advanced;
+
+/* searches on rank counts, and counts a kicker as part of its trio's turn */
+extern const ai_t ai_counted;
 
 /* what one seat may know, all of it read only */
 typedef struct ai_view_s {

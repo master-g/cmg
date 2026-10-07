@@ -456,6 +456,34 @@ static void test_analysis(void) {
     /* searching must never do worse than being greedy */
     assert(advanced <= standard);
     assert(standard == analysis_count_hands(analysis_standard, &cards));
+
+    /* kickers ride along, so counting turns never gives more than hands */
+    assert(
+        analysis_counted_hands(&cards) <=
+        check_analysis(analysis_counted, &cards));
+    assert(analysis_counted_hands(&cards) <= advanced);
+  }
+
+  /* turns, by hand */
+  {
+    static const struct {
+      const char *cards;
+      int turns;
+    } cases[] = {
+        {"♠3 ♥3 ♦3 ♠4", 1},                   /* trio with a solo */
+        {"♠3 ♥3 ♦3 ♠4 ♥4", 1},                /* trio with a pair */
+        {"♠3 ♥3 ♦3 ♠4 ♥4 ♦4 ♠7 ♠9", 1},       /* plane with two solos */
+        {"♠3 ♠4 ♠5 ♠6 ♠7 ♥7 ♠8 ♠9 ♠T ♠J", 2}, /* two chains sharing a 7 */
+        {"♠3 ♥3 ♦3 ♣3 ♠5 ♠2", 3},             /* a bomb and 2 carry nothing */
+    };
+    size_t i;
+
+    for (i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
+      card_array_t cards;
+
+      cards_from_text(&cards, cases[i].cards);
+      assert(analysis_counted_hands(&cards) == cases[i].turns);
+    }
   }
 }
 
@@ -665,7 +693,7 @@ static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
 }
 
 static void test_game_rejects_illegal_hands(void) {
-  const ai_t cheat = {cheat_analyze};
+  const ai_t cheat = {cheat_analyze, analysis_counted_hands};
   game_t game;
   int i;
 

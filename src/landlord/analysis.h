@@ -49,6 +49,19 @@ void analysis_standard(const card_array_t *array, hand_list_t *hl);
 void analysis_advanced(const card_array_t *array, hand_list_t *hl);
 
 /*
+ * Searches on the rank counts alone for the split that takes the fewest
+ * turns to play: a trio and the kicker it carries are one turn. The list
+ * still holds the kickers as hands of their own, the AI attaches them when
+ * it leads, so it is longer than analysis_counted_hands says.
+ */
+void analysis_counted(const card_array_t *array, hand_list_t *hl);
+
+/*
+ * how many turns the split of analysis_counted takes, kickers riding along
+ */
+int analysis_counted_hands(const card_array_t *array);
+
+/*
  * how many hands the cards take when taken apart by analyze
  */
 int analysis_count_hands(analysis_func_t analyze, const card_array_t *array);
