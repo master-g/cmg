@@ -35,7 +35,7 @@ void game_init(game_t *game) {
 
   /* every game is played by the same AI setup */
   for (i = 0; i < GAME_PLAYERS; i++) {
-    game->players[i].ai = &ai_counted;
+    game->players[i].ai = &ai_moves;
     game->players[i].identity = PLAYER_IDENTITY_PEASANT;
     game->players[i].seat = i;
   }

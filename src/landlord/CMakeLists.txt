@@ -9,6 +9,7 @@ set(LANDLORD_SOURCES
         hand.c
         hand_list.c
         lmath.c
+        move.c
         player.c
         )
 

@@ -119,6 +119,7 @@ int main(void) {
 
   printf("\n");
 
+  duel("moves", &ai_moves, "counted", &ai_counted);
   duel("counted", &ai_counted, "advanced", &ai_advanced);
   duel("counted", &ai_counted, "standard", &ai_standard);
   duel("advanced", &ai_advanced, "standard", &ai_standard);

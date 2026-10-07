@@ -488,6 +488,70 @@ static void test_analysis(void) {
 }
 
 /* ************************************************************
+ * moves: whatever the rules allow from some cards, the generator offers a
+ * move the rules call equal to it
+ * ************************************************************/
+
+static void test_moves(void) {
+  mt19937_t mt;
+  card_array_t deck;
+  int round;
+
+  printf("testing moves...\n");
+  mt19937_init(&mt, 2026);
+
+  for (round = 0; round < 300; round++) {
+    card_array_t cards;
+    hand_list_t moves;
+    unsigned subset;
+    int n;
+    int i;
+
+    card_array_reset(&deck);
+    card_array_shuffle(&deck, &mt);
+    card_array_deal(&deck, &cards, 1 + (int)(mt19937_int32(&mt) % 12));
+    n = card_array_length(&cards);
+
+    move_generate(&cards, &moves);
+    assert(hand_list_count(&moves) < HAND_LIST_CAPACITY);
+
+    for (i = 0; i < hand_list_count(&moves); i++) {
+      hand_t judged;
+
+      assert(hand_parse(&judged, &hand_list_at(&moves, i)->cards));
+      assert(hand_type_equals(judged.type, hand_list_at(&moves, i)->type));
+      assert(card_array_contains(&cards, &hand_list_at(&moves, i)->cards));
+    }
+
+    /* every way to pick some of the cards */
+    for (subset = 1; subset < (1u << n); subset++) {
+      card_array_t picked;
+      hand_t hand;
+      bool offered = false;
+
+      card_array_clear(&picked);
+      for (i = 0; i < n; i++) {
+        if (subset & (1u << i))
+          card_array_push_back(&picked, card_array_at(&cards, i));
+      }
+
+      if (!hand_parse(&hand, &picked))
+        continue;
+
+      /* chains of fours are left out on purpose */
+      if ((hand.type.primal == HAND_PRIMAL_FOUR) && hand.type.chain)
+        continue;
+
+      for (i = 0; !offered && (i < hand_list_count(&moves)); i++)
+        offered =
+            hand_compare(hand_list_at(&moves, i), &hand) == HAND_CMP_EQUAL;
+
+      assert(offered);
+    }
+  }
+}
+
+/* ************************************************************
  * beat search: every hand it offers beats the hand it answers
  * ************************************************************/
 
@@ -693,7 +757,7 @@ static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
 }
 
 static void test_game_rejects_illegal_hands(void) {
-  const ai_t cheat = {cheat_analyze, analysis_counted_hands};
+  ai_t cheat = ai_standard;
   game_t game;
   int i;
 
@@ -701,6 +765,7 @@ static void test_game_rejects_illegal_hands(void) {
   printf("  (one rejection message is expected below)\n");
   fflush(stdout);
 
+  cheat.analyze = cheat_analyze;
   game_init(&game);
   for (i = 0; i < GAME_PLAYERS; i++)
     game.players[i].ai = &cheat;
@@ -767,6 +832,22 @@ static void test_ai_decides_from_a_view(void) {
   assert(ai_beat(&view, &decision) == 1);
   assert(hand_is_bomb(&decision));
 
+  /* an AI choosing among every move answers the same pair with its own */
+  view.ai = &ai_moves;
+  cards_from_text(&cards, "♠9 ♠4 ♥4");
+  last = parse("♣3 ♦3");
+  assert(ai_beat(&view, &decision) == 1);
+  assert(card_array_length(&decision.cards) == 2);
+  assert(CARD_RANK(card_array_at(&decision.cards, 0)) == CARD_RANK_4);
+
+  /* and leads the trio with a kicker, which leaves a single turn */
+  cards_from_text(&cards, "♠3 ♥3 ♦3 ♠4 ♠5");
+  view.last_hand = NULL;
+  ai_lead(&view, &decision);
+  assert(card_array_length(&decision.cards) == 4);
+  assert(hand_rank(&decision) == CARD_RANK_3);
+  view.last_hand = &last;
+
   /* of two pairs that beat, the one that leaves fewer hands: 99 leaves the
      chain 45678 whole, 55 would break it */
   view.ai = &ai_advanced;
@@ -817,6 +898,7 @@ int main(int argc, char **argv) {
   test_cards_by_rank();
   test_hand_list();
   test_analysis();
+  test_moves();
   test_beat_search();
   test_ai_decides_from_a_view();
   test_games();

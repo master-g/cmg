@@ -22,18 +22,26 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#ifndef LANDLORD_LANDLORD_H_
-#define LANDLORD_LANDLORD_H_
+#ifndef LANDLORD_MOVE_H_
+#define LANDLORD_MOVE_H_
 
-#include "ai.h"
-#include "analysis.h"
-#include "beat.h"
-#include "card.h"
-#include "game.h"
 #include "hand.h"
 #include "hand_list.h"
-#include "lmath.h"
-#include "move.h"
-#include "player.h"
 
-#endif /* LANDLORD_LANDLORD_H_ */
+/*
+ * Every hand that can be led from cards, as the rules judge them. Which
+ * suits a hand takes never matters, so each one comes once.
+ *
+ * A single trio comes with every kicker it could carry. A trio chain or a
+ * four comes with one choice of kickers only: the ranks held the fewest
+ * times, lowest first. Chains of fours are not generated.
+ */
+void move_generate(const card_array_t *cards, hand_list_t *moves);
+
+/*
+ * the moves from cards that beat tobeat
+ */
+void move_generate_beats(
+    const card_array_t *cards, const hand_t *tobeat, hand_list_t *moves);
+
+#endif /* LANDLORD_MOVE_H_ */

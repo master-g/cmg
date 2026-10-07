@@ -24,21 +24,9 @@ SOFTWARE.
 
 #include "ai.h"
 
+#include <limits.h>
+
 #include <stddef.h>
-
-static int ai_standard_count(const card_array_t *cards) {
-  return analysis_count_hands(analysis_standard, cards);
-}
-
-static int ai_advanced_count(const card_array_t *cards) {
-  return analysis_count_hands(analysis_advanced, cards);
-}
-
-const ai_t ai_standard = {analysis_standard, ai_standard_count};
-
-const ai_t ai_advanced = {analysis_advanced, ai_advanced_count};
-
-const ai_t ai_counted = {analysis_counted, analysis_counted_hands};
 
 /*
  * How many hands the cards take apart into decides the bid. Exactly
@@ -105,7 +93,7 @@ static void ai_append_hand(hand_t *hand, const hand_t *part) {
   card_array_concat(&hand->cards, &part->cards);
 }
 
-void ai_lead(const ai_view_t *view, hand_t *hand) {
+static void ai_split_lead(const ai_view_t *view, hand_t *hand) {
   const hand_list_t *hands = view->hands;
   int i = 0;
   const hand_t *node = NULL;
@@ -215,9 +203,10 @@ void ai_lead(const ai_view_t *view, hand_t *hand) {
  * the most for the least. A bomb or the nuke is only spent when nothing else
  * beats the hand, or when it is the last hand to play.
  */
-static bool ai_best_beat(
-    const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
-    const ai_t *ai) {
+static bool ai_split_beat(const ai_view_t *view, hand_t *beat) {
+  const card_array_t *cards = view->cards;
+  const hand_t *tobeat = view->last_hand;
+  const ai_t *ai = view->ai;
   hand_list_t beats;
   int i = 0;
   int chosen = -1;
@@ -254,12 +243,112 @@ static bool ai_best_beat(
   return true;
 }
 
+/*
+ * ************************************************************
+ * choosing among every legal move
+ * ************************************************************
+ */
+
+#define AI_MOVE_TURN_VALUE 100
+#define AI_MOVE_BOMB_VALUE 250
+
+/*
+ * What a move costs, the lowest is played: the turns the cards left behind
+ * would take, then its rank, so that high cards are kept. Spending a bomb
+ * or the nuke costs extra, and going out costs nothing at all.
+ */
+static int ai_move_value(const card_array_t *cards, const hand_t *move) {
+  card_array_t rest;
+  int value = 0;
+
+  card_array_copy(&rest, cards);
+  card_array_subtract(&rest, &move->cards);
+
+  if (card_array_is_empty(&rest))
+    return INT_MIN;
+
+  value = analysis_counted_hands(&rest) * AI_MOVE_TURN_VALUE + hand_rank(move);
+
+  if (hand_is_bomb(move) || hand_is_nuke(move))
+    value += AI_MOVE_BOMB_VALUE;
+
+  return value;
+}
+
+/* on a tie the move generated first wins */
+static bool ai_moves_cheapest(
+    const card_array_t *cards, const hand_list_t *moves, hand_t *hand) {
+  int i = 0;
+  int chosen = -1;
+  int chosenvalue = 0;
+
+  for (i = 0; i < hand_list_count(moves); i++) {
+    int value = ai_move_value(cards, hand_list_at(moves, i));
+
+    if ((chosen < 0) || (value < chosenvalue)) {
+      chosen = i;
+      chosenvalue = value;
+    }
+  }
+
+  if (chosen < 0)
+    return false;
+
+  hand_copy(hand, hand_list_at(moves, chosen));
+  return true;
+}
+
+static void ai_moves_lead(const ai_view_t *view, hand_t *hand) {
+  hand_list_t moves;
+
+  move_generate(view->cards, &moves);
+  ai_moves_cheapest(view->cards, &moves, hand);
+}
+
+static bool ai_moves_beat(const ai_view_t *view, hand_t *hand) {
+  hand_list_t moves;
+
+  move_generate_beats(view->cards, view->last_hand, &moves);
+  return ai_moves_cheapest(view->cards, &moves, hand);
+}
+
+/*
+ * ************************************************************
+ * the AIs
+ * ************************************************************
+ */
+
+static int ai_standard_count(const card_array_t *cards) {
+  return analysis_count_hands(analysis_standard, cards);
+}
+
+static int ai_advanced_count(const card_array_t *cards) {
+  return analysis_count_hands(analysis_advanced, cards);
+}
+
+const ai_t ai_standard = {
+    analysis_standard, ai_standard_count, ai_split_lead, ai_split_beat};
+
+const ai_t ai_advanced = {
+    analysis_advanced, ai_advanced_count, ai_split_lead, ai_split_beat};
+
+const ai_t ai_counted = {
+    analysis_counted, analysis_counted_hands, ai_split_lead, ai_split_beat};
+
+const ai_t ai_moves = {
+    analysis_counted, analysis_counted_hands, ai_moves_lead, ai_moves_beat};
+
+void ai_lead(const ai_view_t *view, hand_t *hand) {
+  hand_clear(hand);
+  view->ai->lead(view, hand);
+}
+
 bool ai_beat(const ai_view_t *view, hand_t *hand) {
   bool canbeat = false;
 
   hand_clear(hand);
 
-  canbeat = ai_best_beat(view->cards, view->last_hand, hand, view->ai);
+  canbeat = view->ai->beat(view, hand);
 
   /* peasant cooperation: the last hand came from the other peasant */
   if (canbeat && (view->seat != view->landlord) &&

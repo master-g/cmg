@@ -28,6 +28,7 @@ SOFTWARE.
 #include "analysis.h"
 #include "beat.h"
 #include "hand.h"
+#include "move.h"
 
 /* seats at the table */
 #define GAME_PLAYERS 3
@@ -41,13 +42,17 @@ SOFTWARE.
  * http://mcts.ai/about/index.html
  */
 
+struct ai_view_s;
+
 /*
- * how an AI takes cards apart, and how many hands it reckons cards will
- * take; the only things the AIs differ in
+ * what the AIs differ in: how one takes cards apart, how many hands it
+ * reckons cards will take, and how it picks the hand to lead or to beat with
  */
 typedef struct ai_s {
   analysis_func_t analyze;
   int (*count)(const card_array_t *cards);
+  void (*lead)(const struct ai_view_s *view, hand_t *hand);
+  bool (*beat)(const struct ai_view_s *view, hand_t *hand);
 } ai_t;
 
 /* greedy analysis: bombs first, then the chains that happen to be there */
@@ -58,6 +63,9 @@ extern const ai_t ai_advanced;
 
 /* searches on rank counts, and counts a kicker as part of its trio's turn */
 extern const ai_t ai_counted;
+
+/* weighs every legal move by the turns the cards left behind would take */
+extern const ai_t ai_moves;
 
 /* what one seat may know, all of it read only */
 typedef struct ai_view_s {
