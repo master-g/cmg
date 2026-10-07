@@ -31,7 +31,6 @@ SOFTWARE.
 #include "lmath.h"
 #include "player.h"
 
-#define GAME_PLAYERS 3
 #define GAME_HAND_CARDS 17
 #define GAME_REST_CARDS 3
 

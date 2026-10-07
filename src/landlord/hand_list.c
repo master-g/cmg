@@ -33,12 +33,12 @@ const hand_t *hand_list_at(const hand_list_t *hl, int i) {
   return ((i >= 0) && (i < hl->count)) ? &hl->hands[i] : NULL;
 }
 
-int hand_list_push(hand_list_t *hl, const hand_t *hand) {
+bool hand_list_push(hand_list_t *hl, const hand_t *hand) {
   if (hl->count >= HAND_LIST_CAPACITY)
-    return 0;
+    return false;
 
   hand_copy(&hl->hands[hl->count++], hand);
-  return 1;
+  return true;
 }
 
 void hand_list_remove_contained(hand_list_t *hl, const card_array_t *cards) {

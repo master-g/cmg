@@ -47,7 +47,7 @@ static void analysis_extract_consecutive(
       0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
       HAND_TRIO_CHAIN_MIN_LENGTH};
 
-  if ((duplicate < 1) || (duplicate > 3))
+  if ((duplicate < HAND_PRIMAL_SOLO) || (duplicate > HAND_PRIMAL_TRIO))
     return;
 
   /* 2 and jokers never chain, one step below the lowest rank ends the run */
@@ -109,7 +109,7 @@ analysis_extract_nuke_bomb_2(hand_list_t *hl, card_array_t *array, int *count) {
 
   /* bomb */
   for (i = CARD_RANK_2; i >= CARD_RANK_3; i--) {
-    if (count[i] == 4) {
+    if (count[i] == HAND_PRIMAL_FOUR) {
       hand_clear(&hand);
       hand.type = hand_type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
       card_array_copy_rank(&hand.cards, array, i);
@@ -143,22 +143,9 @@ analysis_extract_nuke_bomb_2(hand_list_t *hl, card_array_t *array, int *count) {
     hand_clear(&hand);
     card_array_copy_rank(&hand.cards, array, CARD_RANK_2);
 
-    switch (count[CARD_RANK_2]) {
-    case 1:
-      hand.type = hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
-      break;
-
-    case 2:
-      hand.type = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
-      break;
-
-    case 3:
-      hand.type = hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
-      break;
-
-    default:
-      break;
-    }
+    /* one to three of them, four would have been a bomb */
+    hand.type =
+        hand_type((hand_primal_t)count[CARD_RANK_2], HAND_KICKER_NONE, false);
     count[CARD_RANK_2] = 0;
     card_array_remove_rank(array, CARD_RANK_2);
     hand_list_push(hl, &hand);
@@ -179,9 +166,9 @@ void analysis_standard(const card_array_t *cards, hand_list_t *hl) {
   analysis_extract_nuke_bomb_2(hl, &array, count);
 
   /* trios, pairs and solos, chained up where they can */
-  analysis_extract_consecutive(hl, &array, count, 3);
-  analysis_extract_consecutive(hl, &array, count, 2);
-  analysis_extract_consecutive(hl, &array, count, 1);
+  analysis_extract_consecutive(hl, &array, count, HAND_PRIMAL_TRIO);
+  analysis_extract_consecutive(hl, &array, count, HAND_PRIMAL_PAIR);
+  analysis_extract_consecutive(hl, &array, count, HAND_PRIMAL_SOLO);
 }
 
 int analysis_count_hands(analysis_func_t analyze, const card_array_t *array) {
@@ -223,7 +210,7 @@ static void analysis_search_longest_chain(
       HAND_TRIO_CHAIN_MIN_LENGTH};
   const int *count = ctx->count;
 
-  if ((duplicate < 1) || (duplicate > 3))
+  if ((duplicate < HAND_PRIMAL_SOLO) || (duplicate > HAND_PRIMAL_TRIO))
     return;
 
   /* early break */
@@ -267,41 +254,35 @@ static void analysis_search_longest_chain(
   }
 }
 
-typedef void (*analysis_search_func_t)(const analysis_ctx_t *, hand_t *, int);
+/* solo chain, pair chain, trio chain: the order they are searched in */
+static const int analysis_search_primals[] = {
+    HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
 
 #define ANALYSIS_SEARCH_TYPES 3
 
 /*
  * pass a empty hand to start traverse
  * result stores in hand
- * return 0 when stop
+ * return false when stop
  */
-static int
+static bool
 analysis_traverse_chains(const analysis_ctx_t *ctx, int *begin, hand_t *hand) {
-  int found = 0;
+  bool found = false;
   int i = *begin;
-  int primals[] = {1, 2, 3};
-
-  /* solo chain, pair chain, trio chain, trio, pair, solo */
-  analysis_search_func_t searchers[ANALYSIS_SEARCH_TYPES];
-
-  searchers[0] = analysis_search_longest_chain;
-  searchers[1] = analysis_search_longest_chain;
-  searchers[2] = analysis_search_longest_chain;
 
   if (card_array_is_empty(&ctx->cards))
-    return 0;
+    return false;
 
   if (*begin >= ANALYSIS_SEARCH_TYPES)
-    return 0;
+    return false;
 
   /* init search */
   if (hand_is_none(hand)) {
     while (i < ANALYSIS_SEARCH_TYPES && hand_is_none(hand)) {
-      searchers[i](ctx, hand, primals[i]);
+      analysis_search_longest_chain(ctx, hand, analysis_search_primals[i]);
 
       if (!hand_is_none(hand)) {
-        found = 1;
+        found = true;
         break;
       } else {
         i++;
@@ -309,7 +290,7 @@ analysis_traverse_chains(const analysis_ctx_t *ctx, int *begin, hand_t *hand) {
       }
     }
 
-    /* if found == 0, should PANIC */
+    /* if nothing was found, should PANIC */
   } else {
     /* continue search via beat */
     found = beat_search(&ctx->cards, hand, hand);
@@ -323,7 +304,7 @@ analysis_traverse_chains(const analysis_ctx_t *ctx, int *begin, hand_t *hand) {
  */
 static void
 analysis_extract_all_chains(const analysis_ctx_t *ctx, hand_list_t *hands) {
-  int found = 0;
+  bool found = false;
   int lastsearch = 0;
   hand_t workinghand;
   hand_t lasthand;
@@ -334,44 +315,43 @@ analysis_extract_all_chains(const analysis_ctx_t *ctx, hand_list_t *hands) {
 
   found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);
 
-  while (found != 0) {
+  while (found) {
     hand_list_push(hands, &lasthand);
 
     hand_copy(&workinghand, &lasthand);
 
-    while ((found = analysis_traverse_chains(ctx, &lastsearch, &workinghand)) !=
-           0)
+    while ((found = analysis_traverse_chains(ctx, &lastsearch, &workinghand)))
       hand_list_push(hands, &workinghand);
 
     /* can't find any more hands, try to reduce chain length */
     if (!hand_is_none(&lasthand)) {
       if (hand_is_type(&lasthand, HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true)) {
         if (card_array_length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, 1);
-          found = 1;
+          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_SOLO);
+          found = true;
         } else {
           lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
           hand_is_type(&lasthand, HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true)) {
         if (card_array_length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, 2);
-          found = 1;
+          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_PAIR);
+          found = true;
         } else {
           lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       } else if (
           hand_is_type(&lasthand, HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true)) {
         if (card_array_length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, 3);
-          found = 1;
+          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_TRIO);
+          found = true;
         } else {
           lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
         }
       }
 
       /* still can't found, loop through hand type for more */
-      if (found == 0) {
+      if (!found) {
         lastsearch++;
         hand_clear(&lasthand);
         found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);

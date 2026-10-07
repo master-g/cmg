@@ -78,7 +78,7 @@ static int beat_lowest_rank(const card_array_t *array) {
 }
 
 /* the lowest rank above `above` held at least `primal` times */
-static int beat_search_primal(
+static bool beat_search_primal(
     const beat_ctx_t *ctx, const card_array_t *tobeat, hand_type_t tobeattype,
     hand_t *beat, int primal) {
   int rank = 0;
@@ -89,16 +89,16 @@ static int beat_search_primal(
       hand_clear(beat);
       beat->type = tobeattype;
       card_array_take_rank(&beat->cards, &ctx->rcards, rank, primal);
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }
 
-static int
+static bool
 beat_search_bomb(const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat) {
-  int canbeat = 0;
+  bool canbeat = false;
   int rank = 0;
 
   /*
@@ -106,16 +106,17 @@ beat_search_bomb(const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat) {
    * whether what was found really beats the hand.
    */
   if (hand_is_nuke(tobeat))
-    return 0;
+    return false;
 
   /* search for a higher rank bomb */
   if (hand_is_bomb(tobeat)) {
-    canbeat = beat_search_primal(ctx, &tobeat->cards, tobeat->type, beat, 4);
+    canbeat = beat_search_primal(
+        ctx, &tobeat->cards, tobeat->type, beat, HAND_PRIMAL_FOUR);
   } else {
     /* tobeat is not a nuke or bomb, search a bomb to beat it */
     for (rank = CARD_RANK_END - 1; rank >= CARD_RANK_BEG; rank--) {
-      if (ctx->count[rank] == 4) {
-        canbeat = 1;
+      if (ctx->count[rank] == HAND_PRIMAL_FOUR) {
+        canbeat = true;
         hand_clear(beat);
         card_array_copy_rank(&beat->cards, &ctx->cards, rank);
         break;
@@ -124,9 +125,9 @@ beat_search_bomb(const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat) {
   }
 
   /* search for nuke */
-  if (canbeat == 0) {
+  if (!canbeat) {
     if (ctx->count[CARD_RANK_BLACK_JOKER] && ctx->count[CARD_RANK_RED_JOKER]) {
-      canbeat = 1;
+      canbeat = true;
       hand_clear(beat);
       beat->type = hand_type(HAND_PRIMAL_NUKE, HAND_KICKER_NONE, false);
       card_array_copy_rank(&beat->cards, &ctx->cards, CARD_RANK_RED_JOKER);
@@ -150,10 +151,10 @@ beat_search_bomb(const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat) {
  * b) player_1 SEARCH_BEAT_LOOP player_1_prev_beat : possible for 333 vs 333
  *
  */
-static int beat_search_trio_kicker(
+static bool beat_search_trio_kicker(
     const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat, int kick) {
   int rank = 0;
-  int canbeat = 0;
+  bool canbeat = false;
   int triorank = 0;
   int kickrank = 0;
   card_array_t trio, kicker;
@@ -173,7 +174,7 @@ static int beat_search_trio_kicker(
       if ((rank != triorank) && (ctx->count[rank] >= kick)) {
         card_array_copy(&htriobeat.cards, &trio);
         card_array_take_rank(&hkickbeat.cards, &ctx->rcards, rank, kick);
-        canbeat = 1;
+        canbeat = true;
         break;
       }
     }
@@ -184,7 +185,7 @@ static int beat_search_trio_kicker(
    * OR
    * same rank trio found, but kicker can't beat
    */
-  if (canbeat == 0) {
+  if (!canbeat) {
     /* trio beat found, search for the lowest kicker */
     if (beat_search_primal(
             ctx, &trio, hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false),
@@ -194,7 +195,7 @@ static int beat_search_trio_kicker(
       for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
         if ((rank != triorank) && (ctx->count[rank] >= kick)) {
           card_array_take_rank(&hkickbeat.cards, &ctx->rcards, rank, kick);
-          canbeat = 1;
+          canbeat = true;
           break;
         }
       }
@@ -202,7 +203,7 @@ static int beat_search_trio_kicker(
   }
 
   /* beat */
-  if (canbeat == 1) {
+  if (canbeat) {
     hand_clear(beat);
     card_array_concat(&beat->cards, &htriobeat.cards);
     card_array_concat(&beat->cards, &hkickbeat.cards);
@@ -216,7 +217,7 @@ static int beat_search_trio_kicker(
  * the lowest chain of the same length that starts above the chain in
  * `tobeat`, every rank held at least `duplicate` times
  */
-static int beat_search_chain(
+static bool beat_search_chain(
     const beat_ctx_t *ctx, const card_array_t *tobeat, hand_type_t tobeattype,
     hand_t *beat, int duplicate) {
   int i, j;
@@ -225,12 +226,12 @@ static int beat_search_chain(
 
   /* search for beat chain in rank counts */
   for (i = footer + 1; i <= CARD_RANK_2 - chainlength; i++) {
-    int found = 1;
+    bool found = true;
 
     for (j = 0; j < chainlength; j++) {
       /* check if chain breaks */
       if (ctx->count[i + j] < duplicate) {
-        found = 0;
+        found = false;
         break;
       }
     }
@@ -249,16 +250,16 @@ static int beat_search_chain(
         card_array_concat(&beat->cards, &rank);
       }
 
-      return 1;
+      return true;
     }
   }
 
-  return 0;
+  return false;
 }
 
-static int beat_search_trio_kicker_chain(
+static bool beat_search_trio_kicker_chain(
     const beat_ctx_t *ctx, const hand_t *tobeat, hand_t *beat, int kc) {
-  int canbeat = 0;
+  bool canbeat = false;
   int i, j, rank, chainlength;
   int triocount[CARD_RANK_END];
   int kickcount[CARD_RANK_END];
@@ -309,7 +310,7 @@ static int beat_search_trio_kicker_chain(
         card_array_take_rank(
             &hkickbeat.cards, &ctx->rcards, combrankmap[comb[i]], kc);
 
-      canbeat = 1;
+      canbeat = true;
 
       /* copy trio to beat */
       card_array_concat(&htriobeat.cards, &trio);
@@ -318,7 +319,7 @@ static int beat_search_trio_kicker_chain(
   }
 
   /* can't find same rank trio chain, search for higher rank trio */
-  if (canbeat == 0) {
+  if (!canbeat) {
     /* higher rank trio chain found, search for the lowest kickers */
     if (beat_search_chain(
             ctx, &trio, hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true),
@@ -336,7 +337,7 @@ static int beat_search_trio_kicker_chain(
       }
 
       if (kickers == chainlength)
-        canbeat = 1;
+        canbeat = true;
     }
   }
 
@@ -351,9 +352,9 @@ static int beat_search_trio_kicker_chain(
   return canbeat;
 }
 
-static int
+static bool
 beat_search_any(const card_array_t *cards, const hand_t *tobeat, hand_t *beat) {
-  int canbeat = 0;
+  bool canbeat = false;
   beat_ctx_t ctx;
 
   /* setup search context */
@@ -386,7 +387,8 @@ beat_search_any(const card_array_t *cards, const hand_t *tobeat, hand_t *beat) {
     case HAND_KICKER_SOLO:
     case HAND_KICKER_PAIR: {
       /* cards per kicker */
-      int kick = tobeat->type.kicker == HAND_KICKER_SOLO ? 1 : 2;
+      int kick = tobeat->type.kicker == HAND_KICKER_SOLO ? HAND_PRIMAL_SOLO
+                                                         : HAND_PRIMAL_PAIR;
 
       if (tobeat->type.chain)
         canbeat = beat_search_trio_kicker_chain(&ctx, tobeat, beat, kick);
@@ -417,13 +419,14 @@ beat_search_any(const card_array_t *cards, const hand_t *tobeat, hand_t *beat) {
   }
 
   /* search for bomb/nuke */
-  if (canbeat == 0)
+  if (!canbeat)
     canbeat = beat_search_bomb(&ctx, tobeat, beat);
 
   return canbeat;
 }
 
-int beat_search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat) {
+bool beat_search(
+    const card_array_t *cards, const hand_t *tobeat, hand_t *beat) {
   /* already in search loop, continue */
   if (!hand_is_none(beat))
     return beat_search_any(cards, beat, beat);

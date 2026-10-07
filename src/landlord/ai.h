@@ -29,7 +29,8 @@ SOFTWARE.
 #include "beat.h"
 #include "hand.h"
 
-#define AI_PLAYERS 3
+/* seats at the table */
+#define GAME_PLAYERS 3
 
 /*
  * An AI only decides: it is shown what its seat may know and answers with a
@@ -54,15 +55,15 @@ extern const ai_t ai_advanced;
 /* what one seat may know, all of it read only */
 typedef struct ai_view_s {
   const ai_t *ai;
-  int seat;                   /* the seat that has to decide */
-  int landlord;               /* landlord's seat, not known while bidding */
-  int bid;                    /* highest bid so far */
-  const card_array_t *cards;  /* the seat's own cards */
-  const hand_list_t *hands;   /* those cards taken apart, kept by the game */
-  const hand_t *last_hand;    /* the hand to beat, NULL when leading */
-  int last_player;            /* who played last_hand */
-  int cards_left[AI_PLAYERS]; /* cards every seat still holds */
-  const card_array_t *played; /* every card played so far */
+  int seat;                     /* the seat that has to decide */
+  int landlord;                 /* landlord's seat, not known while bidding */
+  int bid;                      /* highest bid so far */
+  const card_array_t *cards;    /* the seat's own cards */
+  const hand_list_t *hands;     /* those cards taken apart, kept by the game */
+  const hand_t *last_hand;      /* the hand to beat, NULL when leading */
+  int last_player;              /* who played last_hand */
+  int cards_left[GAME_PLAYERS]; /* cards every seat still holds */
+  const card_array_t *played;   /* every card played so far */
 } ai_view_t;
 
 /*
@@ -77,8 +78,8 @@ void ai_lead(const ai_view_t *view, hand_t *hand);
 
 /*
  * choose a hand that beats view->last_hand
- * returns 0 to pass, in which case hand is not meaningful
+ * returns false to pass, in which case hand is not meaningful
  */
-int ai_beat(const ai_view_t *view, hand_t *hand);
+bool ai_beat(const ai_view_t *view, hand_t *hand);
 
 #endif /* LANDLORD_AI_H_ */

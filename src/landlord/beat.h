@@ -37,9 +37,9 @@ SOFTWARE.
  * 1, if [beat->type] != 0, then search [new beat] > [beat]
  * 2, search [beat] > [tobeat], then store in [beat]
  *
- * returns 0 when there is none
+ * returns false when there is none
  */
-int beat_search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat);
+bool beat_search(const card_array_t *cards, const hand_t *tobeat, hand_t *beat);
 
 /*
  * every hand in cards that beats tobeat, as judged by the rules, in the order

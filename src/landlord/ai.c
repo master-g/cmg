@@ -30,6 +30,17 @@ const ai_t ai_standard = {analysis_standard};
 
 const ai_t ai_advanced = {analysis_advanced};
 
+/*
+ * How many hands the cards take apart into decides the bid. Exactly
+ * AI_BID_HANDS_WEAK hands stays out as well: no branch takes it, it always
+ * has been so and the baseline records it.
+ */
+enum {
+  AI_BID_HANDS_WEAK = 9,  /* more hands than this are not worth a bid */
+  AI_BID_HANDS_GOOD = 3,  /* this many is worth two */
+  AI_BID_HANDS_GREAT = 2, /* this many or fewer is worth all three */
+};
+
 int ai_bid(const ai_view_t *view) {
   int shouldbid = 0;
   int handlistlen = 0;
@@ -37,13 +48,16 @@ int ai_bid(const ai_view_t *view) {
   /* the fewer hands the cards need, the more they are worth */
   handlistlen = analysis_count_hands(analysis_standard, view->cards);
 
-  if (handlistlen > 9) {
+  if (handlistlen > AI_BID_HANDS_WEAK) {
     shouldbid = 0;
-  } else if ((handlistlen < 9) && (handlistlen > 3)) {
+  } else if (
+      (handlistlen < AI_BID_HANDS_WEAK) && (handlistlen > AI_BID_HANDS_GOOD)) {
     shouldbid = 1;
-  } else if ((handlistlen <= 3) && (handlistlen > 2)) {
+  } else if (
+      (handlistlen <= AI_BID_HANDS_GOOD) &&
+      (handlistlen > AI_BID_HANDS_GREAT)) {
     shouldbid = 2;
-  } else if (handlistlen <= 2) {
+  } else if (handlistlen <= AI_BID_HANDS_GREAT) {
     shouldbid = 3;
   }
 
@@ -111,7 +125,7 @@ void ai_lead(const ai_view_t *view, hand_t *hand) {
     ai_append_hand(hand, node);
 
     /* how many kickers do we need */
-    need = card_array_length(&node->cards) / 3;
+    need = card_array_length(&node->cards) / HAND_PRIMAL_TRIO;
 
     /* trio-pair-chain then trio-solo-chain */
     if (ai_count_hands(hands, pair) >= need)
@@ -194,7 +208,7 @@ void ai_lead(const ai_view_t *view, hand_t *hand) {
  * it reads backwards: it spends bombs first and keeps the split that needs
  * the most hands. Changing it is a change of strategy, not a refactoring.
  */
-static int ai_best_beat(
+static bool ai_best_beat(
     const card_array_t *cards, const hand_t *tobeat, hand_t *beat,
     analysis_func_t analyze) {
   hand_list_t beats;
@@ -236,14 +250,14 @@ static int ai_best_beat(
   }
 
   if (chosen < 0)
-    return 0;
+    return false;
 
   hand_copy(beat, hand_list_at(&beats, chosen));
-  return 1;
+  return true;
 }
 
-int ai_beat(const ai_view_t *view, hand_t *hand) {
-  int canbeat = 0;
+bool ai_beat(const ai_view_t *view, hand_t *hand) {
+  bool canbeat = false;
 
   hand_clear(hand);
 
@@ -254,11 +268,11 @@ int ai_beat(const ai_view_t *view, hand_t *hand) {
       (view->last_player != view->landlord)) {
     /* don't bomb/nuke teammate */
     if (hand_is_bomb(hand) || hand_is_nuke(hand))
-      canbeat = 0;
+      canbeat = false;
 
     /* let the teammate run when it is closer to going out */
     if (view->cards_left[view->last_player] < view->cards_left[view->seat])
-      canbeat = 0;
+      canbeat = false;
   }
 
   return canbeat;

@@ -58,9 +58,10 @@ int hand_list_count(const hand_list_t *hl);
 const hand_t *hand_list_at(const hand_list_t *hl, int i);
 
 /*
- * append a copy of hand, returns 0 and leaves the list alone when it is full
+ * append a copy of hand, returns false and leaves the list alone when it is
+ * full
  */
-int hand_list_push(hand_list_t *hl, const hand_t *hand);
+bool hand_list_push(hand_list_t *hl, const hand_t *hand);
 
 /*
  * remove every hand made only of cards in `cards`, keeping the order of the

@@ -82,15 +82,15 @@ void hand_copy(hand_t *dst, const hand_t *src) {
  * ************************************************************/
 
 /* sorted cards, so the same card twice would be next to each other */
-static int hand_has_duplicate(const card_array_t *sorted) {
+static bool hand_has_duplicate(const card_array_t *sorted) {
   int i = 0;
 
   for (i = 1; i < card_array_length(sorted); i++) {
     if (card_array_at(sorted, i) == card_array_at(sorted, i - 1))
-      return 1;
+      return true;
   }
 
-  return 0;
+  return false;
 }
 
 /*
@@ -98,7 +98,7 @@ static int hand_has_duplicate(const card_array_t *sorted) {
  * part: either a single rank, or consecutive ranks below 2
  * | 666 | 777 | 888 | 999 |    duplicate: 3, ranks: 4
  */
-static int hand_is_primal_run(const int *count, int duplicate, int ranks) {
+static bool hand_is_primal_run(const int *count, int duplicate, int ranks) {
   int i = 0;
   int first = 0;
   int last = 0;
@@ -112,7 +112,7 @@ static int hand_is_primal_run(const int *count, int duplicate, int ranks) {
   }
 
   if (ranks == 1)
-    return 1;
+    return true;
 
   /* joker and 2 can't chain up */
   return (last < CARD_RANK_2) && (last - first + 1 == ranks);
@@ -146,8 +146,10 @@ bool hand_parse(hand_t *hand, const card_array_t *array) {
   int count[CARD_RANK_END];
   int times[HAND_PRIMAL_FOUR + 1] = {0}; /* times[n]: ranks appearing n times */
   int chainranks[HAND_PRIMAL_FOUR + 1] = {
-      0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH / 2,
-      HAND_TRIO_CHAIN_MIN_LENGTH / 3, HAND_FOUR_CHAIN_MIN_LENGTH / 4};
+      0, HAND_SOLO_CHAIN_MIN_LENGTH,
+      HAND_PAIR_CHAIN_MIN_LENGTH / HAND_PRIMAL_PAIR,
+      HAND_TRIO_CHAIN_MIN_LENGTH / HAND_PRIMAL_TRIO,
+      HAND_FOUR_CHAIN_MIN_LENGTH / HAND_PRIMAL_FOUR};
   card_array_t sorted;
   int length = card_array_length(array);
 
@@ -182,7 +184,7 @@ bool hand_parse(hand_t *hand, const card_array_t *array) {
   }
 
   /* bomb */
-  if ((length == 4) && (times[4] == 1)) {
+  if ((length == HAND_PRIMAL_FOUR) && (times[HAND_PRIMAL_FOUR] == 1)) {
     hand->type = hand_type(HAND_PRIMAL_BOMB, HAND_KICKER_NONE, false);
     card_array_copy(&hand->cards, &sorted);
     return true;
@@ -202,17 +204,21 @@ bool hand_parse(hand_t *hand, const card_array_t *array) {
       return false;
   } else if (primal == HAND_PRIMAL_TRIO) {
     /* every trio carries one solo, or every trio carries one pair */
-    if ((times[1] == ranks) && (times[2] == 0))
+    if ((times[HAND_PRIMAL_SOLO] == ranks) && (times[HAND_PRIMAL_PAIR] == 0))
       kicker = HAND_KICKER_SOLO;
-    else if ((times[2] == ranks) && (times[1] == 0))
+    else if (
+        (times[HAND_PRIMAL_PAIR] == ranks) && (times[HAND_PRIMAL_SOLO] == 0))
       kicker = HAND_KICKER_PAIR;
     else
       return false;
   } else if (primal == HAND_PRIMAL_FOUR) {
     /* every four carries two solos, or every four carries two pairs */
-    if ((times[1] == ranks * 2) && (times[2] == 0) && (times[3] == 0))
+    if ((times[HAND_PRIMAL_SOLO] == ranks * 2) &&
+        (times[HAND_PRIMAL_PAIR] == 0) && (times[HAND_PRIMAL_TRIO] == 0))
       kicker = HAND_KICKER_DUAL_SOLO;
-    else if ((times[2] == ranks * 2) && (times[1] == 0) && (times[3] == 0))
+    else if (
+        (times[HAND_PRIMAL_PAIR] == ranks * 2) &&
+        (times[HAND_PRIMAL_SOLO] == 0) && (times[HAND_PRIMAL_TRIO] == 0))
       kicker = HAND_KICKER_DUAL_PAIR;
     else
       return false;
