@@ -67,6 +67,10 @@ extern const ai_t ai_counted;
 /* weighs every legal move by the turns the cards left behind would take */
 extern const ai_t ai_moves;
 
+/* the same, and reads the table: cards left, cards played, who is on whose side
+ */
+extern const ai_t ai_table;
+
 /* what one seat may know, all of it read only */
 typedef struct ai_view_s {
   const ai_t *ai;

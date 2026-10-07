@@ -500,6 +500,18 @@ static void test_moves(void) {
   printf("testing moves...\n");
   mt19937_init(&mt, 2026);
 
+  /* more cards than a seat holds: the AI asks what the other two could do */
+  {
+    hand_list_t moves;
+    hand_t solo = parse("♣3");
+
+    card_array_reset(&deck);
+    move_generate(&deck, &moves);
+    assert(hand_list_count(&moves) == HAND_LIST_CAPACITY);
+    move_generate_beats(&deck, &solo, &moves);
+    assert(hand_list_count(&moves) > 0);
+  }
+
   for (round = 0; round < 300; round++) {
     card_array_t cards;
     hand_list_t moves;
@@ -846,6 +858,30 @@ static void test_ai_decides_from_a_view(void) {
   ai_lead(&view, &decision);
   assert(card_array_length(&decision.cards) == 4);
   assert(hand_rank(&decision) == CARD_RANK_3);
+  view.last_hand = &last;
+
+  /* the landlord holds one card: reading the table, lead the pair, not a
+     solo it could go out on */
+  view.ai = &ai_table;
+  view.last_hand = NULL;
+  view.cards_left[0] = 1;
+  cards_from_text(&cards, "♠A ♠6 ♠4 ♥4");
+  ai_lead(&view, &decision);
+  assert(card_array_length(&decision.cards) == 2);
+
+  /* nothing left can beat the pair of 2: lead it, then go out on the 3 */
+  view.cards_left[0] = 3;
+  cards_from_text(&played, "♣r ♦R");
+  cards_from_text(&cards, "♠2 ♥2 ♠3");
+  ai_lead(&view, &decision);
+  assert(hand_rank(&decision) == CARD_RANK_2);
+
+  /* an AI that does not look leads the 3 and hopes */
+  view.ai = &ai_moves;
+  ai_lead(&view, &decision);
+  assert(hand_rank(&decision) == CARD_RANK_3);
+  card_array_clear(&played);
+  view.cards_left[0] = 10;
   view.last_hand = &last;
 
   /* of two pairs that beat, the one that leaves fewer hands: 99 leaves the
