@@ -75,6 +75,25 @@ static void game_reset(game_t *game) {
   card_array_clear(&game->card_record);
 }
 
+/* how a seat's cards would be played in the fewest turns, only when logging */
+static void game_log_split(const player_t *player) {
+#ifdef LANDLORD_PRINT_LOG
+  hand_list_t hands;
+  int i = 0;
+
+  analysis_counted(&player->cards, &hands);
+  LANDLORD_LOG(
+      "\nPlayer ---- %d ---- %s, %d turns as %d hands\n", player->seat,
+      player->identity == PLAYER_IDENTITY_LANDLORD ? "landlord" : "peasant",
+      analysis_counted_hands(&player->cards), hand_list_count(&hands));
+
+  for (i = 0; i < hand_list_count(&hands); i++)
+    hand_print(hand_list_at(&hands, i));
+#else
+  (void)player;
+#endif
+}
+
 /* what the current player is allowed to know */
 static void
 game_make_view(const game_t *game, ai_view_t *view, const hand_t *tobeat) {
@@ -213,6 +232,7 @@ void game_play(game_t *game, uint32_t seed) {
     player_t *player = &game->players[i];
 
     card_array_sort(&player->cards);
+    game_log_split(player);
   }
 
   /* game play */

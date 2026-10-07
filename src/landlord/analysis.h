@@ -45,4 +45,11 @@ void analysis_standard(const card_array_t *array, hand_list_t *hl);
  */
 int analysis_counted_hands(const card_array_t *array);
 
+/*
+ * The split analysis_counted_hands counted: the hands that search would play
+ * the cards as. A kicker is still a hand of its own here, next to the trio
+ * that will carry it, so the list is longer than the number of turns.
+ */
+void analysis_counted(const card_array_t *array, hand_list_t *hl);
+
 #endif /* LANDLORD_ANALYSIS_H_ */

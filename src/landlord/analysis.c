@@ -187,8 +187,10 @@ typedef struct analysis_chain_s {
 #define ANALYSIS_MAX_DEPTH 4
 
 typedef struct analysis_counted_s {
-  int best;                                  /* fewest turns so far */
-  analysis_chain_t path[ANALYSIS_MAX_DEPTH]; /* the split being tried */
+  int best; /* fewest turns so far */
+  int depth;
+  analysis_chain_t chains[ANALYSIS_MAX_DEPTH]; /* the chains that gave it */
+  analysis_chain_t path[ANALYSIS_MAX_DEPTH];   /* the split being tried */
 } analysis_counted_t;
 
 /*
@@ -240,8 +242,12 @@ analysis_counted_search(int *count, analysis_counted_t *state, int depth) {
   int top = 0;
   int rank = 0;
 
-  if (turns < state->best)
+  /* on a tie the split found first wins */
+  if (turns < state->best) {
     state->best = turns;
+    state->depth = depth;
+    memcpy(state->chains, state->path, sizeof(state->path));
+  }
 
   /* another chain is another turn at least */
   if ((depth == ANALYSIS_MAX_DEPTH) || (depth + 1 >= state->best))
@@ -267,23 +273,68 @@ analysis_counted_search(int *count, analysis_counted_t *state, int depth) {
   }
 }
 
-int analysis_counted_hands(const card_array_t *array) {
+/*
+ * nuke, bombs and 2 go to `bombs` and are never broken up, each is a turn of
+ * its own; `rest` is what the search worked on, sorted, and state holds the
+ * chains to pull out of it
+ */
+static void analysis_counted_split(
+    const card_array_t *array, card_array_t *rest, hand_list_t *bombs,
+    analysis_counted_t *state) {
   int count[CARD_RANK_END];
+
+  card_array_copy(rest, array);
+  card_array_sort(rest);
+  card_array_count_ranks(rest, count);
+
+  hand_list_clear(bombs);
+  analysis_extract_nuke_bomb_2(bombs, rest, count);
+
+  memset(state, 0, sizeof(*state));
+  state->best = INT_MAX;
+  analysis_counted_search(count, state, 0);
+}
+
+int analysis_counted_hands(const card_array_t *array) {
   card_array_t rest;
   hand_list_t bombs;
   analysis_counted_t state;
 
-  card_array_copy(&rest, array);
-  card_array_sort(&rest);
-  card_array_count_ranks(&rest, count);
-
-  /* nuke, bombs and 2 are never broken up, each is a turn of its own */
-  hand_list_clear(&bombs);
-  analysis_extract_nuke_bomb_2(&bombs, &rest, count);
-
-  memset(&state, 0, sizeof(state));
-  state.best = INT_MAX;
-  analysis_counted_search(count, &state, 0);
+  analysis_counted_split(array, &rest, &bombs, &state);
 
   return hand_list_count(&bombs) + state.best;
+}
+
+void analysis_counted(const card_array_t *array, hand_list_t *hl) {
+  card_array_t rest;
+  hand_list_t bombs;
+  analysis_counted_t state;
+  hand_t chains[ANALYSIS_MAX_DEPTH];
+  int i = 0;
+  int rank = 0;
+
+  analysis_counted_split(array, &rest, &bombs, &state);
+
+  /* the counts chose the chains, now take the cards */
+  for (i = 0; i < state.depth; i++) {
+    const analysis_chain_t *chain = &state.chains[i];
+
+    hand_clear(&chains[i]);
+    chains[i].type =
+        hand_type((hand_primal_t)chain->primal, HAND_KICKER_NONE, true);
+
+    for (rank = chain->low + chain->ranks - 1; rank >= chain->low; rank--)
+      card_array_take_rank(&chains[i].cards, &rest, rank, chain->primal);
+
+    card_array_subtract(&rest, &chains[i].cards);
+  }
+
+  /* the leftover, then the chains from the last pulled to the first */
+  analysis_standard(&rest, hl);
+
+  for (i = state.depth - 1; i >= 0; i--)
+    hand_list_push(hl, &chains[i]);
+
+  for (i = 0; i < hand_list_count(&bombs); i++)
+    hand_list_push(hl, hand_list_at(&bombs, i));
 }

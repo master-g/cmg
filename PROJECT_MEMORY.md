@@ -15,6 +15,7 @@
 - [2026-10-07] landlord 改造后的事实: 种子决定一局; Game 逐手用规则校验; 基准(种子 10000–19999)农民 5344/地主 4656/非法 0(默认 AI 为 ai_table); 迁入时的 7652 地主胜是「无人叫分重发未洗的牌」造成的假象(单独恢复该缺陷得 7621)
 - [2026-10-07] landlord 的 AI 强弱只看 bin/landlord 的对打(同牌换边), 自我对局的胜负数看不出; 调规则只看调参批种子 10000–19999, 对照批 20000–29999 只用来确认, 不在它上面做选择(用户同意的做法)
 - [2026-10-07] landlord 现有两个 AI: 默认 ai_table 与参照 ai_moves(53.8%:46.2%, 对照批 54.2%); 更早的 standard/advanced/counted 与 beat.c 已按用户决定删除; 叫分仍用贪心拆牌 analysis_standard 的手数和旧阈值
+- [2026-10-07] 用户要求保留能给出具体拆法的 analysis_counted(AI 不调用它, 开 LANDLORD_LOG 时打印每家开局拆法); 清理无调用代码时不要把它当死代码删掉
 - [2026-10-07] 用户决定: 本仓 landlord 保持纯规则逻辑, 不接入神经网络或 DouZero 权重, 不在此训练模型; 要做学习类 AI 另开仓库, 可复用这里的 C 引擎
 - [2026-10-07] landlord 的 AI 会对「其余两家合起来的牌」(可达 37 张)调用出牌生成, 所以 move.c 不能假设输入不超过 20 张; 曾因此写越界, Release 下不报错, Debug 的栈保护和 ASan 才报
 - [2026-10-07] 在同一个 build/ 里切换 Release/Debug 后紧接着 make landlord-baseline, 可能因时间戳同秒得到用旧对象生成的基线, 表现为随后 make test 基线不符; 重新生成一次即可
@@ -27,7 +28,7 @@
 
 ## 上次会话
 <!-- 整块改写：分支、验证命令及实际结果、停在何处；任务细节只留一行指向证据目录。 -->
-- [2026-10-07] main, 已推送; landlord 删除旧 AI 与压牌搜索(基线不变), 基准改为调参批加对照批, 基线生成失败不再清空文件; make test、make landlord-asan 通过, landlord 零警告, Debug 与 Release 生成的基线一致
+- [2026-10-07] main; landlord 删除旧 AI 与压牌搜索(基线不变), 基准改为调参批加对照批, 基线生成失败不再清空文件; make test、make landlord-asan 通过, landlord 零警告, Debug 与 Release 生成的基线一致; 之后恢复 analysis_counted 并在日志里打印开局拆法(本地提交, 未推送)
   证据: src/landlord/README.md「自检与基线」
 
 ## 下次运行

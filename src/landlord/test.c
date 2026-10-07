@@ -394,13 +394,15 @@ static void test_hand_list(void) {
  * ************************************************************/
 
 /* returns the number of hands */
-static int check_analysis(const card_array_t *cards) {
+static int check_analysis(
+    void (*analyze)(const card_array_t *, hand_list_t *),
+    const card_array_t *cards) {
   hand_list_t hands;
   card_array_t covered;
   card_array_t sorted;
   int i;
 
-  analysis_standard(cards, &hands);
+  analyze(cards, &hands);
 
   card_array_clear(&covered);
   for (i = 0; i < hand_list_count(&hands); i++) {
@@ -433,15 +435,20 @@ static void test_analysis(void) {
   for (round = 0; round < 20000; round++) {
     card_array_t cards;
     int standard;
+    int counted;
 
     card_array_reset(&deck);
     card_array_shuffle(&deck, &mt);
     card_array_deal(&deck, &cards, 1 + (int)(mt19937_int32(&mt) % 20));
 
-    standard = check_analysis(&cards);
+    standard = check_analysis(analysis_standard, &cards);
+    counted = check_analysis(analysis_counted, &cards);
 
-    /* searching, with kickers riding along, never does worse than greedy */
+    /* the search counts turns: never more than greedy takes, and with
+       kickers riding along no more than the hands of its own split, which
+       may well be more hands than greedy makes */
     assert(analysis_counted_hands(&cards) <= standard);
+    assert(analysis_counted_hands(&cards) <= counted);
   }
 
   /* turns, by hand */
