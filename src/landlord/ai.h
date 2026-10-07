@@ -26,7 +26,6 @@ SOFTWARE.
 #define LANDLORD_AI_H_
 
 #include "analysis.h"
-#include "beat.h"
 #include "hand.h"
 #include "move.h"
 
@@ -44,30 +43,16 @@ SOFTWARE.
 
 struct ai_view_s;
 
-/*
- * what the AIs differ in: how one takes cards apart, how many hands it
- * reckons cards will take, and how it picks the hand to lead or to beat with
- */
+/* what the AIs differ in: how one picks the hand to lead or to beat with */
 typedef struct ai_s {
-  analysis_func_t analyze;
-  int (*count)(const card_array_t *cards);
   void (*lead)(const struct ai_view_s *view, hand_t *hand);
   bool (*beat)(const struct ai_view_s *view, hand_t *hand);
 } ai_t;
 
-/* greedy analysis: bombs first, then the chains that happen to be there */
-extern const ai_t ai_standard;
-
-/* searches for the split with the fewest hands */
-extern const ai_t ai_advanced;
-
-/* searches on rank counts, and counts a kicker as part of its trio's turn */
-extern const ai_t ai_counted;
-
 /* weighs every legal move by the turns the cards left behind would take */
 extern const ai_t ai_moves;
 
-/* the same, and reads the table: cards left, cards played, who is on whose side
+/* the same, and reads the table: cards left, cards played, who sides with whom
  */
 extern const ai_t ai_table;
 
@@ -78,7 +63,6 @@ typedef struct ai_view_s {
   int landlord;                 /* landlord's seat, not known while bidding */
   int bid;                      /* highest bid so far */
   const card_array_t *cards;    /* the seat's own cards */
-  const hand_list_t *hands;     /* those cards taken apart, kept by the game */
   const hand_t *last_hand;      /* the hand to beat, NULL when leading */
   int last_player;              /* who played last_hand */
   int cards_left[GAME_PLAYERS]; /* cards every seat still holds */

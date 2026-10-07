@@ -43,10 +43,4 @@ typedef struct mt19937_s {
 void mt19937_init(mt19937_t *context, uint32_t seed);
 uint32_t mt19937_uint32(mt19937_t *context);
 int32_t mt19937_int32(mt19937_t *context);
-/* ************************************************************
- * math
- * ************************************************************/
-
-int lmath_next_comb(int comb[], int k, int n);
-
 #endif /* LANDLORD_LMATH_H_ */

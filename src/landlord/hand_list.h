@@ -63,15 +63,4 @@ const hand_t *hand_list_at(const hand_list_t *hl, int i);
  */
 bool hand_list_push(hand_list_t *hl, const hand_t *hand);
 
-/*
- * remove every hand made only of cards in `cards`, keeping the order of the
- * rest
- */
-void hand_list_remove_contained(hand_list_t *hl, const card_array_t *cards);
-
-/*
- * print hand_list_t
- */
-void hand_list_print(const hand_list_t *hl);
-
 #endif /* LANDLORD_HAND_LIST_H_ */

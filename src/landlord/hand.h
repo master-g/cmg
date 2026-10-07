@@ -127,13 +127,6 @@ hand_compare_t hand_compare(const hand_t *a, const hand_t *b);
 int hand_rank(const hand_t *hand);
 
 /*
- * the two parts of a hand: the cards that give it its rank (the trios of a
- * trio chain with kickers) and the kickers they carry, both from high to low
- */
-void hand_split(
-    const hand_t *hand, card_array_t *primal, card_array_t *kickers);
-
-/*
  * four of a kind, beats everything but a higher bomb and the nuke
  */
 bool hand_is_bomb(const hand_t *hand);

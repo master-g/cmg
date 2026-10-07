@@ -94,11 +94,6 @@ void card_array_clear(card_array_t *array);
 void card_array_copy(card_array_t *dst, const card_array_t *src);
 
 /*
- * does it hold a whole deck, so nothing more fits
- */
-bool card_array_is_full(const card_array_t *array);
-
-/*
  * does it hold no card
  */
 bool card_array_is_empty(const card_array_t *array);
@@ -194,11 +189,6 @@ void card_array_remove_rank(card_array_t *array, int rank);
  * sort cards from high to low, by rank then by suit
  */
 void card_array_sort(card_array_t *array);
-
-/*
- * reverse cards
- */
-void card_array_reverse(card_array_t *array);
 
 /*
  * print every card in the array

@@ -29,41 +29,20 @@ SOFTWARE.
 #include "hand_list.h"
 
 /* ************************************************************
- * analysis: take cards apart into the hands they will be played as
- *
- * The result covers the cards exactly, every card is in one hand. How many
- * hands it takes is how good the cards are, fewer is better.
+ * analysis: how many hands cards will take to play, fewer is better
  * ************************************************************/
 
-/* an analysis takes cards apart */
-typedef void (*analysis_func_t)(const card_array_t *cards, hand_list_t *hl);
-
 /*
- * greedy: nuke, bombs and 2 first, then whatever chains the rest forms
+ * Greedy: nuke, bombs and 2 first, then whatever chains the rest forms. The
+ * hands cover the cards exactly, every card is in one of them.
  */
 void analysis_standard(const card_array_t *array, hand_list_t *hl);
 
 /*
- * searches the ways to pull chains out for the split with the fewest hands
- */
-void analysis_advanced(const card_array_t *array, hand_list_t *hl);
-
-/*
- * Searches on the rank counts alone for the split that takes the fewest
- * turns to play: a trio and the kicker it carries are one turn. The list
- * still holds the kickers as hands of their own, the AI attaches them when
- * it leads, so it is longer than analysis_counted_hands says.
- */
-void analysis_counted(const card_array_t *array, hand_list_t *hl);
-
-/*
- * how many turns the split of analysis_counted takes, kickers riding along
+ * The fewest turns the cards can be played in. Searches the ways to pull
+ * chains out, on the rank counts alone; a trio and the kicker it carries are
+ * one turn. Nuke, bombs and 2 are never broken up.
  */
 int analysis_counted_hands(const card_array_t *array);
-
-/*
- * how many hands the cards take when taken apart by analyze
- */
-int analysis_count_hands(analysis_func_t analyze, const card_array_t *array);
 
 #endif /* LANDLORD_ANALYSIS_H_ */

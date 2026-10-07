@@ -27,7 +27,6 @@ SOFTWARE.
 
 #include "ai.h"
 #include "analysis.h"
-#include "beat.h"
 #include "card.h"
 #include "game.h"
 #include "hand.h"

@@ -23,7 +23,8 @@ SOFTWARE.
 */
 
 #include "hand_list.h"
-#include "log.h"
+
+#include <stddef.h>
 
 void hand_list_clear(hand_list_t *hl) { hl->count = 0; }
 
@@ -39,30 +40,4 @@ bool hand_list_push(hand_list_t *hl, const hand_t *hand) {
 
   hand_copy(&hl->hands[hl->count++], hand);
   return true;
-}
-
-void hand_list_remove_contained(hand_list_t *hl, const card_array_t *cards) {
-  int i = 0;
-  int kept = 0;
-
-  for (i = 0; i < hl->count; i++) {
-    if (card_array_contains(cards, &hl->hands[i].cards))
-      continue;
-
-    if (kept != i)
-      hand_copy(&hl->hands[kept], &hl->hands[i]);
-
-    kept++;
-  }
-
-  hl->count = kept;
-}
-
-void hand_list_print(const hand_list_t *hl) {
-  int i = 0;
-
-  LANDLORD_LOG("-----hand_list_t begin---------\n");
-  for (i = 0; i < hl->count; i++)
-    hand_print(&hl->hands[i]);
-  LANDLORD_LOG("-----hand_list_t ended---------\n");
 }

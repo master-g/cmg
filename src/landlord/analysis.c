@@ -23,7 +23,6 @@ SOFTWARE.
 */
 
 #include "analysis.h"
-#include "beat.h"
 
 #include <limits.h>
 #include <string.h>
@@ -171,301 +170,9 @@ void analysis_standard(const card_array_t *cards, hand_list_t *hl) {
   analysis_extract_consecutive(hl, &array, count, HAND_PRIMAL_SOLO);
 }
 
-int analysis_count_hands(analysis_func_t analyze, const card_array_t *array) {
-  hand_list_t hl;
-
-  analyze(array, &hl);
-
-  return hand_list_count(&hl);
-}
-
 /*
  * ************************************************************
- * advanced analysis
- * ************************************************************
- */
-
-/* cards being taken apart */
-typedef struct analysis_ctx_s {
-  /* rank count */
-  int count[CARD_RANK_END];
-  /* original cards */
-  card_array_t cards;
-  /* the cards, low to high */
-  card_array_t rcards;
-
-} analysis_ctx_t;
-
-/* the longest chain of ranks held at least `duplicate` times, lowest wins */
-static void analysis_search_longest_chain(
-    const analysis_ctx_t *ctx, hand_t *hand, int duplicate) {
-  int i = 0;
-  int rankstart = 0;
-  int beststart = 0;
-  int bestlen = 0;
-  hand_primal_t primal[] = {
-      HAND_PRIMAL_NONE, HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
-  int chainlen[] = {
-      0, HAND_SOLO_CHAIN_MIN_LENGTH, HAND_PAIR_CHAIN_MIN_LENGTH,
-      HAND_TRIO_CHAIN_MIN_LENGTH};
-  const int *count = ctx->count;
-
-  if ((duplicate < HAND_PRIMAL_SOLO) || (duplicate > HAND_PRIMAL_TRIO))
-    return;
-
-  /* early break */
-  if (card_array_length(&ctx->rcards) < chainlen[duplicate])
-    return;
-
-  hand_clear(hand);
-
-  /*
-   * i <= CARD_RANK_2
-   * but count[CARD_RANK_2] must be 0
-   * for 2/bomb/nuke has been removed before calling this function
-   */
-  for (i = CARD_RANK_3; i <= CARD_RANK_2; i++) {
-    /* find start of a possible chain */
-    if (rankstart == 0) {
-      if (count[i] >= duplicate)
-        rankstart = i;
-
-      continue;
-    }
-
-    /* chain break, keep it when it is a chain and the longest so far */
-    if (count[i] < duplicate) {
-      if ((((i - rankstart) * duplicate) >= chainlen[duplicate]) &&
-          ((i - rankstart) > bestlen)) {
-        beststart = rankstart;
-        bestlen = i - rankstart;
-      }
-
-      rankstart = 0;
-    }
-  }
-
-  if (bestlen > 0) {
-    /* from the top of the chain down */
-    for (i = beststart + bestlen - 1; i >= beststart; i--)
-      card_array_take_rank(&hand->cards, &ctx->rcards, i, duplicate);
-
-    hand->type = hand_type(primal[duplicate], HAND_KICKER_NONE, true);
-  }
-}
-
-/* solo chain, pair chain, trio chain: the order they are searched in */
-static const int analysis_search_primals[] = {
-    HAND_PRIMAL_SOLO, HAND_PRIMAL_PAIR, HAND_PRIMAL_TRIO};
-
-#define ANALYSIS_SEARCH_TYPES 3
-
-/*
- * pass a empty hand to start traverse
- * result stores in hand
- * return false when stop
- */
-static bool
-analysis_traverse_chains(const analysis_ctx_t *ctx, int *begin, hand_t *hand) {
-  bool found = false;
-  int i = *begin;
-
-  if (card_array_is_empty(&ctx->cards))
-    return false;
-
-  if (*begin >= ANALYSIS_SEARCH_TYPES)
-    return false;
-
-  /* init search */
-  if (hand_is_none(hand)) {
-    while (i < ANALYSIS_SEARCH_TYPES && hand_is_none(hand)) {
-      analysis_search_longest_chain(ctx, hand, analysis_search_primals[i]);
-
-      if (!hand_is_none(hand)) {
-        found = true;
-        break;
-      } else {
-        i++;
-        *begin = i;
-      }
-    }
-
-    /* if nothing was found, should PANIC */
-  } else {
-    /* continue search via beat */
-    found = beat_search(&ctx->cards, hand, hand);
-  }
-
-  return found;
-}
-
-/*
- * extract all chains or primal hands in hand_ctx
- */
-static void
-analysis_extract_all_chains(const analysis_ctx_t *ctx, hand_list_t *hands) {
-  bool found = false;
-  int lastsearch = 0;
-  hand_t workinghand;
-  hand_t lasthand;
-
-  /* init search */
-  hand_clear(&workinghand);
-  hand_clear(&lasthand);
-
-  found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);
-
-  while (found) {
-    hand_list_push(hands, &lasthand);
-
-    hand_copy(&workinghand, &lasthand);
-
-    while ((found = analysis_traverse_chains(ctx, &lastsearch, &workinghand)))
-      hand_list_push(hands, &workinghand);
-
-    /* can't find any more hands, try to reduce chain length */
-    if (!hand_is_none(&lasthand)) {
-      if (hand_is_type(&lasthand, HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true)) {
-        if (card_array_length(&lasthand.cards) > HAND_SOLO_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_SOLO);
-          found = true;
-        } else {
-          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
-        }
-      } else if (
-          hand_is_type(&lasthand, HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true)) {
-        if (card_array_length(&lasthand.cards) > HAND_PAIR_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_PAIR);
-          found = true;
-        } else {
-          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
-        }
-      } else if (
-          hand_is_type(&lasthand, HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true)) {
-        if (card_array_length(&lasthand.cards) > HAND_TRIO_CHAIN_MIN_LENGTH) {
-          card_array_drop_front(&lasthand.cards, HAND_PRIMAL_TRIO);
-          found = true;
-        } else {
-          lasthand.type = hand_type(HAND_PRIMAL_NONE, HAND_KICKER_NONE, false);
-        }
-      }
-
-      /* still can't found, loop through hand type for more */
-      if (!found) {
-        lastsearch++;
-        hand_clear(&lasthand);
-        found = analysis_traverse_chains(ctx, &lastsearch, &lasthand);
-      }
-    }
-  }
-}
-
-/*
- * Pulling a chain out leaves cards that may hold further chains, so the ways
- * to take cards apart form a tree: every node is the cards left after the
- * chains on the path to it. Only the path being walked is kept.
- */
-
-/* every step takes at least five cards out of twenty */
-#define ANALYSIS_MAX_DEPTH 4
-
-typedef struct analysis_best_s {
-  /* hands needed: chains on the path plus the leftover taken apart */
-  int weight;
-  /* chains pulled out, from the first to the last */
-  int depth;
-  hand_t path[ANALYSIS_MAX_DEPTH];
-  /* what is left after them */
-  card_array_t leftover;
-
-} analysis_best_t;
-
-static void analysis_search(
-    const analysis_ctx_t *ctx, hand_t *path, int depth, analysis_best_t *best) {
-  hand_list_t chains;
-  int i = 0;
-
-  hand_list_clear(&chains);
-
-  if (depth < ANALYSIS_MAX_DEPTH)
-    analysis_extract_all_chains(ctx, &chains);
-
-  if (hand_list_count(&chains) == 0) {
-    /* nothing more to pull out, the rest is played as it is */
-    int weight = depth + analysis_count_hands(analysis_standard, &ctx->cards);
-
-    /* on a tie the split found last wins */
-    if (weight <= best->weight) {
-      best->weight = weight;
-      best->depth = depth;
-      memcpy(best->path, path, sizeof(hand_t) * (size_t)depth);
-      card_array_copy(&best->leftover, &ctx->cards);
-    }
-
-    return;
-  }
-
-  for (i = 0; i < hand_list_count(&chains); i++) {
-    analysis_ctx_t rest;
-
-    /* the cards without this chain */
-    hand_copy(&path[depth], hand_list_at(&chains, i));
-    card_array_copy(&rest.cards, &ctx->cards);
-    card_array_subtract(&rest.cards, &path[depth].cards);
-    card_array_copy(&rest.rcards, &rest.cards);
-    card_array_reverse(&rest.rcards);
-    card_array_count_ranks(&rest.cards, rest.count);
-
-    analysis_search(&rest, path, depth + 1, best);
-  }
-}
-
-/*
- * search hand via least hands
- */
-void analysis_advanced(const card_array_t *array, hand_list_t *hl) {
-  hand_list_t bombs;
-  hand_t path[ANALYSIS_MAX_DEPTH];
-  analysis_best_t best;
-  analysis_ctx_t ctx;
-  int i = 0;
-
-  memset(&ctx, 0, sizeof(ctx));
-  card_array_count_ranks(array, ctx.count);
-  card_array_copy(&ctx.cards, array);
-  card_array_sort(&ctx.cards);
-
-  /* nuke, bombs and 2 are never broken up */
-  hand_list_clear(&bombs);
-  analysis_extract_nuke_bomb_2(&bombs, &ctx.cards, ctx.count);
-
-  card_array_copy(&ctx.rcards, &ctx.cards);
-  card_array_reverse(&ctx.rcards);
-
-  best.weight = INT_MAX;
-  best.depth = 0;
-  card_array_clear(&best.leftover);
-  analysis_search(&ctx, path, 0, &best);
-
-  /* no chains at all, this is the standard analysis */
-  if (best.depth == 0) {
-    analysis_standard(array, hl);
-    return;
-  }
-
-  /* the leftover, then the chains from the last pulled to the first */
-  analysis_standard(&best.leftover, hl);
-
-  for (i = best.depth - 1; i >= 0; i--)
-    hand_list_push(hl, &best.path[i]);
-
-  for (i = 0; i < hand_list_count(&bombs); i++)
-    hand_list_push(hl, hand_list_at(&bombs, i));
-}
-
-/*
- * ************************************************************
- * counted analysis
+ * counting turns
  * ************************************************************
  */
 
@@ -476,10 +183,11 @@ typedef struct analysis_chain_s {
   int ranks;
 } analysis_chain_t;
 
+/* every chain takes at least five cards out of twenty */
+#define ANALYSIS_MAX_DEPTH 4
+
 typedef struct analysis_counted_s {
-  int best; /* fewest turns so far */
-  int depth;
-  analysis_chain_t chains[ANALYSIS_MAX_DEPTH];
+  int best;                                  /* fewest turns so far */
   analysis_chain_t path[ANALYSIS_MAX_DEPTH]; /* the split being tried */
 } analysis_counted_t;
 
@@ -532,12 +240,8 @@ analysis_counted_search(int *count, analysis_counted_t *state, int depth) {
   int top = 0;
   int rank = 0;
 
-  /* on a tie the split found first wins */
-  if (turns < state->best) {
+  if (turns < state->best)
     state->best = turns;
-    state->depth = depth;
-    memcpy(state->chains, state->path, sizeof(state->path));
-  }
 
   /* another chain is another turn at least */
   if ((depth == ANALYSIS_MAX_DEPTH) || (depth + 1 >= state->best))
@@ -563,67 +267,23 @@ analysis_counted_search(int *count, analysis_counted_t *state, int depth) {
   }
 }
 
-/*
- * nuke, bombs and 2 go to `bombs` and are never broken up, `rest` is what
- * the search worked on, sorted, and state holds the chains to pull out of it
- */
-static void analysis_counted_split(
-    const card_array_t *array, card_array_t *rest, hand_list_t *bombs,
-    analysis_counted_t *state) {
-  int count[CARD_RANK_END];
-
-  card_array_copy(rest, array);
-  card_array_sort(rest);
-  card_array_count_ranks(rest, count);
-
-  hand_list_clear(bombs);
-  analysis_extract_nuke_bomb_2(bombs, rest, count);
-
-  memset(state, 0, sizeof(*state));
-  state->best = INT_MAX;
-  analysis_counted_search(count, state, 0);
-}
-
 int analysis_counted_hands(const card_array_t *array) {
+  int count[CARD_RANK_END];
   card_array_t rest;
   hand_list_t bombs;
   analysis_counted_t state;
 
-  analysis_counted_split(array, &rest, &bombs, &state);
+  card_array_copy(&rest, array);
+  card_array_sort(&rest);
+  card_array_count_ranks(&rest, count);
+
+  /* nuke, bombs and 2 are never broken up, each is a turn of its own */
+  hand_list_clear(&bombs);
+  analysis_extract_nuke_bomb_2(&bombs, &rest, count);
+
+  memset(&state, 0, sizeof(state));
+  state.best = INT_MAX;
+  analysis_counted_search(count, &state, 0);
 
   return hand_list_count(&bombs) + state.best;
-}
-
-void analysis_counted(const card_array_t *array, hand_list_t *hl) {
-  card_array_t rest;
-  hand_list_t bombs;
-  analysis_counted_t state;
-  hand_t chains[ANALYSIS_MAX_DEPTH];
-  int i = 0;
-  int rank = 0;
-
-  analysis_counted_split(array, &rest, &bombs, &state);
-
-  /* the counts chose the chains, now take the cards */
-  for (i = 0; i < state.depth; i++) {
-    const analysis_chain_t *chain = &state.chains[i];
-
-    hand_clear(&chains[i]);
-    chains[i].type =
-        hand_type((hand_primal_t)chain->primal, HAND_KICKER_NONE, true);
-
-    for (rank = chain->low + chain->ranks - 1; rank >= chain->low; rank--)
-      card_array_take_rank(&chains[i].cards, &rest, rank, chain->primal);
-
-    card_array_subtract(&rest, &chains[i].cards);
-  }
-
-  /* the leftover, then the chains from the last pulled to the first */
-  analysis_standard(&rest, hl);
-
-  for (i = state.depth - 1; i >= 0; i--)
-    hand_list_push(hl, &chains[i]);
-
-  for (i = 0; i < hand_list_count(&bombs); i++)
-    hand_list_push(hl, hand_list_at(&bombs, i));
 }

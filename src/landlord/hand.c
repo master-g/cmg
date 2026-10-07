@@ -243,31 +243,6 @@ int hand_rank(const hand_t *hand) {
   return CARD_RANK(card_array_at(&hand->cards, 0));
 }
 
-void hand_split(
-    const hand_t *hand, card_array_t *primal, card_array_t *kickers) {
-  int count[CARD_RANK_END];
-  int rank = 0;
-  int most = 0;
-
-  card_array_clear(primal);
-  card_array_clear(kickers);
-  card_array_count_ranks(&hand->cards, count);
-
-  for (rank = CARD_RANK_BEG; rank < CARD_RANK_END; rank++) {
-    if (count[rank] > most)
-      most = count[rank];
-  }
-
-  /* keep the order of the hand: high to low */
-  for (rank = CARD_RANK_END - 1; rank >= CARD_RANK_BEG; rank--) {
-    if (count[rank] == 0)
-      continue;
-
-    card_array_copy_rank(
-        count[rank] == most ? primal : kickers, &hand->cards, rank);
-  }
-}
-
 /*
  * ************************************************************
  * comparators

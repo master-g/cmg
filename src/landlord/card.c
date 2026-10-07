@@ -188,10 +188,6 @@ void card_array_copy(card_array_t *dst, const card_array_t *src) {
   memcpy(dst, src, sizeof(card_array_t));
 }
 
-bool card_array_is_full(const card_array_t *array) {
-  return array->length >= CARD_SET_LENGTH;
-}
-
 bool card_array_is_empty(const card_array_t *array) {
   return array->length == 0;
 }
@@ -383,14 +379,4 @@ static int card_array_compare(const void *a, const void *b) {
 void card_array_sort(card_array_t *array) {
   qsort(
       array->cards, (size_t)array->length, sizeof(uint8_t), card_array_compare);
-}
-
-void card_array_reverse(card_array_t *array) {
-  int i, j;
-  uint8_t tmp;
-  for (i = 0, j = array->length - 1; i < array->length / 2; i++, j--) {
-    tmp = array->cards[i];
-    array->cards[i] = array->cards[j];
-    array->cards[j] = tmp;
-  }
 }

@@ -371,7 +371,6 @@ static void test_hand_list(void) {
   static hand_list_t list;
   hand_t solo = parse("♣3");
   hand_t pair = parse("♠9 ♥9");
-  card_array_t played;
   int i;
 
   printf("testing hand list...\n");
@@ -388,16 +387,6 @@ static void test_hand_list(void) {
   assert(hand_list_at(&list, HAND_LIST_CAPACITY) == NULL);
   assert(hand_type_equals(
       hand_list_at(&list, HAND_LIST_CAPACITY - 1)->type, pair.type));
-
-  /* hands made of played cards go, the others keep their order */
-  hand_list_clear(&list);
-  hand_list_push(&list, &solo);
-  hand_list_push(&list, &pair);
-  hand_list_push(&list, &solo);
-  cards_from_text(&played, "♣3 ♦K");
-  hand_list_remove_contained(&list, &played);
-  assert(hand_list_count(&list) == 1);
-  assert(hand_type_equals(hand_list_at(&list, 0)->type, pair.type));
 }
 
 /* ************************************************************
@@ -405,13 +394,13 @@ static void test_hand_list(void) {
  * ************************************************************/
 
 /* returns the number of hands */
-static int check_analysis(analysis_func_t analyze, const card_array_t *cards) {
+static int check_analysis(const card_array_t *cards) {
   hand_list_t hands;
   card_array_t covered;
   card_array_t sorted;
   int i;
 
-  analyze(cards, &hands);
+  analysis_standard(cards, &hands);
 
   card_array_clear(&covered);
   for (i = 0; i < hand_list_count(&hands); i++) {
@@ -444,24 +433,15 @@ static void test_analysis(void) {
   for (round = 0; round < 20000; round++) {
     card_array_t cards;
     int standard;
-    int advanced;
 
     card_array_reset(&deck);
     card_array_shuffle(&deck, &mt);
     card_array_deal(&deck, &cards, 1 + (int)(mt19937_int32(&mt) % 20));
 
-    standard = check_analysis(analysis_standard, &cards);
-    advanced = check_analysis(analysis_advanced, &cards);
+    standard = check_analysis(&cards);
 
-    /* searching must never do worse than being greedy */
-    assert(advanced <= standard);
-    assert(standard == analysis_count_hands(analysis_standard, &cards));
-
-    /* kickers ride along, so counting turns never gives more than hands */
-    assert(
-        analysis_counted_hands(&cards) <=
-        check_analysis(analysis_counted, &cards));
-    assert(analysis_counted_hands(&cards) <= advanced);
+    /* searching, with kickers riding along, never does worse than greedy */
+    assert(analysis_counted_hands(&cards) <= standard);
   }
 
   /* turns, by hand */
@@ -561,54 +541,6 @@ static void test_moves(void) {
       assert(offered);
     }
   }
-}
-
-/* ************************************************************
- * beat search: every hand it offers beats the hand it answers
- * ************************************************************/
-
-static void test_beat_search(void) {
-  mt19937_t mt;
-  card_array_t deck;
-  int round;
-  int offered = 0;
-
-  printf("testing beat search...\n");
-  mt19937_init(&mt, 2014);
-
-  for (round = 0; round < 3000; round++) {
-    card_array_t mine;
-    card_array_t theirs;
-    hand_list_t lead;
-    int i;
-
-    card_array_reset(&deck);
-    card_array_shuffle(&deck, &mt);
-    card_array_deal(&deck, &mine, 20);
-    card_array_deal(&deck, &theirs, 17);
-
-    /* answer every hand the other player could lead */
-    analysis_standard(&theirs, &lead);
-    for (i = 0; i < hand_list_count(&lead); i++) {
-      hand_t tobeat;
-      hand_list_t beats;
-      int j;
-
-      assert(hand_parse(&tobeat, &hand_list_at(&lead, i)->cards));
-      beat_search_all(&mine, &tobeat, &beats);
-
-      for (j = 0; j < hand_list_count(&beats); j++) {
-        hand_t beat;
-
-        assert(hand_parse(&beat, &hand_list_at(&beats, j)->cards));
-        assert(hand_compare(&beat, &tobeat) == HAND_CMP_GREATER);
-        assert(card_array_contains(&mine, &beat.cards));
-        offered++;
-      }
-    }
-  }
-
-  assert(offered > 0);
 }
 
 /* ************************************************************
@@ -754,22 +686,22 @@ static int is_whole_deck(const game_t *game) {
   return same_sequence(&all, &deck);
 }
 
-/* an analysis that calls two unrelated cards one hand, the AI will lead it */
-static void cheat_analyze(const card_array_t *cards, hand_list_t *hl) {
-  hand_t hand;
-
-  hand_clear(&hand);
-  hand.type = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
-  card_array_push_back(&hand.cards, card_array_at(cards, 0));
+/* an AI that leads two unrelated cards as if they were a hand */
+static void cheat_lead(const ai_view_t *view, hand_t *hand) {
+  card_array_push_back(&hand->cards, card_array_at(view->cards, 0));
   card_array_push_back(
-      &hand.cards, card_array_at(cards, card_array_length(cards) - 1));
+      &hand->cards,
+      card_array_at(view->cards, card_array_length(view->cards) - 1));
+}
 
-  hand_list_clear(hl);
-  hand_list_push(hl, &hand);
+static bool cheat_beat(const ai_view_t *view, hand_t *hand) {
+  (void)view;
+  (void)hand;
+  return false;
 }
 
 static void test_game_rejects_illegal_hands(void) {
-  ai_t cheat = ai_standard;
+  const ai_t cheat = {cheat_lead, cheat_beat};
   game_t game;
   int i;
 
@@ -777,7 +709,6 @@ static void test_game_rejects_illegal_hands(void) {
   printf("  (one rejection message is expected below)\n");
   fflush(stdout);
 
-  cheat.analyze = cheat_analyze;
   game_init(&game);
   for (i = 0; i < GAME_PLAYERS; i++)
     game.players[i].ai = &cheat;
@@ -803,7 +734,7 @@ static void test_ai_decides_from_a_view(void) {
   card_array_clear(&played);
 
   memset(&view, 0, sizeof(view));
-  view.ai = &ai_standard;
+  view.ai = &ai_moves;
   view.seat = 1;
   view.landlord = 0;
   view.cards = &cards;
@@ -886,7 +817,6 @@ static void test_ai_decides_from_a_view(void) {
 
   /* of two pairs that beat, the one that leaves fewer hands: 99 leaves the
      chain 45678 whole, 55 would break it */
-  view.ai = &ai_advanced;
   cards_from_text(&cards, "♠9 ♥9 ♠8 ♠7 ♠6 ♠5 ♥5 ♠4");
   last = parse("♣3 ♦3");
   assert(ai_beat(&view, &decision) == 1);
@@ -935,7 +865,6 @@ int main(int argc, char **argv) {
   test_hand_list();
   test_analysis();
   test_moves();
-  test_beat_search();
   test_ai_decides_from_a_view();
   test_games();
   test_game_rejects_illegal_hands();

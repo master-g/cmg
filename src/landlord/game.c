@@ -86,7 +86,6 @@ game_make_view(const game_t *game, ai_view_t *view, const hand_t *tobeat) {
   view->landlord = game->landlord;
   view->bid = game->bid;
   view->cards = &player->cards;
-  view->hands = &player->hands;
   view->last_hand = tobeat;
   view->last_player = game->last_play;
   view->played = &game->card_record;
@@ -141,14 +140,6 @@ game_accept_hand(game_t *game, const hand_t *played, const hand_t *tobeat) {
   }
 
   card_array_subtract(&player->cards, &hand.cards);
-
-  if (tobeat == NULL) {
-    /* a lead is made of whole hands of the analysis, the rest still holds */
-    hand_list_remove_contained(&player->hands, &hand.cards);
-  } else {
-    /* a beat may break hands up, take the cards apart again */
-    player->ai->analyze(&player->cards, &player->hands);
-  }
 
   hand_copy(&game->last_hand, &hand);
   game->last_play = game->player_index;
@@ -222,7 +213,6 @@ void game_play(game_t *game, uint32_t seed) {
     player_t *player = &game->players[i];
 
     card_array_sort(&player->cards);
-    player->ai->analyze(&player->cards, &player->hands);
   }
 
   /* game play */

@@ -55,7 +55,9 @@ landlord-asan: ## 在 ASan/UBSan 下跑 landlord 自检 (独立构建目录, 会
 
 landlord-baseline: ## 重新生成 src/landlord/baseline.c.inc (仅在有意改变对局行为后)
 	@$(MAKE) build TARGET=landlord_test
-	./bin/landlord_test --baseline > src/landlord/baseline.c.inc
+	./bin/landlord_test --baseline > src/landlord/baseline.c.inc.tmp \
+		&& mv src/landlord/baseline.c.inc.tmp src/landlord/baseline.c.inc \
+		|| { rm -f src/landlord/baseline.c.inc.tmp; exit 1; }
 
 fmt: ## 用 clang-format 格式化源文件
 	@echo "  >  Formatting..."

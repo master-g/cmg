@@ -29,8 +29,15 @@ SOFTWARE.
 #include <stdlib.h>
 #include <time.h>
 
-#define BENCH_SEED_BEGIN 10000
-#define BENCH_SEED_END 20000
+/*
+ * Two batches of seeds. Rules and numbers of an AI are chosen by what they do
+ * on the first; picking the best of many tries on the same games flatters the
+ * result, so the second is only ever looked at, never tuned on.
+ */
+#define BENCH_TUNING_BEGIN 10000
+#define BENCH_TUNING_END 20000
+#define BENCH_HOLDOUT_BEGIN 20000
+#define BENCH_HOLDOUT_END 30000
 
 /* play one seed with one AI as landlord and another as both peasants */
 static bool landlord_wins(
@@ -57,17 +64,18 @@ static bool landlord_wins(
  * as landlord against two b, then b as landlord against two a. An AI playing
  * itself tells nothing, both sides get better or worse together.
  */
-static void
-duel(const char *name_a, const ai_t *a, const char *name_b, const ai_t *b) {
+static void duel(
+    const char *name_a, const ai_t *a, const char *name_b, const ai_t *b,
+    uint32_t begin, uint32_t end) {
   int a_landlord = 0; /* games a won as landlord */
   int b_landlord = 0;
-  int games = BENCH_SEED_END - BENCH_SEED_BEGIN;
+  int games = (int)(end - begin);
   uint32_t seed;
   game_t game;
 
   game_init(&game);
 
-  for (seed = BENCH_SEED_BEGIN; seed < BENCH_SEED_END; seed++) {
+  for (seed = begin; seed < end; seed++) {
     int landlord;
 
     game_play(&game, seed);
@@ -90,19 +98,17 @@ duel(const char *name_a, const ai_t *a, const char *name_b, const ai_t *b) {
       100.0 * (b_landlord + games - a_landlord) / (2 * games));
 }
 
-/* benchmark: play every seed in the range and count who wins */
-int main(void) {
+/* play every seed in the range with the default AIs and count who wins */
+static void selfplay(uint32_t begin, uint32_t end) {
   int peasantwon = 0;
   int landlordwon = 0;
   int illegal = 0; /* games stopped by a hand the rules reject */
   uint32_t seed;
   game_t game;
 
-  printf("start at %ld\n", (long)time(NULL));
-
   game_init(&game);
 
-  for (seed = BENCH_SEED_BEGIN; seed < BENCH_SEED_END; seed++) {
+  for (seed = begin; seed < end; seed++) {
     game_play(&game, seed);
 
     if (game.status != GAME_STATUS_OVER)
@@ -116,17 +122,22 @@ int main(void) {
   printf("peasants : %d\n", peasantwon);
   printf("landlord : %d\n", landlordwon);
   printf("illegal  : %d\n", illegal);
+}
 
-  printf("\n");
+static void bench(const char *name, uint32_t begin, uint32_t end) {
+  printf(
+      "\n== %s: seeds %u to %u ==\n", name, (unsigned)begin, (unsigned)end - 1);
+  selfplay(begin, end);
+  duel("table", &ai_table, "moves", &ai_moves, begin, end);
+}
 
-  duel("table", &ai_table, "moves", &ai_moves);
-  duel("moves", &ai_moves, "counted", &ai_counted);
-  duel("counted", &ai_counted, "advanced", &ai_advanced);
-  duel("counted", &ai_counted, "standard", &ai_standard);
-  duel("advanced", &ai_advanced, "standard", &ai_standard);
+int main(void) {
+  printf("start at %ld\n", (long)time(NULL));
 
-  printf("ended at %ld\n", (long)time(NULL));
-  printf("\n");
+  bench("tuning", BENCH_TUNING_BEGIN, BENCH_TUNING_END);
+  bench("holdout", BENCH_HOLDOUT_BEGIN, BENCH_HOLDOUT_END);
+
+  printf("\nended at %ld\n", (long)time(NULL));
 
   return 0;
 }

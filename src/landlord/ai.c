@@ -42,9 +42,11 @@ enum {
 int ai_bid(const ai_view_t *view) {
   int shouldbid = 0;
   int handlistlen = 0;
+  hand_list_t hands;
 
   /* the fewer hands the cards need, the more they are worth */
-  handlistlen = analysis_count_hands(analysis_standard, view->cards);
+  analysis_standard(view->cards, &hands);
+  handlistlen = hand_list_count(&hands);
 
   if (handlistlen > AI_BID_HANDS_WEAK) {
     shouldbid = 0;
@@ -64,190 +66,6 @@ int ai_bid(const ai_view_t *view) {
   else
     return 0;
 }
-
-/* first hand of that type the seat holds */
-static const hand_t *ai_find_hand(const hand_list_t *hands, hand_type_t type) {
-  int i = 0;
-
-  for (i = 0; i < hand_list_count(hands); i++) {
-    if (hand_type_equals(hand_list_at(hands, i)->type, type))
-      return hand_list_at(hands, i);
-  }
-
-  return NULL;
-}
-
-static int ai_count_hands(const hand_list_t *hands, hand_type_t type) {
-  int i = 0;
-  int count = 0;
-
-  for (i = 0; i < hand_list_count(hands); i++) {
-    if (hand_type_equals(hand_list_at(hands, i)->type, type))
-      count++;
-  }
-
-  return count;
-}
-
-static void ai_append_hand(hand_t *hand, const hand_t *part) {
-  card_array_concat(&hand->cards, &part->cards);
-}
-
-static void ai_split_lead(const ai_view_t *view, hand_t *hand) {
-  const hand_list_t *hands = view->hands;
-  int i = 0;
-  const hand_t *node = NULL;
-  int need = 0;
-  const hand_type_t solo = hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, false);
-  const hand_type_t pair = hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, false);
-  const hand_type_t trio = hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, false);
-  hand_type_t kickertype = solo;
-
-  hand_clear(hand);
-
-  /* empty hands */
-  if ((hands == NULL) || (hand_list_count(hands) == 0))
-    return;
-
-  /* last hand */
-  if (hand_list_count(hands) == 1) {
-    ai_append_hand(hand, hand_list_at(hands, 0));
-    return;
-  }
-
-  /* try to find longest hand combination */
-  node =
-      ai_find_hand(hands, hand_type(HAND_PRIMAL_TRIO, HAND_KICKER_NONE, true));
-
-  if (node != NULL) {
-    ai_append_hand(hand, node);
-
-    /* how many kickers do we need */
-    need = card_array_length(&node->cards) / HAND_PRIMAL_TRIO;
-
-    /* trio-pair-chain then trio-solo-chain */
-    if (ai_count_hands(hands, pair) >= need)
-      kickertype = pair;
-    else if (ai_count_hands(hands, solo) >= need)
-      kickertype = solo;
-    else
-      return;
-
-    for (i = 0; (need > 0) && (i < hand_list_count(hands)); i++) {
-      if (hand_type_equals(hand_list_at(hands, i)->type, kickertype)) {
-        ai_append_hand(hand, hand_list_at(hands, i));
-        need--;
-      }
-    }
-
-    return;
-  }
-
-  /* pair chain */
-  node =
-      ai_find_hand(hands, hand_type(HAND_PRIMAL_PAIR, HAND_KICKER_NONE, true));
-
-  /* solo chain */
-  if (node == NULL)
-    node = ai_find_hand(
-        hands, hand_type(HAND_PRIMAL_SOLO, HAND_KICKER_NONE, true));
-
-  if (node != NULL) {
-    ai_append_hand(hand, node);
-    return;
-  }
-
-  /* trio */
-  node = ai_find_hand(hands, trio);
-
-  if ((node != NULL) && (hand_rank(node) != CARD_RANK_2)) {
-    ai_append_hand(hand, node);
-
-    /* pair */
-    node = ai_find_hand(hands, pair);
-
-    if ((node == NULL) || (hand_rank(node) == CARD_RANK_2)) {
-      /* solo, 2 and jokers are too good to be thrown in as a kicker */
-      node = ai_find_hand(hands, solo);
-
-      if ((node != NULL) && (hand_rank(node) >= CARD_RANK_2))
-        node = NULL;
-    }
-
-    /* no solo nor pair, return with trio */
-    if (node != NULL)
-      ai_append_hand(hand, node);
-
-    return;
-  }
-
-  /* pair */
-  node = ai_find_hand(hands, pair);
-
-  if ((node != NULL) && (hand_rank(node) != CARD_RANK_2)) {
-    ai_append_hand(hand, node);
-    return;
-  }
-
-  /* just play */
-  ai_append_hand(hand, hand_list_at(hands, 0));
-}
-
-#define AI_BEAT_VALUE_FACTOR 10
-
-/*
- * Choose one of the hands that beat tobeat.
- *
- * Every candidate is valued by the hands the remaining cards would take
- * (times ten) plus its own rank, and the lowest value is played: get rid of
- * the most for the least. A bomb or the nuke is only spent when nothing else
- * beats the hand, or when it is the last hand to play.
- */
-static bool ai_split_beat(const ai_view_t *view, hand_t *beat) {
-  const card_array_t *cards = view->cards;
-  const hand_t *tobeat = view->last_hand;
-  const ai_t *ai = view->ai;
-  hand_list_t beats;
-  int i = 0;
-  int chosen = -1;
-  int chosenvalue = 0;
-  bool chosenspends = false;
-
-  beat_search_all(cards, tobeat, &beats);
-
-  for (i = 0; i < hand_list_count(&beats); i++) {
-    const hand_t *candidate = hand_list_at(&beats, i);
-    card_array_t rest;
-    int value = 0;
-    bool spends = false;
-
-    card_array_copy(&rest, cards);
-    card_array_subtract(&rest, &candidate->cards);
-    value = ai->count(&rest) * AI_BEAT_VALUE_FACTOR + hand_rank(candidate);
-    spends = (hand_is_bomb(candidate) || hand_is_nuke(candidate)) &&
-             !card_array_is_empty(&rest);
-
-    /* on a tie the candidate found first wins */
-    if ((chosen < 0) || (chosenspends && !spends) ||
-        ((chosenspends == spends) && (value < chosenvalue))) {
-      chosen = i;
-      chosenvalue = value;
-      chosenspends = spends;
-    }
-  }
-
-  if (chosen < 0)
-    return false;
-
-  hand_copy(beat, hand_list_at(&beats, chosen));
-  return true;
-}
-
-/*
- * ************************************************************
- * choosing among every legal move
- * ************************************************************
- */
 
 #define AI_MOVE_TURN_VALUE 100
 #define AI_MOVE_BOMB_VALUE 250
@@ -442,34 +260,9 @@ static bool ai_table_beat(const ai_view_t *view, hand_t *hand) {
   return ai_moves_cheapest(view, &table, &moves, hand);
 }
 
-/*
- * ************************************************************
- * the AIs
- * ************************************************************
- */
+const ai_t ai_moves = {ai_moves_lead, ai_moves_beat};
 
-static int ai_standard_count(const card_array_t *cards) {
-  return analysis_count_hands(analysis_standard, cards);
-}
-
-static int ai_advanced_count(const card_array_t *cards) {
-  return analysis_count_hands(analysis_advanced, cards);
-}
-
-const ai_t ai_standard = {
-    analysis_standard, ai_standard_count, ai_split_lead, ai_split_beat};
-
-const ai_t ai_advanced = {
-    analysis_advanced, ai_advanced_count, ai_split_lead, ai_split_beat};
-
-const ai_t ai_counted = {
-    analysis_counted, analysis_counted_hands, ai_split_lead, ai_split_beat};
-
-const ai_t ai_moves = {
-    analysis_counted, analysis_counted_hands, ai_moves_lead, ai_moves_beat};
-
-const ai_t ai_table = {
-    analysis_counted, analysis_counted_hands, ai_table_lead, ai_table_beat};
+const ai_t ai_table = {ai_table_lead, ai_table_beat};
 
 void ai_lead(const ai_view_t *view, hand_t *hand) {
   hand_clear(hand);

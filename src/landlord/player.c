@@ -25,7 +25,6 @@ SOFTWARE.
 #include "player.h"
 
 void player_clear(player_t *player) {
-  hand_list_clear(&player->hands);
   player->identity = PLAYER_IDENTITY_PEASANT;
   card_array_clear(&player->cards);
 }
